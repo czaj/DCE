@@ -25,7 +25,7 @@ The models are estimated using maximum likelihood method and work with the follo
 - parallel computing
 and more ...
 
-The codes published under a Creative Commons Attribution 4.0 License. This means you are free to use, share, or modify them for any purpose, even commercially. What we ask in return is that you acknowledge the source of the codes or reference one of our papers.
+The codes published under a Creative Commons Attribution 4.0 License. This means you are free to use, share, or modify them for any purpose, even commercially. What we ask in return is that you acknowledge the source of the codes or reference one of our papers (see czaj.org/research for details).
 
 We are sharing the codes for two reasons:
 - Evolution - feel free to study, apply, extend, and build upon what we have done.
