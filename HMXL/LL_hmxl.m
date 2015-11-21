@@ -175,8 +175,6 @@ else % analytical gradient
     
     if any(isnan(Xa(:))) == 0 ... % faster version for complete dataset
             
-    b_mtx_grad = [];
-
         parfor n = 1:EstimOpt.NP ...
         
             U = reshape(Xa(:,:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NRep); ... % NAlt x NCT x NRep
