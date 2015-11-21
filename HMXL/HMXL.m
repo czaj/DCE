@@ -128,7 +128,7 @@ if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional co
 else
     if isfield(EstimOpt,'MeaExpMatrix') == 0 || length(EstimOpt.MeaExpMatrix) ~= size(INPUT.Xmea,2)
         EstimOpt.MeaExpMatrix = ones(1, size(INPUT.Xmea,2));
-        cprintf(rgb('DarkOrange'), 'WARNING: MeaExpMatrix not defined - assuming that every measurment equation is explained with additional covariates /n')
+        cprintf(rgb('DarkOrange'), 'WARNING: MeaExpMatrix not defined - assuming that every measurment equation is explained with additional covariates \n')
     else
         EstimOpt.MeaExpMatrix = EstimOpt.MeaExpMatrix(:)';
     end
