@@ -96,7 +96,8 @@ f = logprobs;
 if EstimOpt.NumGrad == 0 % with analitical gradient  
     if EstimOpt.WTP_space == 0
         XXa = reshape(Xa, EstimOpt.NAlt, N, EstimOpt.NVarA);
-        Xhat = squeeze(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1)); % N x NVarA
+%         Xhat = squeeze(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1))'; % N x NVarA
+        Xhat = reshape(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1),[N,EstimOpt.NVarA]); % N x NVarA
         g = Xa(y == 1, :) - Xhat;
         if EstimOpt.NVarNLT > 0
             XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
