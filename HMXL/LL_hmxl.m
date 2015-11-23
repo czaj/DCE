@@ -16,7 +16,7 @@ if EstimOpt.FullCov == 0
     bl = reshape(B((2+EstimOpt.NVarM)*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)), EstimOpt.NVarA, EstimOpt.NLatent); ... % b interakcji z LV
     bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA), EstimOpt.NVarstr, EstimOpt.NLatent); ... b równania struktury
     bmea = B((EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA+1:end); ... % b measurement
-else
+elseif EstimOpt.FullCov == 1
     ba = B(1:EstimOpt.NVarA); ... % b atrybutów
     bv = B(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA,2));
     VC = tril(ones(EstimOpt.NVarA)); ...
@@ -25,6 +25,23 @@ else
     bl = reshape(B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)+1:EstimOpt.NVarA*(EstimOpt.NLatent+1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarA, EstimOpt.NLatent); ... % b interakcji z LV
     bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent++EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarstr, EstimOpt.NLatent); ... b równania struktury
     bmea = B((EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)+1:end); ... % b measurement
+elseif EstimOpt.FullCov == 2
+    ba = B(1:EstimOpt.NVarA); ... % b atrybutów
+    bv = B(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent);
+    VC = tril(ones(EstimOpt.NVarA+EstimOpt.NLatent)); ...
+    VCtmp2 = diag(ones(EstimOpt.NLatent+EstimOpt.NVarA,1));
+    VCtmp2(1:EstimOpt.NVarA, 1:EstimOpt.NVarA) = 0;
+    VC(VCtmp2 == 1) = 0;
+    VC(VC==1) = bv; ...
+    VC(VCtmp2 == 1) = 1;
+    tmp = sqrt(sum(VC(EstimOpt.NVarA+1:end,:).^2,2)); 
+    VC(EstimOpt.NVarA+1:end,:) = VC(EstimOpt.NVarA+1:end,:)./tmp(:, ones(EstimOpt.NVarA+EstimOpt.NLatent,1));
+    bm = reshape(B(EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:EstimOpt.NVarA*(EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent), EstimOpt.NVarA, EstimOpt.NVarM); ... % b mean covariates
+    bl = reshape(B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:EstimOpt.NVarA*(EstimOpt.NLatent+1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent), EstimOpt.NVarA, EstimOpt.NLatent); ... % b interakcji z LV
+    bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent), EstimOpt.NVarstr, EstimOpt.NLatent); ... b równania struktury
+    bmea = B((EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:end); ... % b measurement
+    err_sliced = VC*err_sliced;
+
 end
 
 LV_tmp = Xstr*bstr; ... % NP x Latent
@@ -42,8 +59,14 @@ if EstimOpt.NVarM > 0
 else
     ba = ba(:, ones(EstimOpt.NP*EstimOpt.NRep,1));
 end
+    
+if EstimOpt.FullCov == 2
+    b_mtx = ba + bl*LV + err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP
+    
+else
+    b_mtx = ba + bl*LV + VC*err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP
+end  
 
-b_mtx = ba + bl*LV + VC*err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP
 if sum(EstimOpt.Dist==1) > 0; ... % Log - normal
     b_mtx(EstimOpt.Dist==1,:) = exp(b_mtx(EstimOpt.Dist == 1,:)); ...
 elseif sum(EstimOpt.Dist==2) > 0; ... % Spike       
