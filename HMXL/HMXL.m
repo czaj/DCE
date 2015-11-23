@@ -170,17 +170,23 @@ EstimOpt.NVarmea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurme
 EstimOpt.NVarmea_exp = size(INPUT.Xmea_exp,2);
 
 for i=1:size(EstimOpt.MeaMatrix,2)
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(:,i))) > 10
-            cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
-        end
-    end
     if sum(isnan(INPUT.Xmea(:,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Measurement variable %d contains NaN values \n' ,i)
     end
 	if sum(isinf(INPUT.Xmea(:,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Measurement variable %d contains Inf values \n',i)
-	end
+    end
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(:,i))) > 10
+            cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
+        end
+    end
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+            INPUT.Xmea(:,i) = INPUT.Xmea(:,i) - min(unique(INPUT.Xmea(:,i))) + 1; % make unique values positive (avoid problems with dummyvar)            
+%             cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
+        end
+    end  
 end
 
 for i = 1:EstimOpt.NVarstr
@@ -236,7 +242,7 @@ for i = 1:size(INPUT.Xmea,2)
            EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
         end
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Sigma'}];
-    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL 
+    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
         EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(:,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(:,i))) - 1)*(1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients 
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(:,i)))-1;
         EstimOpt.Names = [EstimOpt.Names, 'MNL '];
