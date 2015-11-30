@@ -433,10 +433,10 @@ if any(EstimOpt.MeaSpecMatrix == 4) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xm
    cprintf(rgb('DarkOrange'), 'WARNING: it is recommended to switch to numerical gradient, as analitycal can be not precise when Xmea take large values for NB \n')
 end
 
-% if any(EstimOpt.MeaSpecMatrix == 5) && EstimOpt.NumGrad == 0 
-%    EstimOpt.NumGrad = 1;
-%    cprintf(rgb('DarkOrange'), 'WARNING: ZIP\n')
-% end
+if any(EstimOpt.MeaSpecMatrix == 5) && EstimOpt.NumGrad == 0 
+   EstimOpt.NumGrad = 1;
+   cprintf(rgb('DarkOrange'), 'WARNING: it is recommended to switch to numerical gradient, as analitycal can be not precise when Xmea take large values for NB \n')
+end
 
 if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
@@ -626,12 +626,12 @@ for i = 1:size(INPUT.Xmea,2)
         disp('Probability of Non-participation (logit)')
         disp('var.   coef.     st.err.  p-value')
 
-        disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
+        disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+2+2*sum(EstimOpt.MeaMatrix(:,i),1)+2*tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
         l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
         
         disp('Poisson model')
         disp('var.   coef.     st.err.  p-value')
-        disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])        
+        
         l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
     end
     
@@ -664,9 +664,7 @@ for i = 1:size(INPUT.Xmea,2)
     elseif EstimOpt.MeaSpecMatrix(i) == 3
         model = 'POISS';
     elseif EstimOpt.MeaSpecMatrix(i) == 4
-        model = 'NB';
-    elseif EstimOpt.MeaSpecMatrix(i) == 5
-        model = 'ZIP';
+        model = 'GPOISS';
     end
     Results.R_out(EstimOpt.NVarstr+3+l+2,1) = cellfun(@(x)[x model],{'Estimated using '},'UniformOutput',0);
     Results.R_out(EstimOpt.NVarstr+3+l+3,1:4) = head;

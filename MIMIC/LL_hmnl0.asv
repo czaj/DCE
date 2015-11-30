@@ -66,7 +66,7 @@ for i = 1:size(Xmea,2)
         p = p/(1+p);
         L = zeros(EstimOpt.NP,1);
         L(Xmea(:,i) == 0) = p + (1-p)*exp(-exp(bx(2)));
-        L(Xmea(:,i) ~= 0) = (1-p)*exp(bx(2)*Xmea(Xmea(:,i) ~= 0,i) - exp(bx(2)))./min(gamma(Xmea(Xmea(:,i) ~= 0,i)+1),realmax);
+        L(Xmea(:,i) ~= 0) = (1-p)*exp(bx(2)*Xmea(Xmea(:,i) ~= 0,i) - exp(bx(2)))./min(gamma(Xmea(:,i)+1),realmax);
         L_mea = L_mea.*L; ...
         l = l+2; ...
     end
