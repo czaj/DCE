@@ -3,16 +3,16 @@ function [LL,g,h] = LL_mimic_MATlike(Xstr, Xmea,Xmea_exp, err, EstimOpt, OptimOp
 LLfun = @(B) LL_mimic(Xstr, Xmea,Xmea_exp, err, EstimOpt,B);
 
 
-% [f,j] = LLfun(b0);
-%         j(:,EstimOpt.BActive ==0) = 0;
-%         g = sum(j,1)'; ...
-% 
-% 
-% f2 = LLfun(b0);  
-%         j2 = numdiff(LLfun,f2,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
-%         g2 = sum(j2,1)';  
-% [g,g2]
-% pause;
+[f,j] = LLfun(b0);
+        j(:,EstimOpt.BActive ==0) = 0;
+        g = sum(j,1)'; ...
+
+
+f2 = LLfun(b0);  
+        j2 = numdiff(LLfun,f2,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
+        g2 = sum(j2,1)';  
+[g,g2]
+pause;
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
