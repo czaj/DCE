@@ -2,6 +2,7 @@ function [LL,g,h] = LL_hmxl_MATlike(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,Es
 
 LLfun = @(B) LL_hmxl(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
 
+
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
         [f,j] = LLfun(b0);
