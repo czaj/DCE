@@ -80,10 +80,11 @@ elseif type == 1 % HLC
 
     LV_tmp = X_str*bstr; ... % NP x NLatent
     LV_tmp = reshape(permute(LV_tmp(:,:, ones(EstimOpt.NRep,1)),[2 3 1]), EstimOpt.NLatent, EstimOpt.NRep*EstimOpt.NP); ...
-    LV = LV_tmp + err_sliced; ... % NLatent x NRep*NP
+    LV_tmp = LV_tmp + err_sliced; ... % NLatent x NRep*NP
 
-    mLV = mean(LV,2); ...
-    LV = LV - mLV(:,ones(1,size(LV,2))); ... % normalilzing for 0 mean
+    mLV = mean(LV_tmp,2); ...
+    sLV = std(LV_tmp,0,2); ...
+    LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); ... % normalilzing for 0 mean and std
 
     p = zeros(EstimOpt.NP, EstimOpt.NRep);
     for i = 1:EstimOpt.NP
