@@ -96,7 +96,8 @@ if isfield(EstimOpt,'MeaMatrix')
         error('Measurment equations erroneously defined (incorrect values in the MeaMatrix)')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1,2) == 0)
-        error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
+%         error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
+    cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1) == 0)
         error('Measurment equations erroneously defined (some measurement variables unused)')
