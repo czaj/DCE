@@ -146,21 +146,21 @@ OptimOpt.GradObj = 'on'; %'off';
 % OptimOpt.FinDiffType = 'central'; % ('forward')
 % OptimOpt.Hessian = 'user-supplied'; % ('off'), only used by trust-region
 
-if isfield(EstimOpt,'TolFun')
-    OptimOpt.TolFun = EstimOpt.TolFun; % df / gradient precision level
+if isfield(EstimOpt,'FunctionTolerance')
+    OptimOpt.FunctionTolerance = EstimOpt.FunctionTolerance; % df / gradient precision level
 elseif isfield(EstimOpt,'eps')
-    OptimOpt.TolFun = EstimOpt.eps;
+    OptimOpt.FunctionTolerance = EstimOpt.eps;
 end
-if isfield(EstimOpt,'TolX')
-    OptimOpt.TolX = EstimOpt.TolX; % step precision level
+if isfield(EstimOpt,'StepTolerance')
+    OptimOpt.StepTolerance = EstimOpt.TolX; % step precision level
 elseif isfield(EstimOpt,'eps')
-    OptimOpt.TolX = EstimOpt.eps;
+    OptimOpt.StepTolerance = EstimOpt.eps;
 end
-% if isfield(EstimOpt,'TolB')
-%     OptimOpt.TolB = EstimOpt.TolB; % dB precision level
-% elseif isfield(EstimOpt,'eps')
-%     OptimOpt.TolB = EstimOpt.eps;
-% end
+if isfield(EstimOpt,'OptimalityTolerance')
+    OptimOpt.OptimalityTolerance = EstimOpt.OptimalityTolerance; % dB precision level
+elseif isfield(EstimOpt,'eps')
+    OptimOpt.OptimalityTolerance = EstimOpt.eps;
+end
 
 OptimOpt.MaxIter = 1e4;
 OptimOpt.FunValCheck = 'on';

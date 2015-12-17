@@ -599,21 +599,19 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
     
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
-    err_mtx = err_mtx(:,2:end);
-    
+    err_mtx = err_mtx(:,2:end);    
     if EstimOpt.NP*EstimOpt.NRep < 3e+7   
-        err_mtx= icdf('Normal',err_mtx,0,1); %to be cut down later  
+        err_mtx = icdf('Normal',err_mtx,0,1); %to be cut down later  
     else % this is for very large number of draws * variables
-        for i=1:EstimOpt.NLatent+EstimOpt.NVarA
+        for i = 1:EstimOpt.NLatent+EstimOpt.NVarA
             err_mtx(:,i) = icdf('Normal',err_mtx(:,i),0,1); %to be cut down later
         end        
-    end
-    
+    end    
 end
 
-
+% err_mtx(:,EstimOpt.NLatent + find(EstimOpt.Dist == -1)) = 0;
 err_mtx(:,find(EstimOpt.Dist == -1)) = 0;
-err_sliced = err_mtx'; % NLatent + NVarA x NRep * NP
+err_sliced = err_mtx'; % NVarA + NLatent x NRep * NP
 
 if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
     Results.err = err_sliced;

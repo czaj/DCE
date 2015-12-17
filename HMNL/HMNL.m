@@ -483,30 +483,31 @@ cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NLatent); %to be cut down later   
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NLatent+EstimOpt.NVarA+1); %to be cut down later   
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
-    err_mtx=lhsnorm(zeros((EstimOpt.NLatent)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent)*EstimOpt.NP,1)),EstimOpt.NRep); 
+    err_mtx=lhsnorm(zeros((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep); 
     err_mtx = reshape(err_mtx, EstimOpt.NRep*EstimOpt.NP, EstimOpt.NLatent);
 elseif EstimOpt.Draws >= 3 % Quasi random draws 
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NLatent,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
+        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
         cprintf('*blue','Halton '); cprintf('draws with reverse radix scrambling (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NLatent,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
+        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
         hm1 = scramble(hm1,'RR2');
     elseif EstimOpt.Draws == 5
         cprintf('*blue','Sobol '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NLatent,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
+        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
     elseif EstimOpt.Draws == 6
         cprintf('*blue','Sobol '); cprintf('draws with random linear scramble and random digital shift (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NLatent,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
+        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
     
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
+    err_mtx = err_mtx(:,2+EstimOpt.NVarA:end);    
     if EstimOpt.NP*EstimOpt.NRep < 3e+7   
         err_mtx= icdf('Normal',err_mtx,0,1); %to be cut down later  
     else % this is for very large number of draws * variables
