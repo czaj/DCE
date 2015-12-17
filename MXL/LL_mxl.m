@@ -178,11 +178,11 @@ if sum(Dist(2:end)>=5) > 0 % Johnson
     if sum(Dist(2:end)==6) > 0 % Johnson Sb
         tmp = exp(b_mtx_n(Dist(2:end) ==6,:));
         b_mtx_n(Dist(2:end)==6,:) = tmp./(1+tmp); ...
-        b_mtx_n(Dist(2:end) == 6,:) =b0j(1:Johnson, ones(NRep*NP,1)) + exp(b0j(Johnson+1:end, ones(NRep*NP,1))).*b_mtx_n(Dist(2:end)==6,:);
+        b_mtx_n(Dist(2:end) == 6,:) = b0j(1:Johnson, ones(NRep*NP,1)) + exp(b0j(Johnson+1:end, ones(NRep*NP,1))).*b_mtx_n(Dist(2:end)==6,:);
     end
     if sum(Dist(2:end)==7) > 0 % Johnson Su
         b_mtx_n(Dist(2:end)==7,:) = sinh(b_mtx_n(Dist(2:end)==7,:)); ...
-        b_mtx_n(Dist(2:end) ==7,:) =b0j(1:Johnson, ones(NRep*NP,1)) + exp(b0j(Johnson+1:end, ones(NRep*NP,1))).*b_mtx_n(Dist(2:end)==7,:);
+        b_mtx_n(Dist(2:end) ==7,:) = b0j(1:Johnson, ones(NRep*NP,1)) + exp(b0j(Johnson+1:end, ones(NRep*NP,1))).*b_mtx_n(Dist(2:end)==7,:);
     end
 
 end
