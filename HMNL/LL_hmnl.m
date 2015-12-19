@@ -15,13 +15,22 @@ mLV = mean(LV_tmp,2); ...
 sLV = std(LV_tmp,0,2); ...
 LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); ... % normalilzing for 0 mean and std
 
-b_mtx = ba(:,ones(EstimOpt.NRep*EstimOpt.NP,1)) + bl*LV; ... % NVarA x NRep*NP
+b_mtx = ba(:,ones(EstimOpt.NRep*EstimOpt.NP,1)) + bl*LV;  % NVarA x NRep*NP   
+    
+if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
+%     if sum(EstimOpt.MNLDist == 1) > 0; ... % Log - normal
+        b_mtx(EstimOpt.MNLDist == 1,:) = exp(b_mtx(EstimOpt.MNLDist == 1,:)); 
+%     elseif sum(EstimOpt.MNLDist == 2) > 0; ... % Spike       
+        b_mtx(EstimOpt.MNLDist == 2,:) = max(b_mtx(EstimOpt.MNLDist == 2,:),0);
+%     end
+end
+
+
 if EstimOpt.WTP_space > 0
     if EstimOpt.NumGrad == 0
        b_mtx_grad = reshape(b_mtx ,EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP); ...% needed for gradient calculation in WTP_space
     end
     b_mtx(1:end-EstimOpt.WTP_space,:) = b_mtx(1:end-EstimOpt.WTP_space,:).*b_mtx(EstimOpt.WTP_matrix,:); ...
-
 end
 
 probs = zeros(EstimOpt.NP,EstimOpt.NRep); ...

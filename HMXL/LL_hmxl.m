@@ -60,8 +60,7 @@ else
 end
     
 if EstimOpt.FullCov == 2
-    b_mtx = ba + bl*LV + err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP
-    
+    b_mtx = ba + bl*LV + err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP  
 else
     b_mtx = ba + bl*LV + VC*err_sliced(1:EstimOpt.NVarA,:); ... % NVarA x NRep*NP
 end  

@@ -160,6 +160,13 @@ if EstimOpt.NVarmea_exp > 0
     end
 end
 
+if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
+    EstimOpt.MNLDist = EstimOpt.MNLDist(:);
+    if size(EstimOpt.MNLDist,1) ~= EstimOpt.NVarA
+        error('Incorrect no. of random parameters'' distributions provided')
+    end
+end
+
 EstimOpt.Names = [];% Names of the models
 EstimOpt.NVarcut = 0; % no of cutoffs for ordered probits + constants + variances for OLS 
 EstimOpt.NVarcut0 = 0; % no of cutoffs for HMNL0
@@ -527,6 +534,11 @@ end
 
 %% Display Options
 
+
+if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
+    EstimOpt.NumGrad = 1;
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - non-normally distributed LVs not supported by analytical gradient \n')
+end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
