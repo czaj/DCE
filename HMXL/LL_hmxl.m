@@ -42,7 +42,6 @@ elseif EstimOpt.FullCov == 2
     bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent), EstimOpt.NVarstr, EstimOpt.NLatent); ... b równania struktury
     bmea = B((EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA+EstimOpt.NLatent,2)-EstimOpt.NLatent+1:end); ... % b measurement
     err_sliced = VC*err_sliced;
-
 end
 
 LV_tmp = Xstr*bstr; ... % NP x Latent

@@ -99,9 +99,7 @@ if NVarNLT > 0
     
 %     bt_tmp = permute(b0t(:, ones(NAlt*NCT,1), ones(NP,1)), [2 1 3]);
     bt_tmp = b0t(:,ones(NAlt*NCT,1))';...
-	bt_tmp = bt_tmp(:,:,ones(1,1,NP));
-
-    
+	bt_tmp = bt_tmp(:,:,ones(1,1,NP));   
     
     if NLTType == 1 % BC
         Xt(:,IndTransNon0,:) = -(Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
@@ -248,7 +246,6 @@ if EstimOpt.NumGrad == 1 % with numerical gradient
     % U_selected = reshape(U(YY3(:,ones(NRep,1),:) == 1),NCT,NRep,NP); ...
     % U_sum = reshape((sum(reshape(U,NAlt,NCT,NRep,NP),1)),NCT,NRep,NP); ...
     % p0 = reshape(mean(prod(U_selected ./ U_sum),2),NP,1); toc
-
     
 elseif EstimOpt.NumGrad == 0 && EstimOpt.ApproxHess == 1 % analitical gradient + approximated hessian
 
@@ -275,8 +272,8 @@ elseif EstimOpt.NumGrad == 0 && EstimOpt.ApproxHess == 1 % analitical gradient +
             U_sum = reshape(sum(U,1),1,NCT,NRep); ... 
             U_prob = U./U_sum(ones(NAlt,1,1),:,:); ... % NAlt x NCT x NRep
             U_prod = prod(reshape(U_prob(YY(:,n*ones(NRep,1))==1),NCT,NRep),1); ... % 1 x NRep
-            %p0(n) = mean(U_prod);
-            p0(n) = max(mean(U_prod),realmin); ...
+            p0(n) = mean(U_prod);
+%             p0(n) = max(mean(U_prod),realmin); ...
                 
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*NCT,1, NRep); ... % NAlt*NCT x NVarA x NRep
@@ -367,8 +364,8 @@ elseif EstimOpt.NumGrad == 0 && EstimOpt.ApproxHess == 1 % analitical gradient +
             U_sum = reshape(nansum(U,1),1,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); ...
             U_prob = U./U_sum(ones(NAlt,1,1),:,:); ... % NAlt x NCT x NRep
             U_prod = prod(reshape(U_prob(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep),1); ... % 1 x NRep
-            %p0(n) = mean(U_prod);
-            p0(n) = max(mean(U_prod),realmin); ...
+            p0(n) = mean(U_prod);
+%             p0(n) = max(mean(U_prod),realmin); ...
                 
             % calculations for gradient
             
@@ -440,10 +437,8 @@ elseif EstimOpt.NumGrad == 0 && EstimOpt.ApproxHess == 0 % Analitical gradient a
             U_sum = reshape(sum(U,1),1,NCT,NRep); ... 
             U_prob = U./U_sum(ones(NAlt,1,1),:,:); ... % NAlt x NCT x NRep
             U_prod = prod(reshape(U_prob(YY(:,n*ones(NRep,1))==1),NCT,NRep),1); ... % 1 x NRep
-            %p0(n) = mean(U_prod);
-%             dlaczego max(x,0)? czy to nie powoduje problemów póŸniej przy dzieleniu przez 0? 
-%             chodzi³o o realmin - mój b³¹d
-            p0(n) = max(mean(U_prod),realmin); ...
+            p0(n) = mean(U_prod);
+%             p0(n) = max(mean(U_prod),realmin); ...
                 
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*NCT,1, NRep); ... % NAlt*NCT x 1 x NRep
@@ -502,8 +497,8 @@ elseif EstimOpt.NumGrad == 0 && EstimOpt.ApproxHess == 0 % Analitical gradient a
             U_sum = reshape(nansum(U,1),1,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); ...
             U_prob = U./U_sum(ones(NAlt,1,1),:,:); ... % NAlt x NCT x NRep
             U_prod = prod(reshape(U_prob(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep),1); ... % 1 x NRep
-            %p0(n) = mean(U_prod);
-            p0(n) = max(mean(U_prod),realmin); ...
+            p0(n) = mean(U_prod);
+%             p0(n) = max(mean(U_prod),realmin); ...
                 
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*(NCT-sum(isnan(YY(1:NAlt:end,n)))),1, NRep); ... % NAlt*NCT x NVarA x NRep   

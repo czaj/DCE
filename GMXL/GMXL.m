@@ -536,7 +536,6 @@ end
 
 %% Output
 
-
 Results.LL = -LL;
 Results.b0 = b0;
 
@@ -591,6 +590,7 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(imag(Results.std) ~= 0) = NaN;
     
 if EstimOpt.FullCov == 0
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];

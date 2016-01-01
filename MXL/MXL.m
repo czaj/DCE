@@ -681,7 +681,6 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
-
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 % save out_MXL
@@ -927,12 +926,6 @@ if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA+4,1) = {'Covariates of Scale'};
     Results.R_out(EstimOpt.NVarA+5,1:4) = head;
     Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,1:4) = [EstimOpt.NamesS,num2cell(Results.DetailsS)];
-end
-
-if EstimOpt.NVarS > 0
-    Results.R_out(EstimOpt.NVarA+4,1) = {'Covariates of Scale'};
-    Results.R_out(EstimOpt.NVarA+5,:) = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-    Results.R_out(EstimOpt.NVarA+5:EstimOpt.NVarA+EstimOpt.NVarS+4,:) = [EstimOpt.NamesS, num2cell([Results.bhat(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end), pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end))])];
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
