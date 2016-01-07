@@ -93,7 +93,8 @@ logprobs = log(max(probs,realmin)); %1 *N
 % f = logprobs'.*EstimOpt.WT(1:end,:);
 f = logprobs;
 
-if EstimOpt.NumGrad == 0 % with analitical gradient  
+if nargout == 2 % function value + gradient
+
     if EstimOpt.WTP_space == 0
         XXa = reshape(Xa, EstimOpt.NAlt, N, EstimOpt.NVarA);
 %         Xhat = squeeze(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1))'; % N x NVarA

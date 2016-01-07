@@ -36,7 +36,8 @@ f = max(sum(probs_x,2), realmin);
 % f = sum(probs_x,2);
 % f = -log(max(sum(probs.*PClass,2),realmin));
 
-if EstimOpt.NumGrad == 0 % analytical gradient
+if nargout == 2 % function value + gradient
+
     U_probs = reshape(U_probs, EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP, 1, EstimOpt.NClass);
     probs_x = reshape(probs_x, EstimOpt.NP, 1, EstimOpt.NClass);
     if EstimOpt.WTP_space == 0

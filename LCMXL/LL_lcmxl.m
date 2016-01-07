@@ -61,7 +61,10 @@ end
 %     b_mtx(Dist(:,ones(1,NP*NRep,1),:)==1) = exp(b_mtx(Dist(:,ones(1,NP*NRep,1),:)==1)); % this is slower  
 
 p = zeros(NP,NClass); 
-if EstimOpt.NumGrad == 1 % numerical gradient
+
+if nargout == 1 % function value only
+
+
     if any(isnan(Xa(:))) == 0;  % faster version for complete dataset      
         for n = 1:NP; 
             YYn = YY(:,n*ones(NRep,1),ones(1,1,NClass)); ...
@@ -94,7 +97,7 @@ if EstimOpt.NumGrad == 1 % numerical gradient
 
     f = -log(sum(p.*Pclass,2)); 
 
-else % analitycal gradient
+elseif nargout == 2 % function value + gradient
     
     if FullCov == 0    
         g = zeros(NP, 2*NVarA*NClass);

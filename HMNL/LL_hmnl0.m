@@ -1,5 +1,7 @@
 function f = LL_hmnl0(Xmea,EstimOpt,b)
 
+% save tmp_LL_hmnl0
+
 l = 0;
 L_mea = ones(EstimOpt.NP,1);
 for i = 1:size(Xmea,2)

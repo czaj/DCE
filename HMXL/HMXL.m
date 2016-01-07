@@ -184,7 +184,7 @@ for i=1:size(EstimOpt.MeaMatrix,2)
     end
 	if sum(isinf(INPUT.Xmea(:,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Measurement variable %d contains Inf values \n',i)
-    end
+	end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(:,i))) > 10
             cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
@@ -616,7 +616,8 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
 end
 
 % err_mtx(:,EstimOpt.NLatent + find(EstimOpt.Dist == -1)) = 0;
-err_mtx(:,find(EstimOpt.Dist == -1)) = 0;
+% err_mtx(:,find(EstimOpt.Dist == -1)) = 0;
+err_mtx(:,EstimOpt.Dist == -1) = 0;
 err_sliced = err_mtx'; % NVarA + NLatent x NRep * NP
 
 if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
@@ -745,12 +746,16 @@ R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm,INPUT.MissingInd, err_s
 
 Results.b0_old = b0;
 if EstimOpt.HessEstFix == 1
-	f = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);...
-	Results.jacobian = numdiff(@(B) LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
+        [~, Results.jacobian] = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);
+    else        
+        f = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);
+    	Results.jacobian = numdiff(@(B) LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
 elseif EstimOpt.HessEstFix == 2
 	Results.jacobian = jacobianest(@(B) LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-	Results.jacobian = hessian(@(B) sum(LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),1), Results.bhat);
+	Results.hess = hessian(@(B) sum(LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),1), Results.bhat);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
@@ -767,6 +772,8 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(imag(Results.std) ~= 0) = NaN;
+
 
 if EstimOpt.FullCov == 0
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA))];
@@ -819,8 +826,10 @@ elseif EstimOpt.FullCov == 2
     Results.DetailsM = [Results.bhat(l+(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+1:end), Results.std(l+(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+1:end), pv(Results.bhat(l+(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+1:end), Results.std(l+(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+1:end))];
     if any(EstimOpt.Dist == -1)
         VC = tril(ones(EstimOpt.NLatent+EstimOpt.NVarA));
-        VC(find(EstimOpt.Dist == -1),:) = 0;
-        VC(:,find(EstimOpt.Dist == -1)) = 0;
+%         VC(find(EstimOpt.Dist == -1),:) = 0;
+        VC(EstimOpt.Dist == -1,:) = 0;
+%         VC(:,find(EstimOpt.Dist == -1)) = 0;
+        VC(:,EstimOpt.Dist == -1) = 0;
         VCtmp = tril(ones(size(VC)));
         VCtmp2 = diag(ones(EstimOpt.NLatent+EstimOpt.NVarA,1));
         VCtmp2(1:EstimOpt.NVarA, 1:EstimOpt.NVarA) = 0;

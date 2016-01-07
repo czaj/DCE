@@ -22,7 +22,10 @@ if EstimOpt.NVarmea_exp > 0
     Xmea_exp = reshape(Xmea_exp(ones(EstimOpt.NRep,1),:,:), EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarmea_exp);
 end
 %LogFact = 0; % Needed for Poiss and NB
-if EstimOpt.NumGrad == 1 % numerical gradient
+
+
+if nargout == 1 % function value only
+
     for i = 1:size(X_mea,2)
         if EstimOpt.MeaSpecMatrix(i) == 0 % OLS
             if EstimOpt.MeaExpMatrix(i) == 0
@@ -131,7 +134,8 @@ if EstimOpt.NumGrad == 1 % numerical gradient
     % f = -log(mean(L_mea,2)) +LogFact;
    % f = -log(max(realmin,mean(L_mea,2))); % +LogFact;
     
-else % analitycal gradient
+elseif nargout == 2 % function value + gradient
+
     gstr = zeros(EstimOpt.NP, EstimOpt.NRep, EstimOpt.NVarstr,EstimOpt.NLatent);
 %     X_str_expand = reshape(X_str, EstimOpt.NP, 1 , EstimOpt.NVarstr);
 %     X_str_expand = X_str_expand(:, ones(1, EstimOpt.NRep),:);
@@ -274,7 +278,6 @@ else % analitycal gradient
                 gmea(X_mea(:,i) == UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = (normpdf(alpha(j)-Xb(X_mea(:,i) == UniqueMea(j),:))./max(L(X_mea(:,i) == UniqueMea(j),:),realmin))*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
             end
             
-
             L_mea = L_mea.*L; ...
             l = l+k+size(X,2); ...   
         elseif EstimOpt.MeaSpecMatrix(i) == 3 % POISS
