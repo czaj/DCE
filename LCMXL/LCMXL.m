@@ -540,8 +540,12 @@ if EstimOpt.Scores ~= 0
 end
 
 if EstimOpt.HessEstFix == 1
-	f = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+	if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
+        [~, Results.jacobian] = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
+    else        
+        f = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
+    	Results.jacobian = numdiff(@(B) LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
 elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B)  LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
@@ -586,14 +590,14 @@ Results.INPUT = INPUT;
 bclass = reshape([Results.bhat(end - EstimOpt.NVarC*(EstimOpt.NClass-1) +1 :end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
 V = exp(INPUT.XXc*bclass);% NP x NClass
 Vsum = sum(V,2);
-Results.PNClass = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1); %1 x NClass
+Results.PClass = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1); %1 x NClass
 clear bclass V Vsum
 
 EstimOpt.params = length(b0);
 if isfield(EstimOpt,'BActive')
 	EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0);
 end
-Results.R = [Results.DetailsA; Results.DetailsV; Results.DetailsC; [Results.PNClass',zeros(size(Results.PNClass')),zeros(size(Results.PNClass'))]];
+Results.R = [Results.DetailsA; Results.DetailsV; Results.DetailsC; [Results.PClass',zeros(size(Results.PClass')),zeros(size(Results.PClass'))]];
 
 Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL; R2; ((2*EstimOpt.params-2*Results.LL) + 2*EstimOpt.params*(EstimOpt.params+1)/(EstimOpt.NObs-EstimOpt.params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.params];
 
@@ -622,7 +626,7 @@ for i = 1: EstimOpt.NClass-1
     Results.R_out(EstimOpt.NVarA+7:EstimOpt.NVarA+6+EstimOpt.NVarC,2+ 3*(i-1):1+3*i) = num2cell(Results.DetailsC((i-1)*EstimOpt.NVarC+1:i*EstimOpt.NVarC,:));
 end
 Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+2,1) = {'Average class probabilities'};
-Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+3,1:EstimOpt.NClass) = num2cell(Results.PNClass);
+Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+3,1:EstimOpt.NClass) = num2cell(Results.PClass);
 Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+5,1) = {'Model characteristics'};
 Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
 Results.R_out(EstimOpt.NVarA+6+EstimOpt.NVarC+6:end,2) = num2cell(Results.stats);
@@ -648,7 +652,7 @@ end
 disp(' ')
 disp('Avarage class probabilities')
 disp('class   prob.')
-disp(num2str([(1:EstimOpt.NClass)',Results.PNClass']))
+disp(num2str([(1:EstimOpt.NClass)',Results.PClass']))
 
 disp(' ')
 disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])
