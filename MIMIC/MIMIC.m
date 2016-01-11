@@ -38,10 +38,14 @@ disp(num2str(EstimOpt.NLatent,'Estimating MIMIC with %1.0f NLatent Variable(s)')
 
 
 if isfield(INPUT, 'Xstr') == 0 || numel(INPUT.Xstr) == 0
-	error('Define variables to structural equations')
+% 	error('Define variables to structural equations')
+	cprintf(rgb('DarkOrange'), 'WARNING: Structural equations empty.\n')
+    INPUT.Xstr = zeros(size(INPUT.Y,1),0);
 end
 if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
-	error('Define attitudes to measurment equations')
+% 	error('Define attitudes to measurment equations')
+    cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
+    INPUT.Xmea = zeros(size(INPUT.Y,1),0);
 end
 
 if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional covariates for explaining Measurment equations

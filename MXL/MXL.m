@@ -196,7 +196,6 @@ end
 
 %% Starting values
 
-
 if EstimOpt.FullCov == 0
 	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
             b0 = B_backup(:);

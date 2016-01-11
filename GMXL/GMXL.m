@@ -232,44 +232,45 @@ if EstimOpt.FullCov == 0
         end
     end
 
-else % EstimOpt.FullCov == 1
-    if exist('B_backup','var') && ~isempty(B_backup) 
-        if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
-            if size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1
-                b0 = B_backup(:);
-                disp('Using the starting values from Backup')
-            end
+elseif EstimOpt.FullCov == 1
+    
+	if exist('B_backup','var') && ~isempty(B_backup) && ...
+            ((EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1) || ...
+            (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1 && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2))
+        disp('Using the starting values from Backup')
+        if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1)
+        	b0 = B_backup(:);
+        elseif (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2)
+        	b0 = B_backup(:);
+        end
+    elseif isfield(Results_old,'GMXL') && isfield(Results_old.GMXL,'b0') % starting values provided
+        Results_old.GMXL.b0_old = Results_old.GMXL.b0(:);
+        Results_old.GMXL = rmfield(Results_old.GMXL,'b0');
+        if length(Results_old.GMXL.b0_old) ~=  EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
+        	disp('WARNING: Incorrect no. of starting values or model specification')
+            Results_old.GMXL = rmfield(Results_old.GMXL,'b0_old');
         else
-            if size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
-                b0 = B_backup(:);
-                disp('Using the starting values from Backup')
-            end
-        end    
-    end
-	if  ~exist('b0','var') % There is no Backup
-        if isfield(Results_old,'GMXL') && isfield(Results_old.GMXL,'b0') % starting values provided
-            Results_old.GMXL.b0_old = Results_old.GMXL.b0(:);
-            Results_old.GMXL = rmfield(Results_old.GMXL,'b0');
-            if length(Results_old.GMXL.b0_old) ~=  EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
-                disp('WARNING: Incorrect no. of starting values or model specification')
-                Results_old.GMXL = rmfield(Results_old.GMXL,'b0_old');
-            else
-                b0 = Results_old.GMXL.b0_old(:);
-                if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
-                    b0 = b0(1:end-1);
-                end
+            b0 = Results_old.GMXL.b0_old(:);
+            if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
+                b0 = b0(1:end-1);
             end
         end
 	end
     if  ~exist('b0','var') % There is no Backup nor starting values provided
         if isfield(Results_old,'MXL') && isfield(Results_old.MXL,'bhat')
             disp('Using MXL results as starting values')
+            Results_old.MXL.bhat = Results_old.MXL.bhat(:);
             b0 = [Results_old.MXL.bhat; zeros(EstimOpt.NVarT,1);sqrt(EstimOpt.tau0)];
+        elseif isfield(Results_old,'GMXL_d') && isfield(Results_old.GMXL_d,'bhat')
+            disp('Using GMXL_d results as starting values')
+            Results_old.GMXL_d.bhat = Results_old.GMXL_d.bhat(:);
+            vc_tmp = diag(Results_old.GMXL_d.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2));
+            b0 = [Results_old.GMXL_d.bhat(1:EstimOpt.NVarA); vc_tmp(tril(ones(size(vc_tmp)))==1);Results_old.GMXL_d.bhat(EstimOpt.NVarA*2+1:end)];            
         elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat')
             disp('Using MXL_d results as starting values')
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             vc_tmp = diag(Results_old.MXL_d.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2));
-            Results_old.GMXL.b0 = [Results_old.MXL_d.bhat(1:EstimOpt.NVarA); vc_tmp(tril(ones(size(vc_tmp)))==1);Results_old.MXL_d.bhat(EstimOpt.NVarA*2+1:end); zeros(EstimOpt.NVarT,1); sqrt(EstimOpt.tau0)];
+            b0 = [Results_old.MXL_d.bhat(1:EstimOpt.NVarA); vc_tmp(tril(ones(size(vc_tmp)))==1);Results_old.MXL_d.bhat(EstimOpt.NVarA*2+1:end); zeros(EstimOpt.NVarT,1); sqrt(EstimOpt.tau0)];
         elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
             disp('Using MNL results as starting values')
 %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(EstimOpt.NVarA*(EstimOpt.NVarM)+ncv(EstimOpt.NVarA),1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end); zeros(EstimOpt.NVarT,1);EstimOpt.tau0; EstimOpt.gamma0];
