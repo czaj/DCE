@@ -176,6 +176,14 @@ end
 %% Optimization Options
 
 
+if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+	EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    if EstimOpt.Display ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+    end
+end
+
 if  isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
 end
@@ -213,13 +221,6 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     end
     OptimOpt.GradObj = 'on';
-end
-
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-	EstimOpt.NumGrad = 1;
-    if EstimOpt.Display ~= 0
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-    end
 end
 
 if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0

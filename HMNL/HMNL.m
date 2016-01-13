@@ -80,9 +80,11 @@ if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional co
 	INPUT.Xmea_exp = [];
     EstimOpt.MeaExpMatrix = zeros(1,size(INPUT.Xmea,2));
 else
-    if isfield(EstimOpt,'MeaExpMatrix') == 0 || length(EstimOpt.MeaExpMatrix) ~= size(INPUT.Xmea,2)
-        EstimOpt.MeaExpMatrix = ones(1, size(INPUT.Xmea,2));
+    if isfield(EstimOpt,'MeaExpMatrix') == 0
         cprintf(rgb('DarkOrange'), 'WARNING: MeaExpMatrix not defined - assuming that every measurment equation is explained with additional covariates \n')
+        EstimOpt.MeaExpMatrix = ones(1, size(INPUT.Xmea,2));
+    elseif length(EstimOpt.MeaExpMatrix) ~= size(INPUT.Xmea,2)        
+        error('Additional covariates of measurment equations erroneously defined (incorrect size of the MeaExpMatrix)')
     else
         EstimOpt.MeaExpMatrix = EstimOpt.MeaExpMatrix(:)';
     end
@@ -537,6 +539,7 @@ end
 
 if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
     EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - non-normally distributed LVs not supported by analytical gradient \n')
 end
 
@@ -611,7 +614,6 @@ end
 
 
 %% Estimation
-
 
 LLfun = @(B) LL_hmnl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp, err_sliced,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0  

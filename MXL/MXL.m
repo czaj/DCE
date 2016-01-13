@@ -196,6 +196,8 @@ end
 
 %% Starting values
 
+% save tmp1
+
 if EstimOpt.FullCov == 0
 	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
             b0 = B_backup(:);
@@ -211,7 +213,7 @@ if EstimOpt.FullCov == 0
         end
 	end
     if  ~exist('b0','var')
-        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
+        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
@@ -251,7 +253,7 @@ else % EstimOpt.FullCov == 1
         end
 	end
 	if  ~exist('b0','var')
-        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat')
+        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MXL_d results as starting values')
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             if sum(EstimOpt.Dist(2:end) >= 3) > 0
