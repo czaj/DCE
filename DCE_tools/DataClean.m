@@ -26,6 +26,8 @@ if sum(INPUT.MissingInd) == 0
     if sum(INPUT.TIMES) ~= sum(INPUT.Y)
         error ('Dataset not complete (missing Y?) - provide index for rows to skip (EstimOpt.MissingInd).')
     end
+    EstimOpt.NCTMiss = EstimOpt.NCT * ones(EstimOpt.NP,1);
+    EstimOpt.NAltMiss = EstimOpt.NAlt * ones(EstimOpt.NP,1);
 else
     MissingInd_tmp = reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP);
     MissingCT = sum(MissingInd_tmp,1) == EstimOpt.NAlt; % missing NCT
@@ -76,12 +78,15 @@ else
         INPUT.Y = Y_tmp(:);
         INPUT.Xa = reshape(Xa_tmp,[size(INPUT.Xa)]);
     end    
+    
     if sum(sum((nansum(Y_tmp,1) ~= 1) ~= MissingCT))
         error ('Index for rows to skip (EstimOpt.MissingInd) not consistent with available observations (Y) - there are choice tasks with erroneously coded response variable.')
     end
     EstimOpt.MissingAlt = MissingAlt;
-    EstimOpt.MissingCT = MissingCT;
+    EstimOpt.MissingCT = squeeze(MissingCT);
     INPUT.TIMES = squeeze(sum(nansum(Y_tmp)));
+    EstimOpt.NCTMiss = EstimOpt.NCT- sum(EstimOpt.MissingCT,1)';
+    EstimOpt.NAltMiss = EstimOpt.NAlt -squeeze(sum(EstimOpt.MissingAlt(:,1,:),1));
 end
 
 % INPUT.Xa(isnan(INPUT.MissingInd),:) = NaN; % exp(X*B) do not influence U_sum

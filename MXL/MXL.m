@@ -389,11 +389,23 @@ end
 %% Display Options
 
 
+<<<<<<< HEAD
+if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    OptimOpt.GradObj = 'on';
+end
+
+% if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+% 	EstimOpt.NumGrad = 1;
+% 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+% end
+=======
 if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
 end
+>>>>>>> refs/remotes/origin/master
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -441,6 +453,12 @@ if  EstimOpt.WTP_space > 0 && EstimOpt.ApproxHess == 0
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
     EstimOpt.ApproxHess = 1;
 end
+
+if  any(isnan(INPUT.Xa(:))) == 1 && EstimOpt.ApproxHess == 0
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
+    EstimOpt.ApproxHess = 1;
+end
+
 
 if  any(EstimOpt.Dist(2:EstimOpt.NVarA+1)~= 0) && EstimOpt.ApproxHess == 0
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
