@@ -85,8 +85,9 @@ else
     EstimOpt.MissingAlt = MissingAlt;
     EstimOpt.MissingCT = squeeze(MissingCT);
     INPUT.TIMES = squeeze(sum(nansum(Y_tmp)));
-    EstimOpt.NCTMiss = EstimOpt.NCT- sum(EstimOpt.MissingCT,1)';
-    EstimOpt.NAltMiss = EstimOpt.NAlt -squeeze(sum(EstimOpt.MissingAlt(:,1,:),1));
+    EstimOpt.NCTMiss = EstimOpt.NCT - sum(EstimOpt.MissingCT,1)';
+%     EstimOpt.NAltMiss = EstimOpt.NAlt - squeeze(sum(EstimOpt.MissingAlt(:,1,:),1));
+    EstimOpt.NAltMiss = EstimOpt.NAlt - squeeze(sum(sum(EstimOpt.MissingAlt,1),2)./(reshape(EstimOpt.NCTMiss,[1,1,EstimOpt.NP])));
 end
 
 % INPUT.Xa(isnan(INPUT.MissingInd),:) = NaN; % exp(X*B) do not influence U_sum
