@@ -5,8 +5,8 @@ LLfun = @(B) LL_hmnl(Y,Xa,X_str,X_mea, Xmea_exp,err_sliced,EstimOpt,B);
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
         [f,j] = LLfun(b0);
-        j(:,EstimOpt.BActive ==0) = 0;
-         g = sum(j,1)'; ...
+        j(:,EstimOpt.BActive == 0) = 0;
+        g = sum(j,1)'; ...
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             h = j'*j;
         end
