@@ -600,5 +600,5 @@ else % function value + gradient
     g = [g,g2,g3];
     g = -g./p(:, ones(1, length(B)));
 end
-% f = -log(mean(probs.*L_mea,2));
+%% f = -log(mean(probs.*L_mea,2));
 
