@@ -196,7 +196,6 @@ end
 
 %% Starting values
 
-% save tmp1
 
 if EstimOpt.FullCov == 0
 	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
@@ -389,23 +388,10 @@ end
 %% Display Options
 
 
-<<<<<<< HEAD
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     OptimOpt.GradObj = 'on';
 end
-
-% if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-% 	EstimOpt.NumGrad = 1;
-% 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-% end
-=======
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-	EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-end
->>>>>>> refs/remotes/origin/master
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')

@@ -218,21 +218,12 @@ if nargout == 1 % function value only
         for n = 1:NP      
             YnanInd = ~isnan(YY(:,n));
 %             U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
-<<<<<<< HEAD
             U = reshape(XXa_n(YnanInd,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep); 
             U_max = max(U); 
 %             U = exp(U - U_max(ones(NAlt,1),:,:)); 
             U = exp(U - U_max(ones(NAltMiss(n),1),:,:)); 
             U_sum = reshape(sum(U,1),NCTMiss(n),NRep); 
             U_selected = reshape(U(YY(YnanInd,n*ones(NRep,1))==1),NCTMiss(n),NRep);    
-=======
-            U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
-            U_max = max(U);
-%             U = exp(U - U_max(ones(NAlt,1),:,:)); 
-            U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:));
-            U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
-            U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
->>>>>>> refs/remotes/origin/master
             p0(n) = mean(prod(U_selected ./ U_sum,1));
         end; 
     end 
