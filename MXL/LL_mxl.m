@@ -215,12 +215,12 @@ if nargout == 1 % function value only
     else  % this works only if NAlt is constant for each respondent and if missing ALT is not the first in NCT
         parfor n = 1:NP             
 %             U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
-            U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
-            U_max = max(U); 
+            U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
+            U_max = max(U);
 %             U = exp(U - U_max(ones(NAlt,1),:,:)); 
-            U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:)); 
-            U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
-            U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);    
+            U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:));
+            U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
+            U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
             p0(n) = mean(prod(U_selected ./ U_sum,1));
         end; 
     end 

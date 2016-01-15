@@ -50,8 +50,7 @@ if nargout == 1 % function value only
     
     if any(isnan(Xa(:))) == 0  % faster version for complete dataset
 
-        for n = 1:EstimOpt.NP 
-
+        parfor n = 1:EstimOpt.NP 
             U = reshape(Xa(:,:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT, EstimOpt.NRep);
             U_max = max(U);
             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % rescale utility to avoid exploding
@@ -60,11 +59,12 @@ if nargout == 1 % function value only
             probs(n,:) = prod(U_selected ./ U_sum,1);
         end;
     else 
-        for n = 1:EstimOpt.NP 
-
-            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+        parfor n = 1:EstimOpt.NP 
+%             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),numel(Y(~isnan(Y(:,n))))./(EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n)))),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_max = max(U);
-            U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+%             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+            U = exp(U - U_max(ones(numel(Y(~isnan(Y(:,n))))./(EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n)))),1),:,:)); % NAlt x NCT - NaNs x NRep
             U_sum = reshape(nansum(U,1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_selected = reshape(U(Y(~isnan(Y(:,n)),n*ones(EstimOpt.NRep,1))==1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);   
             probs(n,:) = prod(U_selected ./ U_sum,1);
