@@ -50,8 +50,7 @@ if nargout == 1 % function value only
     
     if any(isnan(Xa(:))) == 0  % faster version for complete dataset
 
-        for n = 1:EstimOpt.NP 
-
+        parfor n = 1:EstimOpt.NP 
             U = reshape(Xa(:,:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT, EstimOpt.NRep);
             U_max = max(U);
             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % rescale utility to avoid exploding
@@ -60,11 +59,12 @@ if nargout == 1 % function value only
             probs(n,:) = prod(U_selected ./ U_sum,1);
         end;
     else 
-        for n = 1:EstimOpt.NP 
-
-            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+        parfor n = 1:EstimOpt.NP 
+%             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),numel(Y(~isnan(Y(:,n))))./(EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n)))),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_max = max(U);
-            U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+%             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+            U = exp(U - U_max(ones(numel(Y(~isnan(Y(:,n))))./(EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n)))),1),:,:)); % NAlt x NCT - NaNs x NRep
             U_sum = reshape(nansum(U,1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_selected = reshape(U(Y(~isnan(Y(:,n)),n*ones(EstimOpt.NRep,1))==1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);   
             probs(n,:) = prod(U_selected ./ U_sum,1);
@@ -219,15 +219,13 @@ else % function value + gradient
             % calculations for gradient
             U_prob = reshape(U_prob, EstimOpt.NAlt*EstimOpt.NCT,1, EstimOpt.NRep); % NAlt*NCT x NVarA x NRep
             if EstimOpt.WTP_space == 0   
-                X_hat = sum(reshape(U_prob(:,ones(1,EstimOpt.NVarA,1),:).* Xa(:,:, n*ones(EstimOpt.NRep,1)), EstimOpt.NAlt, EstimOpt.NCT, EstimOpt.NVarA, EstimOpt.NRep),1);
+                X_hat = sum(reshape(U_prob(:,ones(1,EstimOpt.NVarA,1),:).*Xa(:,:,n*ones(EstimOpt.NRep,1)),EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NVarA,EstimOpt.NRep),1);
                 if EstimOpt.NCT ~= 1
                     F = Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
                     sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep     
                 else
                     sumFsqueezed = squeeze(Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1))) - squeeze(X_hat); %NVarA x NRep 
-                end   
-
-                
+                end                
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep), 1, EstimOpt.NVarA, EstimOpt.NRep);
@@ -240,7 +238,6 @@ else % function value + gradient
                     Xbmxlfit = Xa(:,1:end-EstimOpt.WTP_space,n)*b_mtx_grad(1:end-EstimOpt.WTP_space,:,n);
                     pX = squeeze(Xa(:,EstimOpt.NVarA, n*ones(EstimOpt.NRep,1))) + Xbmxlfit;
                     X_hat2 = sum(reshape(squeeze(U_prob).*pX, EstimOpt.NAlt, EstimOpt.NCT, EstimOpt.WTP_space, EstimOpt.NRep),1);
-
                 else
                     pX = zeros(EstimOpt.NCT*EstimOpt.NAlt, EstimOpt.WTP_space, EstimOpt.NRep);
                     for i = 1:EstimOpt.WTP_space
@@ -249,8 +246,7 @@ else % function value + gradient
                     end
                     X_hat2 = sum(reshape(U_prob(:,ones(1,EstimOpt.WTP_space),:).* pX, EstimOpt.NAlt, EstimOpt.NCT, EstimOpt.WTP_space, EstimOpt.NRep),1);
                 end
-                F2 = pX(Y(:,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep  
-                
+                F2 = pX(Y(:,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep                  
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ]; %NVarA x NRep
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end
@@ -260,7 +256,6 @@ else % function value + gradient
             sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(EstimOpt.NVarstr,1)), [1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;
             
-
         end;
     else 
     
@@ -279,15 +274,12 @@ else % function value + gradient
             U_prob = reshape(U_prob, EstimOpt.NAlt*NCT_n,1, EstimOpt.NRep); % NAlt*NCT x NVarA x NRep
             if EstimOpt.WTP_space == 0   
                 X_hat = sum(reshape(U_prob(:,ones(1,EstimOpt.NVarA,1),:).* Xa(YnanInd,:, n*ones(EstimOpt.NRep,1)), EstimOpt.NAlt, NCT_n, EstimOpt.NVarA, EstimOpt.NRep),1);
-
                 if NCT_n ~= 1
                     F = Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
-                    sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep
-                    
+                    sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep                    
                 else
                     sumFsqueezed = squeeze(Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1))) - squeeze(X_hat); %NVarA x NRep 
                 end   
-
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep), 1, EstimOpt.NVarA, EstimOpt.NRep);
@@ -300,28 +292,22 @@ else % function value + gradient
                     Xbmxlfit = Xa(YnanInd,1:end-EstimOpt.WTP_space,n)*b_mtx_grad(1:end-EstimOpt.WTP_space,:,n);
                     pX = squeeze(Xa(YnanInd,EstimOpt.NVarA, n*ones(EstimOpt.NRep,1))) + Xbmxlfit;
                     X_hat2 = sum(reshape(squeeze(U_prob).*pX, EstimOpt.NAlt, NCT_n, EstimOpt.WTP_space, EstimOpt.NRep),1);
-
                 else
                     pX = zeros(NCT_n*EstimOpt.NAlt, EstimOpt.WTP_space, EstimOpt.NRep);
                     for i = 1:EstimOpt.WTP_space
                         Xbmxlfit = Xa(YnanInd,EstimOpt.WTP_matrix == EstimOpt.NVarA-EstimOpt.WTP_space+i,n)*b_mtx_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA-EstimOpt.WTP_space+i,:,n);
-                        pX(:,i,:) = squeeze(Xa(YnanInd,EstimOpt.NVarA-EstimOpt.WTP_space+i, n*ones(EstimOpt.NRep,1))) + Xbmxlfit;
-                        
+                        pX(:,i,:) = squeeze(Xa(YnanInd,EstimOpt.NVarA-EstimOpt.WTP_space+i, n*ones(EstimOpt.NRep,1))) + Xbmxlfit;                        
                     end
                     X_hat2 = sum(reshape(U_prob(:,ones(1,EstimOpt.WTP_space),:).* pX, EstimOpt.NAlt, NCT_n, EstimOpt.WTP_space, EstimOpt.NRep),1);
                 end
-                F2 = pX(Y(YnanInd,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep  
-                
-                
+                F2 = pX(Y(YnanInd,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep                                  
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ]; %NVarA x NRep
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
-            end
-        
+            end        
             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+EstimOpt.NLatent,1)); 
             sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(EstimOpt.NVarstr,1)), [1 3 2]);
-            gstr(n,:,:,:) = sumFsqueezed_LV;
-            
+            gstr(n,:,:,:) = sumFsqueezed_LV;            
 
         end;
     
@@ -614,5 +600,5 @@ else % function value + gradient
     g = [g,g2,g3];
     g = -g./p(:, ones(1, length(B)));
 end
-% f = -log(mean(probs.*L_mea,2));
+%% f = -log(mean(probs.*L_mea,2));
 

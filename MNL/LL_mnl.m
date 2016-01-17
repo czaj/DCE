@@ -11,10 +11,6 @@ if EstimOpt.NVarNLT > 0
     IndTransNon0 = (abs(bt) > eps)';
 
     Xt = Xa(:, EstimOpt.NLTVariables);
-
-    
-    
-    
     if EstimOpt.NLTType == 1 % BC
         Xt(:, IndTransNon0) = -(Xt(:, IndTransNon0 == 1).^(bt(IndTransNon0 == 1,ones(size(Xa,1), 1))') - 1)./bt(IndTransNon0 == 1,ones(size(Xa,1), 1))';
         Xt(:, ~IndTransNon0) = -log(Xt(:, IndTransNon0 == 0));
@@ -45,8 +41,7 @@ if EstimOpt.NVarNLT > 0
        if EstimOpt.NLTType == 1 % BC
             XXt =  Xa(:, EstimOpt.NLTVariables);
             XXt(:, IndTransNon0 == 1) = -(XXt(:, IndTransNon0 == 1).^(bt(IndTransNon0 == 1,ones(size(Xa,1), 1))').*(bt(IndTransNon0 == 1,ones(size(Xa,1), 1))'.*log(XXt(:, IndTransNon0 == 1))-1)+1)./(bt(IndTransNon0 == 1,ones(size(Xa,1), 1)).^2)';
-            XXt(:, IndTransNon0 == 0) = -0.5*log(XXt(:, IndTransNon0 == 0)).^2;
-            
+            XXt(:, IndTransNon0 == 0) = -0.5*log(XXt(:, IndTransNon0 == 0)).^2;            
        elseif EstimOpt.NLTType == 2 % YJ
            XXt = Xa(:, EstimOpt.NLTVariables);
            XXt(IndXtCase1) = ((XXt(IndXtCase1)+1).^bt_tmp(IndXtCase1).*(bt_tmp(IndXtCase1).*log(XXt(IndXtCase1)+1)-1)+1)./(bt_tmp(IndXtCase1).^2);% X >= 0, lam ~= 0
@@ -80,16 +75,14 @@ else
 end
 
 v = reshape(betaX,EstimOpt.NAlt,N);
-
 maxv = max(v,[],1);
 evdiff = exp(v- maxv(ones(EstimOpt.NAlt,1),:)); %clear v maxv
 sum_evdiff = nansum(evdiff,1); %1 by N
-
 P = evdiff./sum_evdiff(ones(EstimOpt.NAlt,1),:); % NAlt x N
-
 probs = P(y == 1);
 
-logprobs = log(max(probs,realmin)); %1 *N
+% logprobs = log(max(probs,realmin)); %1 *N
+logprobs = log(probs); %1 *N
 % f = logprobs'.*EstimOpt.WT(1:end,:);
 f = logprobs;
 

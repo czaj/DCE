@@ -196,6 +196,7 @@ end
 
 %% Starting values
 
+
 if EstimOpt.FullCov == 0
 	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
             b0 = B_backup(:);
@@ -211,7 +212,7 @@ if EstimOpt.FullCov == 0
         end
 	end
     if  ~exist('b0','var')
-        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
+        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
@@ -251,7 +252,7 @@ else % EstimOpt.FullCov == 1
         end
 	end
 	if  ~exist('b0','var')
-        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat')
+        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MXL_d results as starting values')
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             if sum(EstimOpt.Dist(2:end) >= 3) > 0
@@ -392,10 +393,10 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-% if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-% 	EstimOpt.NumGrad = 1;
-% 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-% end
+if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    OptimOpt.GradObj = 'on';
+end
 
 if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;

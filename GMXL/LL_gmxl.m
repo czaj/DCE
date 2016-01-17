@@ -100,8 +100,7 @@ elseif sum(Dist(2:end)==1) > 0;  % Log - normal
     else
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
-    end
-    
+    end    
 elseif sum(Dist(2:end)==2) > 0;  % Spike       
     if gamma == 0
         b_mtx  = b0n + VC*err(2:end,:); 
@@ -115,10 +114,9 @@ elseif sum(Dist(2:end)==2) > 0;  % Spike
         b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
     end
 elseif sum(Dist(2:end)==5) > 0; 
-    if sum(sum(VC.*(1-eye(size(b0n,1)))~=0))~=0; error ('Weibull distribution can only be used with non-correlated parameters'); end; 
-    
+    if sum(sum(VC.*(1-eye(size(b0n,1)))~=0))~=0; error ('Weibull distribution can only be used with non-correlated parameters'); end;     
     if gma ~= 0
-        error ('Weibull distributed attriute parameters possible only with G-MNL Type II')
+        error ('Weibull distributed attriute parameters possible only with G-MNL Type II'); 
     else
         b_mtx = zeros(NVarA,NP*NRep); 
         err2 = err(2:end,:);
@@ -151,7 +149,7 @@ p0 = zeros(NP,1);
 %end
 
 if any(isnan(XXa(:))) == 0  % faster version for complete dataset
-    for n = 1:NP 
+    parfor n = 1:NP 
         U = reshape(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT,NRep); 
         U_max = max(U); 
         U = exp(U - U_max(ones(NAlt,1),:,:));  % rescale utility to avoid exploding
@@ -160,7 +158,7 @@ if any(isnan(XXa(:))) == 0  % faster version for complete dataset
         p0(n) = mean(prod(U_selected ./ U_sum,1),2);
     end; 
 else  % this works only if NAlt is constant for each respondent and if missing ALT is not the first in NCT
-    for n = 1:NP 
+    parfor n = 1:NP 
 %         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
 % from MXL: U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);         

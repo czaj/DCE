@@ -215,15 +215,15 @@ if nargout == 1 % function value only
             p0(n) = mean(prod(U_selected ./ U_sum,1));
         end; 
     else  % this works only if NAlt is constant for each respondent
-        for n = 1:NP      
+        parfor n = 1:NP      
             YnanInd = ~isnan(YY(:,n));
 %             U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx_n(:,:,n),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
-            U = reshape(XXa_n(YnanInd,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep); 
-            U_max = max(U); 
+            U = reshape(XXa_n(YnanInd,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
+            U_max = max(U);
 %             U = exp(U - U_max(ones(NAlt,1),:,:)); 
-            U = exp(U - U_max(ones(NAltMiss(n),1),:,:)); 
-            U_sum = reshape(sum(U,1),NCTMiss(n),NRep); 
-            U_selected = reshape(U(YY(YnanInd,n*ones(NRep,1))==1),NCTMiss(n),NRep);    
+            U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
+            U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
+            U_selected = reshape(U(YY(YnanInd,n*ones(NRep,1))==1),NCTMiss(n),NRep);
             p0(n) = mean(prod(U_selected ./ U_sum,1));
         end; 
     end 
@@ -338,8 +338,7 @@ elseif nargout == 2 % function value + gradient
                     F3 =   XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
                     F3sum = squeeze(sum(F3,1)); % NVarNLT  x NRep
                 end
-            end
-            
+            end            
             
             if FullCov == 0
                 sumVC2tmp = sumFsqueezed.*VC2(:,:,n);  % NVarA x NRep
@@ -354,14 +353,13 @@ elseif nargout == 2 % function value + gradient
                     g(n,:) = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);    
                 else
                     g(n,:) = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:); F3sum.*U_prod(ones(NVarNLT,1),:) ],2)./p0(n);    
-                end
-                
-            end     
-            
-            
+                end                
+            end                             
         end; 
+        
     else 
-        parfor n = 1:NP 
+        
+        for n = 1:NP 
             YnanInd = ~isnan(YY(:,n));
             U = reshape(XXa_n(YnanInd ,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep); 
             U_max = max(U); 
@@ -386,7 +384,8 @@ elseif nargout == 2 % function value + gradient
                 Xalpha = XXa(YnanInd ,1:end-WTP_space, n*ones(NRep,1)).*b_mtx_wtp(ones(NAltMiss(n)*NCTMiss(n),1),WTP_matrix,:);
                 % for non-cost variables
                 X_hat1 = sum(reshape(U_prob(:,ones(1,NVarA-WTP_space),:).* Xalpha, NAltMiss(n), NCTMiss(n), NVarA-WTP_space, NRep),1); 
-                F1 = Xalpha(YY(YnanInd ,n) == 1,:,:) - squeeze(X_hat1);  %NCT x NVarA-WTP_space x NRep   
+%                 F1 = Xalpha(YY(YnanInd ,n) == 1,:,:) - squeeze(X_hat1);  %NCT x NVarA-WTP_space x NRep   
+                F1 = Xalpha(YY(YnanInd ,n) == 1,:,:) - reshape(squeeze(X_hat1),[NCTMiss(n),NVarA-WTP_space,NRep]);  %NCT x NVarA-WTP_space x NRep
                 % for cost variables
                 if WTP_space == 1 % without starting the loop
                     pX = squeeze(XXa(YnanInd ,NVarA, n*ones(NRep,1))) + XXa(YnanInd,1:end-WTP_space,n)*b_mtx_grad(1:end-WTP_space,:,n);
