@@ -398,7 +398,8 @@ elseif nargout == 2 % function value + gradient
                     end
                     X_hat2 = sum(reshape(U_prob(:,ones(1,WTP_space),:).*pX, NAltMiss(n), NCTMiss(n), WTP_space, NRep),1); 
                     F2 = pX(YY(YnanInd ,n) == 1,:,:) - reshape(X_hat2,[NCTMiss(n),WTP_space,NRep]);
-                end               
+                end
+                
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ];  %NVarA x NRep
                 sumFsqueezed(Dist(2:end)==1, :) = sumFsqueezed(Dist(2:end)==1, :).*b_mtx_grad(Dist(2:end)==1,:,n);
             end
