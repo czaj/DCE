@@ -1,5 +1,7 @@
 function R2 = R2_hybrid(Y,Xa,X_str,Xc,Xm,MissingInd,err_sliced,EstimOpt,B,type)
 
+NAltMiss = EstimOpt.NAltMiss; 
+
 if any(MissingInd == 1) % In case of some missing data
    idx = sum(reshape(MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt;
    idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
@@ -29,7 +31,7 @@ if type == 0 % HMNL
     probs = zeros(EstimOpt.NP,EstimOpt.NRep);
 
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
-        for n = 1:EstimOpt.NP
+        parfor n = 1:EstimOpt.NP
             U = reshape(Xa(:,:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT, EstimOpt.NRep);
             U_max = max(U);
             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % rescale utility to avoid exploding
@@ -38,7 +40,7 @@ if type == 0 % HMNL
             probs(n,:) = prod(U_seleNCTed ./ U_sum,1);
         end;
     else
-        for n = 1:EstimOpt.NP
+        parfor n = 1:EstimOpt.NP
 %             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),numel(Y(~isnan(Y(:,n))))./(EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n)))),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_max = max(U);
@@ -109,7 +111,7 @@ elseif type ==2 % HMXL
         VC = diag(bv.^2);
         bm = reshape(B(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarM+2)), EstimOpt.NVarA, EstimOpt.NVarM); % b mean covariates
         bl = reshape(B((2+EstimOpt.NVarM)*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)), EstimOpt.NVarA, EstimOpt.NLatent); % b interakcji z LV
-        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA), EstimOpt.NVarstr, EstimOpt.NLatent); b równania struktury
+        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA), EstimOpt.NVarstr, EstimOpt.NLatent); % b równania struktury
     else
         ba = B(1:EstimOpt.NVarA); % b atrybutów
         bv = B(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA,2));
@@ -117,7 +119,7 @@ elseif type ==2 % HMXL
         VC(VC==1) = bv;
         bm = reshape(B(EstimOpt.NVarA+sum(1:EstimOpt.NVarA,2)+1:EstimOpt.NVarA*(EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarA, EstimOpt.NVarM); % b mean covariates
         bl = reshape(B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)+1:EstimOpt.NVarA*(EstimOpt.NLatent+1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarA, EstimOpt.NLatent); % b interakcji z LV
-        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent++EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarstr, EstimOpt.NLatent); b równania struktury
+        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent++EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarstr, EstimOpt.NLatent); % b równania struktury
     end
 
     LV_tmp = X_str*bstr; % NP x NLatent
@@ -152,7 +154,7 @@ elseif type ==2 % HMXL
 
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
 
-        for n = 1:EstimOpt.NP
+        parfor n = 1:EstimOpt.NP
 
             U = reshape(Xa(:,:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT, EstimOpt.NRep);
             U_max = max(U);
@@ -162,11 +164,12 @@ elseif type ==2 % HMXL
             probs(n,:) = prod(U_seleNCTed ./ U_sum,1);
         end;
     else
-        for n = 1:EstimOpt.NP
-
-            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+        parfor n = 1:EstimOpt.NP
+%             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
+            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),NAltMiss(n),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_max = max(U);
-            U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+%             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
+            U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
             U_sum = reshape(nansum(U,1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
             U_seleNCTed = reshape(U(Y(~isnan(Y(:,n)),n*ones(EstimOpt.NRep,1))==1),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);   
             probs(n,:) = prod(U_seleNCTed ./ U_sum,1);

@@ -204,6 +204,8 @@ b_mtx_n = reshape(b_mtx_n,NVarA,NRep,NP);
 
 p0 = zeros(NP,1); 
 
+
+
 if nargout == 1 % function value only    
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         parfor n = 1:NP             
@@ -359,7 +361,7 @@ elseif nargout == 2 % function value + gradient
         
     else 
         
-        for n = 1:NP 
+        parfor n = 1:NP 
             YnanInd = ~isnan(YY(:,n));
             U = reshape(XXa_n(YnanInd ,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep); 
             U_max = max(U); 

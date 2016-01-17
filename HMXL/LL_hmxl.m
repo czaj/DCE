@@ -5,6 +5,8 @@ function [f,g] = LL_hmxl(Y,Xa,Xm,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 
 b_mtx_grad = [];
 
+NAltMiss = EstimOpt.NAltMiss; 
+
 indx1 = EstimOpt.indx1;
 indx2 = EstimOpt.indx2;
 
@@ -91,9 +93,9 @@ if nargout == 1 % function value only
         end;
     else 
         parfor n = 1:EstimOpt.NP
-            YnanInd = ~isnan(YY(:,n));
 %             U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),EstimOpt.NAlt,EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);
-            U = reshape(XXa_n(YnanInd,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
+            U = reshape(Xa(~isnan(Y(:,n)),:,n)*b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep),NAltMiss(n),EstimOpt.NCT-sum(isnan(Y(1:EstimOpt.NAlt:end,n))),EstimOpt.NRep);            
+%             U = reshape(XXa_n(YnanInd,:,n)*b_mtx_n(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
             U_max = max(U);
 %             U = exp(U - U_max(ones(EstimOpt.NAlt,1),:,:)); % NAlt x NCT - NaNs x NRep
             U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
