@@ -181,30 +181,30 @@ EstimOpt.NVarmea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurme
 EstimOpt.NVarmea_exp = size(INPUT.Xmea_exp,2);
 
 for i=1:size(EstimOpt.MeaMatrix,2)
-    if sum(isnan(INPUT.Xmea(:,i))) > 0
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Measurement variable %d contains NaN values \n' ,i)
     end
-	if sum(isinf(INPUT.Xmea(:,i))) > 0
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Measurement variable %d contains Inf values \n',i)
 	end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(:,i))) > 10
+        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 10
             cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
         end
     end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            INPUT.Xmea(:,i) = INPUT.Xmea(:,i) - min(unique(INPUT.Xmea(:,i))) + 1; % make unique values positive (avoid problems with dummyvar)            
+            INPUT.Xmea(INPUT.MissingInd==0,i) = INPUT.Xmea(INPUT.MissingInd==0,i) - min(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) + 1; % make unique values positive (avoid problems with dummyvar)            
 %             cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
         end
     end  
 end
 
 for i = 1:EstimOpt.NVarstr
-    if sum(isnan(INPUT.Xstr(:,i))) > 0
+    if sum(isnan(INPUT.Xstr(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Structural variable %d contains NaN values \n',i)
     end
-	if sum(isinf(INPUT.Xstr(:,i))) > 0
+	if sum(isinf(INPUT.Xstr(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING:  Structural variable %d contains Inf values \n',i)
 	end
 end
@@ -225,8 +225,8 @@ EstimOpt.CutMatrix = zeros(1, size(INPUT.Xmea,2));
 EstimOpt.NamesLV = {};
 for i = 1:size(INPUT.Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit: cutoffs
-        EstimOpt.NVarcut = EstimOpt.NVarcut + length(unique(INPUT.Xmea(:,i))) - 1 + EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
-        EstimOpt.CutMatrix(i) = length(unique(INPUT.Xmea(:,i))) - 1 + sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut + length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1 + EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.CutMatrix(i) = length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1 + sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
@@ -234,10 +234,10 @@ for i = 1:size(INPUT.Xmea,2)
         if EstimOpt.MeaExpMatrix(i) ~=0
            EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
         end
-        for n = 1:(length(unique(INPUT.Xmea(:,i))) - 1)
+        for n = 1:(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(n)],{'Cutoff '},'UniformOutput',0)];
         end
-        EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(:,i))) - 1;
+        EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1;
         EstimOpt.Names = [EstimOpt.Names, 'OP '];
     elseif EstimOpt.MeaSpecMatrix(i) == 0
         EstimOpt.NVarcut = EstimOpt.NVarcut + 2+EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0); %OLS: constant + sigma
@@ -254,12 +254,12 @@ for i = 1:size(INPUT.Xmea,2)
         end
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Sigma'}];
     elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-        EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(:,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(:,i))) - 1)*(1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients 
-        EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(:,i)))-1;
+        EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1)*(1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients 
+        EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1;
         EstimOpt.Names = [EstimOpt.Names, 'MNL '];
-        EstimOpt.CutMatrix(i) = (1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)+sum(EstimOpt.MeaMatrix(:,i)))*(length(unique(INPUT.Xmea(:,i)))-1);
+        EstimOpt.CutMatrix(i) = (1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)+sum(EstimOpt.MeaMatrix(:,i)))*(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1);
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
-        for j = 1:(length(unique(INPUT.Xmea(:,i)))-1)
+        for j = 1:(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
             for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
                 EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
@@ -895,7 +895,7 @@ for i = 1:size(INPUT.Xmea,2)
         l = l+sum(EstimOpt.MeaMatrix(:,i))+2+tmp;
     elseif EstimOpt.MeaSpecMatrix(i) == 1
         disp('Estimated using MNL')
-        for n = 1:(length(unique(INPUT.Xmea(:,i)))-1)
+        for n = 1:(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1)
             disp(num2str(n+1, 'Parameters for %1.0f alternative'))
             disp('var.   coef.     st.err.  p-value')
             disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1), '%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%8.4f %8.4f')])
@@ -907,15 +907,15 @@ for i = 1:size(INPUT.Xmea,2)
         disp([char(EstimOpt.NamesLV(l+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,repmat(blanks(sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',1,6),num2str(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,3)), num2str(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,2:3),'%8.4f %8.4f')])
         l = l+sum(EstimOpt.MeaMatrix(:,i))+tmp;
         disp([num2str([1, Results.DetailsM(l+1,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+1,3)), num2str(Results.DetailsM(l+1,2:3),'%8.4f %8.4f')])
-        if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary 
-            g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
-            for n = 2:length(unique(INPUT.Xmea(:,i)))-1
+        if length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 2 % if attitude is not binary 
+            g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1,1))];
+            for n = 2:length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1
                 stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarstr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarstr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n)*g(1:n));
                 Results.DetailsM(l+n,1:3) = [sum(g(1:n),1), stdx, pv(sum(g(1:n),1), stdx)];
                 disp([num2str([n, Results.DetailsM(l+n,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+n,3)), num2str(Results.DetailsM(l+n,2:3),'%8.4f %8.4f')])
             end
         end       
-        l = l+length(unique(INPUT.Xmea(:,i)))-1;
+        l = l+length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1;
     elseif EstimOpt.MeaSpecMatrix(i) == 3
         disp('Estimated using Poisson regression')
         disp('var.   coef.     st.err.  p-value')
