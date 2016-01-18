@@ -167,6 +167,8 @@ if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
     if size(EstimOpt.MNLDist,1) ~= EstimOpt.NVarA
         error('Incorrect no. of random parameters'' distributions provided')
     end
+else
+    EstimOpt.MNLDist = zeros(EstimOpt.NVarA,1); % no transformations
 end
 
 EstimOpt.Names = [];% Names of the models
@@ -535,21 +537,14 @@ end
 
 %% Display Options
 
-
-if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
-    EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - non-normally distributed LVs not supported by analytical gradient \n')
-end
-
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     OptimOpt.GradObj = 'on';
 end
 
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+if any(EstimOpt.MNLDist == 2) && EstimOpt.NumGrad == 0
    EstimOpt.NumGrad = 1;
-   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - spike distribution not supported by analytical gradient \n')
 end
 
 if any(EstimOpt.MeaSpecMatrix >= 3) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xmea(:, EstimOpt.MeaSpecMatrix >=3) > 100))
