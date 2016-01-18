@@ -184,9 +184,9 @@ if nargout == 1 % function value only
 
 else % function value + gradient
     
-%     if ~exist('b_mtx_grad','var')
-%         b_mtx_grad = [];
-%     end
+    if ~exist('b_mtx_grad','var')
+        b_mtx_grad = [];
+    end
     gmnl = zeros(EstimOpt.NP, EstimOpt.NRep, EstimOpt.NVarA, (1+EstimOpt.NLatent)); % gradient for mnl parameters
     gstr = zeros(EstimOpt.NP, EstimOpt.NRep, EstimOpt.NVarstr,EstimOpt.NLatent); % gradient for parameters from structural equations
     gmea = zeros(EstimOpt.NP, EstimOpt.NRep, length(bmea));% gradient for other parameters
@@ -226,7 +226,8 @@ else % function value + gradient
                     sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep     
                 else
                     sumFsqueezed = squeeze(Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1))) - squeeze(X_hat); %NVarA x NRep 
-                end                
+                end 
+                sumFsqueezed(EstimOpt.MNLDist ==1, :) = sumFsqueezed(EstimOpt.MNLDist ==1, :).*b_mtx(EstimOpt.MNLDist ==1,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep), 1, EstimOpt.NVarA, EstimOpt.NRep);
@@ -249,6 +250,7 @@ else % function value + gradient
                 end
                 F2 = pX(Y(:,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep                  
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ]; %NVarA x NRep
+                sumFsqueezed(EstimOpt.MNLDist ==1, :) = sumFsqueezed(EstimOpt.MNLDist ==1, :).*b_mtx_grad(EstimOpt.MNLDist ==1,:,n);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end
         
@@ -280,7 +282,7 @@ else % function value + gradient
                 else
                     sumFsqueezed = squeeze(Xa(Y(:,n) == 1,:,n*ones(EstimOpt.NRep,1))) - squeeze(X_hat); %NVarA x NRep 
                 end   
-                sumFsqueezed(EstimOpt.MNLDist ==1, :) = sumFsqueezed(EstimOpt.MNLDist ==1, :).*b_mtx(EstimOpt.MNDist ==1,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep);
+                sumFsqueezed(EstimOpt.MNLDist ==1, :) = sumFsqueezed(EstimOpt.MNLDist ==1, :).*b_mtx(EstimOpt.MNLDist ==1,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx(:,((n-1)*EstimOpt.NRep+1):n*EstimOpt.NRep), 1, EstimOpt.NVarA, EstimOpt.NRep);
@@ -451,7 +453,8 @@ else % function value + gradient
                 gmea(Xmea(:,i) > UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = grad_tmp(Xmea(:,i) > UniqueMea(j),:)*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
 %                 gmea(Xmea(:,i) == UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = (normpdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:))./max(L(Xmea(:,i) == UniqueMea(j),:),realmin))*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
                 gmea(Xmea(:,i) == UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = (normpdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:))./L(Xmea(:,i) == UniqueMea(j),:))*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
-            end           
+            end    
+            isnan(gmea(:,:,l+1:l+k+size(X,2)
             L_mea = L_mea.*L;
             l = l+k+size(X,2);   
         elseif EstimOpt.MeaSpecMatrix(i) == 3 % POISS
@@ -586,7 +589,6 @@ else % function value + gradient
             l = l+2*size(X,2);
         end
     end
-    
     probs = probs.*L_mea;
 %     p = max(realmin,mean(probs,2));
     p = mean(probs,2);
