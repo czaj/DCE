@@ -133,6 +133,10 @@ if isfield(EstimOpt,'ApproxHess') == 0 || (EstimOpt.ApproxHess ~= 0 && EstimOpt.
 	EstimOpt.ApproxHess = 1;
 end
 
+if isfield(EstimOpt,'RealMin') == 0 || (EstimOpt.RealMin ~= 0 && EstimOpt.RealMin ~= 1)
+	EstimOpt.RealMin = 0;
+end
+
 EstimOpt.Draws = 6; % 1 - pseudo-random, 2 - Latin Hypercube, 3 - Halton, 4 - Halton RR scrambled, 5 - Sobol, 6 - Sobol MAO scrambled
 EstimOpt.NSdSim = 1e4; % number of draws for simulating standard deviations
 

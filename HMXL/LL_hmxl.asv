@@ -222,7 +222,7 @@ if nargout == 1 % function value only
             l = l+2*size(X,2);
         end
     end
-    if EstimOpt.RealMin == 0
+    if EstimOpt.Realmin == 0
         f = -log(mean(probs.*L_mea,2));
     else
         f = -log(max(realmin,mean(probs.*L_mea,2)));
@@ -579,10 +579,8 @@ else % function value + gradient
             theta = exp(bmea(l+size(X,2)+1));
             u = theta./(theta+lam);  
             if EstimOpt.RealMin == 1
-                L = min(gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
-            else
-                L = gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1));
-            end
+%             L = min(gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
+            L = gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1));
             L = L.*(u.^theta).*((1-u).^Xmea(:,i*ones(EstimOpt.NRep,1)));
             L_mea = L_mea.*L;
             % Calculations for gradient 
@@ -626,25 +624,18 @@ else % function value + gradient
             lam = exp(fit);
             IndxZIP = Xmea(:,i) == 0;
             L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*exp(-lam(IndxZIP,:));
-            if EstimOpt.RealMin == 1
-                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
-            else
-                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
-            end
+%             L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
+            L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
             L_mea = L_mea.*L;
 
             % Calculations for gradient 
-            grad_tmp1 = zeros(EstimOpt.NP, EstimOpt.NRep); % For ZIP 
-            grad_tmp2 = zeros(EstimOpt.NP, EstimOpt.NRep); % For Poiss
-            
-            if EstimOpt.RealMin == 1
-                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./max(L(IndxZIP,:),realmin);
-                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./max(L(IndxZIP,:),realmin);
-            else
-                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./L(IndxZIP,:);
-                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./L(IndxZIP,:);
-            end
+            grad_tmp1 = zeros(EstimOpt.NP, EstimOpt.NRep);
+            grad_tmp2 = zeros(EstimOpt.NP, EstimOpt.NRep);
+            % For ZIP 
+            grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./L(IndxZIP,:);
             grad_tmp1(~IndxZIP,:) = -pzip(~IndxZIP,:);
+            % For Poiss
+            grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./L(IndxZIP,:);
             grad_tmp2(~IndxZIP,:) = Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1)) - lam(~IndxZIP,:);
 
             LVindx = find(EstimOpt.MeaMatrix(:,i)'== 1);
@@ -677,11 +668,8 @@ else % function value + gradient
     end
 
     probs = probs.*L_mea;
-    if EstimOpt.RealMin == 1
-        p = max(realmin,mean(probs,2));
-    else    
-        p = mean(probs,2);
-    end
+%     p = max(realmin,mean(probs,2));
+    p = mean(probs,2);
     f = -log(p);
 
     gstr = reshape(gstr, EstimOpt.NP, EstimOpt.NRep, EstimOpt.NVarstr*EstimOpt.NLatent);

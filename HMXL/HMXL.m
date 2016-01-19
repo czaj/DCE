@@ -635,10 +635,10 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-   EstimOpt.NumGrad = 1;
-   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-end
+% if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+%    EstimOpt.NumGrad = 1;
+%    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+% end
 
 if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0
    EstimOpt.NumGrad = 1;
@@ -895,7 +895,7 @@ for i = 1:size(INPUT.Xmea,2)
         l = l+sum(EstimOpt.MeaMatrix(:,i))+2+tmp;
     elseif EstimOpt.MeaSpecMatrix(i) == 1
         disp('Estimated using MNL')
-        for n = 1:(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1)
+        for n = 1:(length(unique(INPUT.Xmea(:,i)))-1)
             disp(num2str(n+1, 'Parameters for %1.0f alternative'))
             disp('var.   coef.     st.err.  p-value')
             disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1), '%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%8.4f %8.4f')])
@@ -907,15 +907,15 @@ for i = 1:size(INPUT.Xmea,2)
         disp([char(EstimOpt.NamesLV(l+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,repmat(blanks(sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',1,6),num2str(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,3)), num2str(Results.DetailsM(l+1:l+sum(EstimOpt.MeaMatrix(:,i))+tmp,2:3),'%8.4f %8.4f')])
         l = l+sum(EstimOpt.MeaMatrix(:,i))+tmp;
         disp([num2str([1, Results.DetailsM(l+1,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+1,3)), num2str(Results.DetailsM(l+1,2:3),'%8.4f %8.4f')])
-        if length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 2 % if attitude is not binary 
-            g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1,1))];
-            for n = 2:length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1
+        if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary 
+            g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
+            for n = 2:length(unique(INPUT.Xmea(:,i)))-1
                 stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarstr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarstr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n)*g(1:n));
                 Results.DetailsM(l+n,1:3) = [sum(g(1:n),1), stdx, pv(sum(g(1:n),1), stdx)];
                 disp([num2str([n, Results.DetailsM(l+n,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+n,3)), num2str(Results.DetailsM(l+n,2:3),'%8.4f %8.4f')])
             end
         end       
-        l = l+length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1;
+        l = l+length(unique(INPUT.Xmea(:,i)))-1;
     elseif EstimOpt.MeaSpecMatrix(i) == 3
         disp('Estimated using Poisson regression')
         disp('var.   coef.     st.err.  p-value')
