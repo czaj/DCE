@@ -393,19 +393,22 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
-    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
-    OptimOpt.GradObj = 'on';
-end
-
 if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
 end
 
 if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - analytical gradient available for normally or lognormally distributed parameters only \n')
+end
+
+
+if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    OptimOpt.GradObj = 'on';
 end
 
 % if EstimOpt.NVarNLT > 0 && EstimOpt.NLTType == 2 && EstimOpt.NumGrad == 0
@@ -518,9 +521,9 @@ end
 INPUT.Xa(INPUT.MissingInd(:,ones(1,EstimOpt.NVarA))==1) = NaN; % replace Xa in missing alternatives (missing choice-tasks do not matter anyway - see below) with NaN
 
 INPUT.YYY = reshape(INPUT.Y',EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP);
-idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP)) == EstimOpt.NAlt; ...
+idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP)) == EstimOpt.NAlt;
 INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:)) = NaN; % replace YYY in missing choice-tasks with NaN
-INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
+INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP)==1;
 
 XXa_tmp = reshape(INPUT.Xa',EstimOpt.NVarA, EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
@@ -557,27 +560,32 @@ if EstimOpt.NumGrad == 0 && EstimOpt.FullCov == 1
    end
 end
 
-if EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4; %calculations needed for analitical gradient
-    EstimOpt.XXX = zeros(EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NVarA,EstimOpt.NVarA, EstimOpt.NP);
-    if EstimOpt.FullCov == 0
-        EstimOpt.VCx  = zeros(EstimOpt.NVarA,EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP);
-    else
-        EstimOpt.VCx  = zeros(EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+EstimOpt.NVarA,EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP);
-    end
-    err_tmp = reshape(err_mtx,EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP); 
-    for i = 1:EstimOpt.NP
-        for j = 1:EstimOpt.NAlt*EstimOpt.NCT
-            EstimOpt.XXX(j,:,:,i) = (INPUT.XXa(j,:,i)')*INPUT.XXa(j,:,i);
-        end
-        for j = 1:EstimOpt.NRep
-            if EstimOpt.FullCov == 0
-                EstimOpt.VCx(:,:,j,i) = err_tmp(:,j,i)*err_tmp(:,j,i)';
-            else
-                EstimOpt.VCx(:,:,j,i) = err_tmp(EstimOpt.indx2,j,i)*err_tmp(EstimOpt.indx2,j,i)';
-            end
-        end
-    end  
-end
+% save tmp2
+% return
+
+% if EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4; %calculations needed for analitical Hessian
+%     EstimOpt.XXX = permute(mmx('square',permute(INPUT.XXa,[2,4,1,3]),[]),[3,1,2,4])
+%     EstimOpt.XXX = zeros(EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NVarA,EstimOpt.NVarA, EstimOpt.NP);
+%     if EstimOpt.FullCov == 0
+%         EstimOpt.VCx = zeros(EstimOpt.NVarA,EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP);
+%     else
+%         EstimOpt.VCx = zeros(EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+EstimOpt.NVarA,EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP);
+%     end
+%     err_tmp = reshape(err_mtx,EstimOpt.NVarA,EstimOpt.NRep,EstimOpt.NP); 
+%     for i = 1:EstimOpt.NP
+%         for j = 1:EstimOpt.NAlt*EstimOpt.NCT
+%             EstimOpt.XXX(j,:,:,i) = (INPUT.XXa(j,:,i)')*INPUT.XXa(j,:,i);
+%         end
+%         for j = 1:EstimOpt.NRep
+%             if EstimOpt.FullCov == 0
+%                 EstimOpt.VCx(:,:,j,i) = err_tmp(:,j,i)*err_tmp(:,j,i)';
+%             else
+%                 EstimOpt.VCx(:,:,j,i) = err_tmp(EstimOpt.indx2,j,i)*err_tmp(EstimOpt.indx2,j,i)';
+%             end
+%         end
+%     end
+
+% end
 
 
 %% Estimation
