@@ -232,10 +232,10 @@ if nargout == 1 % function value only
 %         YYy_D = reshape(YYy,[NAlt,NCT,1,NP]);
 %         XXa_D = bsxfun(@minus,XXa_D,reshape(XXa_D(YYy_D(:,:,ones(1,1,NVarA,1),:)),[1,NCT,NVarA,NP]));
 %         XXad = reshape(XXa_D,[NAlt*NCT,NVarA,NP]);
-        
-%         tic; U_sum = sum(reshape(exp(mmx('mult',XXad,b_mtx)),[NAlt,NCT,NRep,NP]),1);...
-%         p0 = mean(prod(1 ./ U_sum,2),3);...
-%         p0 = p0(:);toc      
+%         
+%         U_sum = sum(reshape(exp(mmx('mult',XXad,b_mtx)),[NAlt,NCT,NRep,NP]),1);
+%         p0 = mean(prod(1 ./ U_sum,2),3);
+%         p0 = p0(:);      
         
     else  % this works only if NAlt is constant for each respondent
         parfor n = 1:NP
@@ -396,12 +396,12 @@ elseif nargout == 2 %  function value + gradient
         end
         
     else
-        
+%         save tmp1
         parfor n = 1:NP 
             YnanInd = ~isnan(YY(:,n));
             b_mtx_n = b_mtx(:,:,n);
             XXa_n = XXa(:,:,n);
-            U = reshape(XXa_n(YnanInd,:)*b_mtx_n,NAltMiss(n),NCTMiss(n),NRep); 
+            U = reshape(XXa_n(YnanInd,:)*b_mtx_n,[NAltMiss(n),NCTMiss(n),NRep]); 
             U_max = max(U); 
 %             U = exp(U - U_max(ones(NAltMiss(n),1),:,:));  % rescale utility to avoid exploding 
             U = exp(bsxfun(@minus,U,U_max));
@@ -423,7 +423,8 @@ elseif nargout == 2 %  function value + gradient
                 
 %                 F = XXa(YY(:,n) == 1,:,n*ones(NRep,1)) - squeeze(X_hat);  %NCT x NVarA x NRep
 %                 F = bsxfun(@minus,XXa(YY(:,n) == 1,:,n),squeeze(X_hat));  %NCT x NVarA x NRep
-                F = bsxfun(@minus,XXa_n(YYy_n,:),squeeze(X_hat));  %NCT x NVarA x NRep
+%                 F = bsxfun(@minus,XXa_n(YYy_n,:),squeeze(X_hat));  %NCT x NVarA x NRep
+                F = bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep]));  %NCT x NVarA x NRep
                 sumFsqueezed = squeeze(sum(F,1));  %NVarA x NRep
                 sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
             else

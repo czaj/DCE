@@ -3,6 +3,8 @@ function [f,g] = LL_hmxl(Y,Xa,Xm,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 % save tmp_LL_hmxl
 % return
 
+RealMin = EstimOpt.RealMin;
+
 b_mtx_grad = [];
 
 %NAltMiss = EstimOpt.NAltMiss; 
@@ -171,7 +173,7 @@ if nargout == 1 % function value only
             b = bmea(l+1:l+size(X,2));
             fit = reshape(X*b, EstimOpt.NRep, EstimOpt.NP)';
             lam = exp(fit);
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L = exp(fit.*Xmea(:,i*ones(EstimOpt.NRep,1))-lam)./min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
             else
                 L = exp(fit.*Xmea(:,i*ones(EstimOpt.NRep,1))-lam)./ gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1);
@@ -189,7 +191,7 @@ if nargout == 1 % function value only
             lam = exp(fit);
             theta = exp(bmea(l+size(X,2)+1));
             u = theta./(theta+lam);  
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L = min(gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
             else
                 L = gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1))) ./ (gamma(theta) .* gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1));
@@ -213,7 +215,7 @@ if nargout == 1 % function value only
             IndxZIP = Xmea(:,i) == 0;
             
             L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*exp(-lam(IndxZIP,:));
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
             else
                 L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
@@ -222,7 +224,7 @@ if nargout == 1 % function value only
             l = l+2*size(X,2);
         end
     end
-    if EstimOpt.RealMin == 0
+    if RealMin == 0
         f = -log(mean(probs.*L_mea,2));
     else
         f = -log(max(realmin,mean(probs.*L_mea,2)));
@@ -487,7 +489,7 @@ else % function value + gradient
             grad_tmp = zeros(EstimOpt.NP,EstimOpt.NRep);
             L(Xmea(:,i) == min(UniqueMea),:) = normcdf(alpha(1)-Xb(Xmea(:,i) == min(UniqueMea),:));
             L(Xmea(:,i) == max(UniqueMea),:) = 1-normcdf(alpha(end)-Xb(Xmea(:,i) == max(UniqueMea),:));
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 grad_tmp(Xmea(:,i) == min(UniqueMea),:) = normpdf(alpha(1)-Xb(Xmea(:,i) == min(UniqueMea),:))./max(L(Xmea(:,i) == min(UniqueMea),:),realmin);
                 grad_tmp(Xmea(:,i) == max(UniqueMea),:) = -normpdf(alpha(end)-Xb(Xmea(:,i) == max(UniqueMea),:))./max(L(Xmea(:,i) == max(UniqueMea),:), realmin);
             else
@@ -498,7 +500,7 @@ else % function value + gradient
             for j = 2:k
                 L(Xmea(:,i) == UniqueMea(j),:) = normcdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:)) - normcdf(alpha(j-1)-Xb(Xmea(:,i) == UniqueMea(j),:));
                 grad_tmp(Xmea(:,i) == UniqueMea(j),:) = normpdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:)) - normpdf(alpha(j-1)-Xb(Xmea(:,i) == UniqueMea(j),:)); 
-                if EstimOpt.RealMin == 1
+                if RealMin == 1
                     grad_tmp(Xmea(:,i) == UniqueMea(j),:) = grad_tmp(Xmea(:,i) == UniqueMea(j),:)./max(L(Xmea(:,i) == UniqueMea(j),:),realmin);
                 else
                     grad_tmp(Xmea(:,i) == UniqueMea(j),:) = grad_tmp(Xmea(:,i) == UniqueMea(j),:)./L(Xmea(:,i) == UniqueMea(j),:);
@@ -523,7 +525,7 @@ else % function value + gradient
             gmea(:,:,l+1+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = grad_tmp; %first threshold level
             for j = 2:k
                 gmea(Xmea(:,i) > UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = grad_tmp(Xmea(:,i) > UniqueMea(j),:)*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
-                if EstimOpt.RealMin == 1
+                if RealMin == 1
                     gmea(Xmea(:,i) == UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = (normpdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:))./max(L(Xmea(:,i) == UniqueMea(j),:),realmin))*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
                 else
                     gmea(Xmea(:,i) == UniqueMea(j),:,l+j+sum(EstimOpt.MeaMatrix(:,i)'== 1)+tmp) = (normpdf(alpha(j)-Xb(Xmea(:,i) == UniqueMea(j),:))./L(Xmea(:,i) == UniqueMea(j),:))*exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+j)); %other thresholds levels
@@ -543,7 +545,7 @@ else % function value + gradient
             fit = reshape(X*b, EstimOpt.NRep, EstimOpt.NP)';
             lam = exp(fit);
             L = exp(fit.*Xmea(:,i*ones(EstimOpt.NRep,1))-lam);
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L = L./min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
             else
                 L = L./gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1);
@@ -578,7 +580,7 @@ else % function value + gradient
             lam = exp(fit);
             theta = exp(bmea(l+size(X,2)+1));
             u = theta./(theta+lam);  
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L = min(gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
             else
                 L = gamma(theta+Xmea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(Xmea(:,i*ones(EstimOpt.NRep,1))+1));
@@ -626,7 +628,7 @@ else % function value + gradient
             lam = exp(fit);
             IndxZIP = Xmea(:,i) == 0;
             L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*exp(-lam(IndxZIP,:));
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
             else
                 L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
@@ -637,7 +639,7 @@ else % function value + gradient
             grad_tmp1 = zeros(EstimOpt.NP, EstimOpt.NRep); % For ZIP 
             grad_tmp2 = zeros(EstimOpt.NP, EstimOpt.NRep); % For Poiss
             
-            if EstimOpt.RealMin == 1
+            if RealMin == 1
                 grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./max(L(IndxZIP,:),realmin);
                 grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./max(L(IndxZIP,:),realmin);
             else
@@ -677,7 +679,7 @@ else % function value + gradient
     end
 
     probs = probs.*L_mea;
-    if EstimOpt.RealMin == 1
+    if RealMin == 1
         p = max(realmin,mean(probs,2));
     else    
         p = mean(probs,2);

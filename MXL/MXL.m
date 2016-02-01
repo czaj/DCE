@@ -516,14 +516,14 @@ end
 
 %% Rescructure data
 
-
 % missing data - move to DataClean and do in a similar way for other models?
-INPUT.Xa(INPUT.MissingInd(:,ones(1,EstimOpt.NVarA))==1) = NaN; % replace Xa in missing alternatives (missing choice-tasks do not matter anyway - see below) with NaN
+% INPUT.Xa(INPUT.MissingInd(:,ones(1,EstimOpt.NVarA))==1) = NaN; % replace Xa in missing alternatives (missing choice-tasks do not matter anyway - see below) with NaN
 
 INPUT.YYY = reshape(INPUT.Y',EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP);
-idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP)) == EstimOpt.NAlt;
-INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:)) = NaN; % replace YYY in missing choice-tasks with NaN
-INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP)==1;
+% idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP])) == EstimOpt.NAlt;
+% INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:)) = NaN; % replace YYY in missing choice-tasks with NaN
+% INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP)==1;
+INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
 XXa_tmp = reshape(INPUT.Xa',EstimOpt.NVarA, EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
