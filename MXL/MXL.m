@@ -393,11 +393,11 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
-	EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
-end
+% if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
+% 	EstimOpt.NumGrad = 1;
+%     OptimOpt.GradObj = 'off';
+% 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
+% end
 
 if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
@@ -428,13 +428,13 @@ if  EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
     EstimOpt.ApproxHess = 1;
 end
 
-if  EstimOpt.NVarS == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
+if  EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
-if  EstimOpt.NVarM == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
+if  EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
