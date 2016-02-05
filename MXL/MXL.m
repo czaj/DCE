@@ -236,8 +236,8 @@ if EstimOpt.FullCov == 0
         else
             error('No starting values available - run MNL first')
         end
-    end
-else % EstimOpt.FullCov == 1
+    end    
+else % EstimOpt.FullCov == 1    
 	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
         b0 = B_backup(:);
         disp('Using the starting values from Backup')
@@ -396,13 +396,13 @@ end
 if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
 end
 
 if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - analytical gradient available for normally or lognormally distributed parameters only \n')
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient available for normally or lognormally distributed parameters only \n')
 end
 
 
@@ -428,35 +428,41 @@ if  EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
     EstimOpt.ApproxHess = 1;
 end
 
-if  EstimOpt.NVarS == 1 && EstimOpt.ApproxHess == 0
+if  EstimOpt.NVarS == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
-if  EstimOpt.NVarM == 1 && EstimOpt.ApproxHess == 0
+if  EstimOpt.NVarM == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
-if  EstimOpt.WTP_space > 0 && EstimOpt.ApproxHess == 0
+if  EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
-if  any(isnan(INPUT.Xa(:))) == 1 && EstimOpt.ApproxHess == 0
+if  any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
 
-if  any(EstimOpt.Dist(2:EstimOpt.NVarA+1)~= 0) && EstimOpt.ApproxHess == 0
+if  any(EstimOpt.Dist(2:EstimOpt.NVarA+1)~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
-if EstimOpt.NVarNLT > 0 && EstimOpt.ApproxHess == 0
+if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
     EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
 if  any(EstimOpt.Dist(2:end)>= 3 & EstimOpt.Dist(2:end) <= 5) && EstimOpt.NVarM ~= 0
