@@ -4,17 +4,6 @@ function [f,g,h]= LL_mxl_MATlike(YY,XXa,XXm,Xs,err,EstimOpt,OptimOpt,b0)
 % return
 
 LLfun = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
-[f,j] = LLfun(b0);
-        j(:,EstimOpt.BActive ==0) = 0;
-        g = sum(j,1)'; ...
-EstimOpt.NumGrad = 1;
-LLfun2 = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
-f2 = LLfun2(b0);  
-j2 = numdiff(LLfun2,f2,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
-g2 = sum(j2,1)';  
-[g,g2, abs(g-g2)]
-EstimOpt.NumGrad = 0;
-pause;
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
