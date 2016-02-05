@@ -206,23 +206,26 @@ else
     end
 end
 
-if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
-    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
-    OptimOpt.GradObj = 'on';
-end
-
 if any(EstimOpt.MissingCT(:) == 1) && EstimOpt.NumGrad == 0
    EstimOpt.NumGrad = 1;
+   OptimOpt.GradObj = 'off';
    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing choice tasks not supported by analytical gradient \n')
 end
 
 if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
    EstimOpt.NumGrad = 1;
+   OptimOpt.GradObj = 'off';
    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+end
+
+if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    OptimOpt.GradObj = 'on';
 end
 
 if any(EstimOpt.BActiveClass == 0) && EstimOpt.NumGrad == 0
    EstimOpt.NumGrad = 1;
+   OptimOpt.GradObj = 'off';
    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - parameters constrained between classes not supported by analytical gradient \n')
 end
 
@@ -449,7 +452,7 @@ Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.
 Results.R_out = cell(3+EstimOpt.NVarA + 2 + EstimOpt.NVarC + 3 + 2 + 7, 1 + 3*EstimOpt.NClass);  
 Results.R_out(1,1) = {'LC'};
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-NClasses = {'NClass 1','NClass 2', 'NClass 3', 'NClass 4', 'NClass 5', 'NClass 6', 'NClass 7', 'NClass 8', 'NClass 9','NClass 10'};
+NClasses = {'Class 1','Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9','Class 10'};
 headx = [head, repmat(head(1,2:4),1,EstimOpt.NClass-1)];
 if EstimOpt.NClass<=10
     Results.R_out(2,2:3:(2+(EstimOpt.NClass-1)*3)) = NClasses(1,1:EstimOpt.NClass);

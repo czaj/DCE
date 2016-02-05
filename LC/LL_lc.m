@@ -32,8 +32,8 @@ PClass_sum = sum(PClass,2);...
 PClass = PClass./PClass_sum(:,ones(EstimOpt.NClass,1)); ...
 
 probs_x = probs.*PClass;
-f = max(sum(probs_x,2), realmin);
-% f = sum(probs_x,2);
+% f = max(sum(probs_x,2), realmin);
+f = sum(probs_x,2);
 % f = -log(max(sum(probs.*PClass,2),realmin));
 
 if nargout == 2 % function value + gradient
@@ -92,20 +92,20 @@ if nargout == 2 % function value + gradient
     end
    
    % class membership parameters
-   PClass_tmp = reshape(PClass(:,1:EstimOpt.NClass-1), EstimOpt.NP, 1, EstimOpt.NClass-1);
-   PClass_tmp = reshape(PClass_tmp(:, ones(EstimOpt.NClass-1,1),:),EstimOpt.NP,(EstimOpt.NClass-1)^2);
-   PClass = reshape(PClass(:,:, ones(EstimOpt.NClass-1,1)), EstimOpt.NP, EstimOpt.NClass*(EstimOpt.NClass-1));
+   PClass_tmp = reshape(PClass(:,1:EstimOpt.NClass-1), EstimOpt.NP,1,EstimOpt.NClass-1);
+   PClass_tmp = reshape(PClass_tmp(:,ones(EstimOpt.NClass-1,1),:),EstimOpt.NP,(EstimOpt.NClass-1)^2);
+   PClass = reshape(PClass(:,:,ones(EstimOpt.NClass-1,1)),EstimOpt.NP,EstimOpt.NClass*(EstimOpt.NClass-1));
    indx1 = 1:EstimOpt.NClass-1;
    indx1 = indx1 + (indx1-1)*EstimOpt.NClass;
-   PClass(:, indx1) = PClass(:, indx1).*(1-PClass(:, indx1));
+   PClass(:,indx1) = PClass(:,indx1).*(1-PClass(:,indx1));
    indx2 = 1:EstimOpt.NClass*(EstimOpt.NClass-1);
    indx2(indx1) = []; % 
 
-   PClass(:,indx2) =-PClass(:,indx2).*PClass_tmp;
+   PClass(:,indx2) = -PClass(:,indx2).*PClass_tmp;
    PClass = reshape(PClass, EstimOpt.NP, EstimOpt.NClass, EstimOpt.NClass-1);
    g2 = sum(PClass.*probs(:,:, ones(EstimOpt.NClass-1,1)),2); % NP x 1 xNClass-1
-   g2 = g2(:, ones(EstimOpt.NVarC,1),:).*Xc(:,:, ones(EstimOpt.NClass-1,1));
-   g2 = reshape(g2, EstimOpt.NP, EstimOpt.NVarC*(EstimOpt.NClass-1)); % gradient for class probability parameters
+   g2 = g2(:,ones(EstimOpt.NVarC,1),:).*Xc(:,:, ones(EstimOpt.NClass-1,1));
+   g2 = reshape(g2,EstimOpt.NP, EstimOpt.NVarC*(EstimOpt.NClass-1)); % gradient for class probability parameters
    g = -[g1,g2];
    g = g./f(:, ones(length(B),1));
 end

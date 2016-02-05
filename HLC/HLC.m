@@ -86,7 +86,9 @@ if isfield(INPUT, 'Xstr') == 0 || numel(INPUT.Xstr) == 0
     INPUT.Xstr = zeros(size(INPUT.Y,1),0);
 end
 if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
-	error('Define attitudes to measurment equations')
+% 	error('Define attitudes to measurment equations')
+    cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
+    INPUT.Xmea = zeros(size(INPUT.Y,1),0);
 end
 
 if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional covariates for explaining Measurment equations
@@ -104,21 +106,30 @@ end
 if isfield(EstimOpt,'MeaMatrix')
     if size(EstimOpt.MeaMatrix,2) ~= size(INPUT.Xmea,2) || size(EstimOpt.MeaMatrix,1) ~= EstimOpt.NLatent
         error('Measurment equations erroneously defined (incorrect size of the MeaMatrix)')
+%         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif ismember(0,(ismember(EstimOpt.MeaMatrix,[0,1])))
         error('Measurment equations erroneously defined (incorrect values in the MeaMatrix)')
+%         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1,2) == 0)
-        error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
+%         error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
+    cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
+%         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1) == 0)
         error('Measurment equations erroneously defined (some measurement variables unused)')
+%         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     end
-else        
+elseif size(INPUT.Xmea,2) == 0
+    EstimOpt.MeaMatrix = ones(EstimOpt.NLatent,size(INPUT.Xmea,2));
+else
     EstimOpt.MeaMatrix = ones(EstimOpt.NLatent,size(INPUT.Xmea,2));
     disp('Assuming every Latent Variable in every measurment equation')
 end
 
 if isfield(EstimOpt,'MeaSpecMatrix') == 0 || numel(EstimOpt.MeaSpecMatrix) == 0
 	EstimOpt.MeaSpecMatrix = zeros(1, size(INPUT.Xmea,2));
-	disp('Using OLS for every measurment equation')
+    if size(INPUT.Xmea,2) > 0
+        disp('Using OLS for every measurment equation')
+    end
 end
 if numel(EstimOpt.MeaSpecMatrix) == 1 % if only one number provided - replicate it for all Measurement variables
     EstimOpt.MeaSpecMatrix = EstimOpt.MeaSpecMatrix * ones(1,size(INPUT.Xmea,2));
@@ -131,25 +142,25 @@ EstimOpt.NVarstr = size(INPUT.Xstr,2);  % no. of variables in structural equatio
 EstimOpt.NVarmea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurments without couting cutoffs, constants etc
 EstimOpt.NVarmea_exp = size(INPUT.Xmea_exp,2);
 
-for i=1:size(EstimOpt.MeaMatrix,1)
-    if EstimOpt.MeaSpecMatrix(i) > 0 % MNL or OP
-        if numel(unique(INPUT.Xmea(:,i))) > 10
+for i=1:size(EstimOpt.MeaMatrix,2)
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 10
             cprintf(rgb('DarkOrange'), 'WARNING: There are over 10 levels for measurement variable %d \n', i)
         end
     end
-    if sum(isnan(INPUT.Xmea(:,i))) > 0
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING: Measurement variable %d contains NaN values \n', i)
     end
-	if sum(isinf(INPUT.Xmea(:,i))) > 0
+	if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING: Measurement variable %d contains Inf values \n', i)
 	end
 end
 
-for i = 1:EstimOpt.NVarstr
-    if sum(isnan(INPUT.Xstr(:,i))) > 0
+for i=1:EstimOpt.NVarstr
+    if sum(isnan(INPUT.Xstr(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING: Structural variable %d contains NaN values \n', i)
     end
-	if sum(isinf(INPUT.Xstr(:,i))) > 0
+	if sum(isinf(INPUT.Xstr(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING: Structural variable %d contains Inf values \n', i)
 	end
 end
@@ -297,8 +308,10 @@ if isfield(EstimOpt,'NamesMea') == 0 || isempty(EstimOpt.NamesMea) || length(Est
 elseif size(EstimOpt.NamesMea,1) ~= size(INPUT.Xmea,2)
     EstimOpt.NamesMea = EstimOpt.NamesMea';
 end
-disp(['Using following models for attitudes: '  EstimOpt.Names]);
 
+if size(INPUT.Xmea,2) > 0
+    disp(['Using following models for attitudes: '  char(EstimOpt.Names)]);
+end
 
 %% Rescructure data
 
@@ -331,17 +344,21 @@ end
 %% Estimating MIMIC0
 
 
-OptimOpt_0 = optimoptions('fminunc');
-OptimOpt_0.Algorithm = 'quasi-newton';
-OptimOpt_0.GradObj = 'off';
-OptimOpt_0.Hessian = 'off';
-OptimOpt_0.Display = 'off';
-OptimOpt_0.FunValCheck = 'off'; 
-OptimOpt_0.Diagnostics = 'off';
-
-LLfun0 = @(B) LL_hmnl0(INPUT.Xmea, EstimOpt, B);
-[Results.MIMIC0.bhat, LL0] = fminunc(LLfun0, 0.001*ones(EstimOpt.NVarcut0,1),OptimOpt_0);
-Results.MIMIC0.LL = -LL0;
+if size(INPUT.Xmea,2) > 0
+    OptimOpt_0 = optimoptions('fminunc');
+    OptimOpt_0.Algorithm = 'quasi-newton';
+    OptimOpt_0.GradObj = 'off';
+    OptimOpt_0.Hessian = 'off';
+    OptimOpt_0.Display = 'off';
+    OptimOpt_0.FunValCheck = 'off'; 
+    OptimOpt_0.Diagnostics = 'off';
+    LLfun0 = @(B) LL_hmnl0(INPUT.Xmea, EstimOpt, B);
+    [Results.MIMIC0.bhat, LL0] = fminunc(LLfun0, 0.001*ones(EstimOpt.NVarcut0,1),OptimOpt_0);
+    Results.MIMIC0.LL = -LL0;
+else
+    Results.MIMIC0.bhat = [];
+    Results.MIMIC0.LL = 0;
+end    
 
 
 %% Starting values
@@ -402,11 +419,11 @@ if  ~exist('b0','var')
             Results_old.HMNL.bhat(1:(EstimOpt.NVarA-EstimOpt.WTP_space)) = Results_old.HMNL.bhat(1:(EstimOpt.NVarA-EstimOpt.WTP_space))./Results_old.HMNL.bhat(EstimOpt.WTP_matrix);
         end
         b0 = [Results_old.HMNL.bhat((1:EstimOpt.NVarA)'*ones(1,EstimOpt.NClass),:) .* ...
-            (EstimOpt.jitter1 .* unifrnd(0,ones(EstimOpt.NVarA.*EstimOpt.NClass,1))) ; ...
-            EstimOpt.jitter2 + unifrnd(-1,ones((EstimOpt.NVarC+EstimOpt.NLatent).*(EstimOpt.NClass-1),1)); ...
-            Results_old.HMNL.bhat(EstimOpt.NVarA*(EstimOpt.NLatent+1)+1:end)];
+             (EstimOpt.jitter1 .* unifrnd(0,ones(EstimOpt.NVarA.*EstimOpt.NClass,1))) ; ...
+             EstimOpt.jitter2 + unifrnd(-1,ones((EstimOpt.NVarC+EstimOpt.NLatent).*(EstimOpt.NClass-1),1)); ...
+             Results_old.HMNL.bhat(EstimOpt.NVarA*(EstimOpt.NLatent+1)+1:end)];
     else
-            error('No starting values available - run MIMIC or HMNL first')
+        error('No starting values available - run MIMIC or HMNL first')
     end
 end
 
@@ -492,14 +509,15 @@ err_sliced = err_mtx'; % NLatent x NRep * NP
 %% Display Options
 
 
+if EstimOpt.NumGrad == 0
+   EstimOpt.NumGrad = 1;
+   OptimOpt.GradObj = 'off';
+   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical -  analytical gradient not supported in the HLC model \n')
+end
+
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     OptimOpt.GradObj = 'on';
-end
-
-if EstimOpt.NumGrad == 0
-   EstimOpt.NumGrad = 1;
-   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical -  analytical gradient not supported in the HLC model \n')
 end
 
 if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
@@ -638,7 +656,7 @@ Results.INPUT = INPUT;
 
 for j = 1:EstimOpt.NClass
     disp(' ')
-    disp(num2str(j,'NLatent class parameters %1.0f'));
+    disp(num2str(j,'Latent class parameters %1.0f'));
     disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
     disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)',num2str(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,3)), num2str(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
 end

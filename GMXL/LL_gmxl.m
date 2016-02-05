@@ -13,6 +13,8 @@ NVarT = EstimOpt.NVarT;
 Dist = EstimOpt.Dist; 
 WTP_space = EstimOpt.WTP_space; 
 WTP_matrix = EstimOpt.WTP_matrix; 
+NCTMiss = EstimOpt.NCTMiss; 
+NAltMiss = EstimOpt.NAltMiss; 
 
 b0a = b0(1:NVarA);
 
@@ -133,7 +135,9 @@ if WTP_space > 0
 end
 
 cs = reshape(exp(XXs*b0s),NAlt*NCT,1,NP); 
-XXa_n = XXa .* cs(:,ones(1,NVarA,1),:) ; 
+XXa = XXa .* cs(:,ones(1,NVarA,1),:) ; 
+
+b_mtx = reshape(b_mtx,NVarA,NRep,NP); 
 
 p0 = zeros(NP,1);
 
@@ -149,24 +153,35 @@ p0 = zeros(NP,1);
 %end
 
 if any(isnan(XXa(:))) == 0  % faster version for complete dataset
+    YYy = YY==1;
     parfor n = 1:NP 
-        U = reshape(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT,NRep); 
+%         U = reshape(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT,NRep); 
+        U = reshape(XXa(:,:,n)*b_mtx(:,:,n),NAlt,NCT,NRep); 
         U_max = max(U); 
         U = exp(U - U_max(ones(NAlt,1),:,:));  % rescale utility to avoid exploding
         U_sum = reshape(sum(U,1),NCT,NRep); 
-        U_selected = reshape(U(YY(:,n*ones(NRep,1))==1),NCT,NRep);    
+%         U_selected = reshape(U(YY(:,n*ones(NRep,1))==1),NCT,NRep);    
+        YYy_n = YYy(:,n);
+        U_selected = reshape(U(YYy_n(:,ones(NRep,1))),NCT,NRep);
         p0(n) = mean(prod(U_selected ./ U_sum,1),2);
     end; 
 else  % this works only if NAlt is constant for each respondent and if missing ALT is not the first in NCT
     parfor n = 1:NP 
+        YnanInd = ~isnan(YY(:,n));
+        XXa_n = XXa(:,:,n);
 %         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
 % from MXL: U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
-        U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);         
+%         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
+        U = reshape(XXa_n(YnanInd,:,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
         U_max = max(U); 
 %         U = exp(U - U_max(ones(NAlt,1),:,:)); 
-	    U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:)); 
-        U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
-        U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);    
+% 	    U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:)); 
+        U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
+%         U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
+        U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
+%         U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);    
+        YYy_n = YY(:,n)==1;
+        U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep);
         p0(n) = mean(prod(U_selected ./ U_sum,1),2);
     end; 
 end 
