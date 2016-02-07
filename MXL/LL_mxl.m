@@ -281,13 +281,15 @@ elseif nargout == 2 %  function value + gradient
     
     if NVarS > 0
         Xs_sliced = reshape(Xs, NAlt*NCT, NP, NVarS);
+    else
+        Xs_sliced = reshape(Xs, NAlt*NCT, NP, 0);
     end
 	if FullCov == 0    
         g = zeros(NP, 2*NVarA + NVarNLT+NVarS);
         VC2 = reshape(2*diag(b0(NVarA+1:NVarA*2))*err, NVarA, NRep, NP);
         VC2f = zeros(0,0,NP);
 	else
-        g = zeros(NP, 2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS);
+        g = zeros(NP, 2*NVarA+NVarA*(NVarA-1)/2 + NVarNLT + NVarS);
         VC2 = zeros(0,0,NP);
         VC2f = reshape(err, NVarA, NRep, NP);
 	end
@@ -403,7 +405,7 @@ elseif nargout == 2 %  function value + gradient
                 gtmp =  -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
             end
             if NVarS > 0
-                gtmp= [gtmp;-mean(FScale.*U_prod(ones(NVarS,1),:),2)./p0(n)];
+                gtmp = [gtmp;-mean(FScale.*U_prod(ones(NVarS,1),:),2)./p0(n)];
             end
             if NVarNLT > 0
                % g(n,:) = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:); F3sum.*U_prod(ones(NVarNLT,1),:) ],2)./p0(n);    
