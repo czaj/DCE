@@ -14,17 +14,18 @@ NCTMiss = EstimOpt.NCTMiss;
 NAltMiss = EstimOpt.NAltMiss; 
 MNLDist = EstimOpt.MNLDist;
 NLatent = EstimOpt.NLatent;
-NVarstr = EstimOpt.NVarstr;
+NVarStr = EstimOpt.NVarStr;
+% NVarMea = EstimOpt.NVarMea;
 MeaMatrix = EstimOpt.MeaMatrix;
 MeaSpecMatrix = EstimOpt.MeaSpecMatrix;
-NVarMeaExp = EstimOpt.NVarmea_exp;
+NVarMeaExp = EstimOpt.NVarMeaExp;
 MeaExpMatrix = EstimOpt.MeaExpMatrix;
 RealMin = EstimOpt.RealMin;
 
 ba = B(1:NVarA);  % b atrybutów
 bl = reshape(B(NVarA+1:NVarA*(NLatent+1)), NVarA, NLatent); % b interakcji z LV
-bstr = reshape(B(NVarA*(NLatent+1)+1:(NVarA+NVarstr)*NLatent+NVarA), NVarstr, NLatent); % b równania struktury
-bmea = B((NVarA+NVarstr)*NLatent+NVarA+1:end); % b measurement
+bstr = reshape(B(NVarA*(NLatent+1)+1:(NVarA+NVarStr)*NLatent+NVarA), NVarStr, NLatent); % b równania struktury
+bmea = B((NVarA+NVarStr)*NLatent+NVarA+1:end); % b measurement
 
 LV_tmp = Xstr*bstr; % NP x NLatent
 LV_tmp = reshape(permute(LV_tmp(:,:, ones(NRep,1)),[2 3 1]), NLatent, NRep*NP);
@@ -45,13 +46,16 @@ end
 
 
 if WTP_space > 0
-    if EstimOpt.NumGrad == 0
-       b_mtx_grad = reshape(b_mtx ,NVarA,NRep,NP);% needed for gradient calculation in WTP_space
+    if nargout == 2
+       b_mtx_grad = reshape(b_mtx,NVarA,NRep,NP);% needed for gradient calculation in WTP_space
     end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:);
+elseif nargout == 2
+    b_mtx_grad = zeros(0,0,NP); 
 end
 
 b_mtx_sliced = reshape(b_mtx,[NVarA,NRep,NP]); % NVarA x NRep x NP
+
 
 
 probs = zeros(NP,NRep);
@@ -232,32 +236,33 @@ if nargout == 1 % function value only
 
 else % function value + gradient
     
-    if ~exist('b_mtx_grad','var')
-        b_mtx_grad = [];
-    end
-    gmnl = zeros(NP, NRep, NVarA, (1+NLatent)); % gradient for mnl parameters
-    gstr = zeros(NP, NRep, NVarstr,NLatent); % gradient for parameters from structural equations
-    gmea = zeros(NP, NRep, length(bmea));% gradient for other parameters
+%     if ~exist('b_mtx_grad','var')
+%         b_mtx_grad = [];
+%     end
+%     gmnl = zeros(NP, NRep, NVarA, (1+NLatent)); % gradient for mnl parameters
+    gmnl = zeros(NP, NRep, NVarA); % gradient for mnl parameters
+    gstr = zeros(NP, NRep, NVarStr,NLatent); % gradient for parameters from structural equations
+    gmea = zeros(NP, NRep, size(bmea,1));% gradient for other parameters
         
     % terms from LV normalization
     mXstr = mean(Xstr,1);
-    Xstr_expand = reshape(Xstr - mXstr(ones(NP,1),:), 1,NP, NVarstr);
-    Xstr_expand = reshape(Xstr_expand(ones(NRep*NLatent,1), :,:), NLatent,NRep*NP, NVarstr);
+    Xstr_expand = reshape(Xstr - mXstr(ones(NP,1),:), 1,NP, NVarStr);
+    Xstr_expand = reshape(Xstr_expand(ones(NRep*NLatent,1), :,:), NLatent,NRep*NP, NVarStr);
     LV_tmp = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % NLatent x NRep*NP
-    LV_std = sum(LV_tmp(:,:,ones(NVarstr,1)).*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr
+    LV_std = sum(LV_tmp(:,:,ones(NVarStr,1)).*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr
     
-    Xstr_expand = Xstr_expand./sLV(:, ones(NRep*NP,1),ones(NVarstr,1));
+    Xstr_expand = Xstr_expand./sLV(:, ones(NRep*NP,1),ones(NVarStr,1));
     LV_tmp = LV_tmp./(sLV(:, ones(NRep*NP,1)).^3);
-    LV_tmp = LV_tmp(:,:, ones(NVarstr,1));
+    LV_tmp = LV_tmp(:,:, ones(NVarStr,1));
 
-    LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:), NLatent, NRep, NP, NVarstr); % NLatent x NRep x NP x NVarstr
+    LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:), NLatent, NRep, NP, NVarStr); % NLatent x NRep x NP x NVarstr
     %LV_der = reshape(permute(LV_der, [3 2 4 1]), NP, NRep, NVarstr*NLatent);
     LV_der = permute(LV_der, [3 2 4 1]); % NP x NRep x NVarstr x NLatent
     LV_expand = permute(reshape(LV',NRep,NP,NLatent), [2 1 3]); 
     
     if any(isnan(Xa(:))) == 0  % faster version for complete dataset
-            
-        for n = 1:NP
+
+        parfor n = 1:NP
             b_mtx_n = b_mtx_sliced(:,:,n);
             Xa_n = Xa(:,:,n);
             Yy_n = Y(:,n)==1;
@@ -272,14 +277,17 @@ else % function value + gradient
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*NCT,1, NRep); % NAlt*NCT x NVarA x NRep
             if WTP_space == 0   
-                X_hat = sum(reshape(U_prob(:,ones(1,NVarA,1),:).*Xa_n(:,:,ones(NRep,1)),NAlt,NCT,NVarA,NRep),1);
-                if NCT ~= 1
-                    F = Xa_n(Y(:,n) == 1,:,ones(NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
-                    sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep     
-                else
-                    sumFsqueezed = squeeze(Xa_n(Y(:,n) == 1,:,ones(NRep,1))) - squeeze(X_hat); %NVarA x NRep 
-                end 
-                sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_n(MNLDist==1,:);
+%                 X_hat = sum(reshape(U_prob(:,ones(1,NVarA,1),:).*Xa_n(:,:,ones(NRep,1)),NAlt,NCT,NVarA,NRep),1);
+                X_hat = sum(reshape(bsxfun(@times,U_prob,Xa_n),[NAlt,NCT,NVarA,NRep]),1);
+%                 if NCT ~= 1
+%                     F = Xa_n(Y(:,n)==1,:,ones(NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
+                    F = bsxfun(@minus,Xa_n(Y(:,n)==1,:,:),reshape(X_hat,[NCT,NVarA,NRep])); %NCT x NVarA x NRep 
+%                     sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep     
+                    sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); %NVarA x NRep     
+%                 else
+%                     sumFsqueezed = squeeze(Xa_n(Y(:,n) == 1,:,ones(NRep,1))) - squeeze(X_hat); %NVarA x NRep 
+%                 end 
+                sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_n(MNLDist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep);
@@ -288,16 +296,15 @@ else % function value + gradient
                 X_hat1 = sum(reshape(U_prob(:,ones(1,NVarA-WTP_space),:).*Xalpha, NAlt, NCT, NVarA-WTP_space, NRep),1);
                 F1 = Xalpha(Y(:,n) == 1,:,:) - squeeze(X_hat1); %NCT x NVarA-WTP_space x NRep   
                 % for cost variables
-                if WTP_space == 1 % without starting the loop
-                    b_mtx_grad_n = b_mtx_grad(:,:,n);
+                b_mtx_grad_n = b_mtx_grad(:,:,n);
+                if WTP_space == 1 % without starting the loop                    
                     Xbmxlfit = Xa_n(:,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:);
                     pX = squeeze(Xa_n(:,NVarA,ones(NRep,1))) + Xbmxlfit;
                     X_hat2 = sum(reshape(squeeze(U_prob).*pX, NAlt, NCT, WTP_space, NRep),1);
                 else
-                    b_mtx_grad_n = b_mtx_grad(:,:,n);
                     pX = zeros(NCT*NAlt, WTP_space, NRep);
                     for i = 1:WTP_space
-                        Xbmxlfit = Xa_n(:,WTP_matrix==NVarA-WTP_space+i)*b_mtx_grad_n(WTP_matrix == NVarA-WTP_space+i,:);
+                        Xbmxlfit = Xa_n(:,WTP_matrix==NVarA-WTP_space+i)*b_mtx_grad_n(WTP_matrix==NVarA-WTP_space+i,:);
                         pX(:,i,:) = squeeze(Xa_n(:,NVarA-WTP_space+i,ones(NRep,1))) + Xbmxlfit;
                     end
                     X_hat2 = sum(reshape(U_prob(:,ones(1,WTP_space),:).* pX, NAlt, NCT, WTP_space, NRep),1);
@@ -308,15 +315,16 @@ else % function value + gradient
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end
 
-            sumFsqueezed = sumFsqueezed'; % NRep x NVarA
-            gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
-            sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(NVarstr,1)), [1 3 2]);
+%             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
+%             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1));            
+            gmnl(n,:,:) = sumFsqueezed';
+            sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(NVarStr,1)), [1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;
             
         end;
     else 
     
-        for n = 1:NP
+        parfor n = 1:NP
             YnanInd = ~isnan(Y(:,n));
             b_mtx_n = b_mtx_sliced(:,:,n);
             Xa_n = Xa(:,:,n);
@@ -368,9 +376,10 @@ else % function value + gradient
                 sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_grad_n(MNLDist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end        
-            sumFsqueezed = sumFsqueezed'; % NRep x NVarA
-            gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
-            sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(NVarstr,1)), [1 3 2]);
+%             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
+%             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
+            gmnl(n,:,:) = sumFsqueezed'; 
+            sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:, ones(NVarStr,1)), [1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;            
 
         end;
@@ -378,9 +387,13 @@ else % function value + gradient
     end 
         
     gstr = gstr.*LV_der;
-    LV_expand = reshape(LV_expand, NP, NRep,1, NLatent );
-    gmnl(:,:,:,2:end) = gmnl(:,:,:,2:end).*LV_expand(:,:, ones(NVarA,1),:);
-    LV_expand = squeeze(LV_expand);
+%     LV_expand = reshape(LV_expand,[NP,NRep,1,NLatent]);
+%     gmnl0(:,:,:,2:end) = gmnl0(:,:,:,2:end).*LV_expand(:,:, ones(NVarA,1),:);    
+%     gmnl = cat(4,gmnl,bsxfun(@times,gmnl,LV_expand));  
+    LV_expand_tmp = cat(3,ones(NP,NRep,1),LV_expand);
+    LV_expand_tmp = reshape(LV_expand_tmp,[NP,NRep,1,1+NLatent]);
+    gmnl = bsxfun(@times,gmnl,LV_expand_tmp);
+%     LV_expand = squeeze(LV_expand);
     L_mea = ones(NP,NRep);
     l = 0;
 
@@ -404,10 +417,10 @@ else % function value + gradient
             LVindx = find(MeaMatrix(:,i)'== 1);
             if sum(MeaMatrix(:,i)'== 1) > 1
                 bx = b(2:1+sum(MeaMatrix(:,i)'== 1));
-                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
+                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
             else
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*b(2);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*b(2);
             end
             
             gmea(:,:,l+1) = grad_tmp; % constant
@@ -455,11 +468,11 @@ else % function value + gradient
                 
                 for j = 1:sum(MeaMatrix(:,i)'== 1)
                     grad_tmp = alphax(Xmea_i==1,:,j)  -sum(V.*alpha(:,:,:,j),3); % NP x NRep
-                    gstr(:,:,:,LVindx(j)) = gstr(:,:,:,LVindx(j)) +grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx(j));
+                    gstr(:,:,:,LVindx(j)) = gstr(:,:,:,LVindx(j)) +grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx(j));
                 end
             else
                 grad_tmp = alphax(Xmea_i==1,:)  -sum(V.*alpha,3); % NP x NRep
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx) +grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx) +grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx);
             end
             L_mea = L_mea.*L;
             l = l + size(X,2)*k; 
@@ -507,10 +520,10 @@ else % function value + gradient
             LVindx = find(MeaMatrix(:,i)'== 1);
             if sum(MeaMatrix(:,i)'== 1) > 1
                 bx = b(1:sum(MeaMatrix(:,i)'== 1));
-                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)- grad_tmp(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
+                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)- grad_tmp(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
             else
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)- grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*b(1);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)- grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*b(1);
             end
             
             gmea(:,:,l+1:l+sum(MeaMatrix(:,i)'== 1)) = -grad_tmp(:,:, ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % this is for LV parameters
@@ -555,10 +568,10 @@ else % function value + gradient
             % gradient for structural equation
             if sum(MeaMatrix(:,i)'== 1) > 1
                 bx = b(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
-                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
+                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
             else
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*b(2);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*b(2);
             end            
             gmea(:,:,l+1) = grad_tmp; % constant
             gmea(:,:,l+2:l+1+sum(MeaMatrix(:,i)'== 1)) = grad_tmp(:,:, ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % parameters for LV
@@ -594,10 +607,10 @@ else % function value + gradient
             % gradient for structural equation
             if sum(MeaMatrix(:,i)'== 1) > 1
                 bx = b(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
-                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
+                bx = permute(bx(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx;
             else
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*b(2);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*b(2);
             end
             
             gmea(:,:,l+1) = grad_tmp; % constant
@@ -660,15 +673,15 @@ else % function value + gradient
             % gradient for structural equation
             if sum(MeaMatrix(:,i)'== 1) > 1
                 bx1 = bzip(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
-                bx1 = permute(bx1(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
+                bx1 = permute(bx1(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
                 bx2 = bpoiss(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
-                bx2 = permute(bx2(:, ones(NP, 1), ones(NRep, 1), ones(NVarstr,1)), [2 3 4 1]);
+                bx2 = permute(bx2(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
                 
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx1+...
-                    grad_tmp2(:,:, ones(NVarstr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx2;
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx1+...
+                    grad_tmp2(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx2;
             else
-                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*bzip(2)+...
-                    grad_tmp2(:,:, ones(NVarstr,1)).*LV_der(:,:,:,LVindx)*bpoiss(2);
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*bzip(2)+...
+                    grad_tmp2(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*bpoiss(2);
             end
             gmea(:,:,l+1) = grad_tmp1; % constant
             gmea(:,:,l+2:l+1+sum(MeaMatrix(:,i)'== 1)) = grad_tmp1(:,:, ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % parameters for LV
@@ -696,16 +709,19 @@ else % function value + gradient
     f = -log(p);
     
 
-    gstr = reshape(gstr, NP, NRep, NVarstr*NLatent);
+    gstr = reshape(gstr, NP, NRep, NVarStr*NLatent);
     gmnl = reshape(gmnl, NP, NRep, NVarA*(1+NLatent));
-%     size(probs(:,:, ones(NVarA*(1+NLatent),1)))
-%     size(gmnl)
-    g = squeeze(mean(probs(:,:, ones(NVarA*(1+NLatent),1)).*gmnl,2)); % 
-    g3 = squeeze(mean(probs(:,:, ones(length(bmea),1)).*gmea,2)); % NP x NVarmea
-    g2 = squeeze(mean(probs(:,:, ones(NVarstr*NLatent,1)).*gstr,2)); % NP x NVarstr*NLatent
+%     g = squeeze(mean(probs(:,:, ones(NVarA*(1+NLatent),1)).*gmnl,2)); % 
+    g = reshape(mean(bsxfun(@times,probs,gmnl),2),[NP,NVarA*(1+NLatent)]); % 
+%     g3 = squeeze(mean(probs(:,:,ones(length(bmea),1)).*gmea,2)); % NP x NVarmea
+    g3 = reshape(mean(bsxfun(@times,probs,gmea),2),[NP,size(bmea,1)]); % NP x NVarmea
+%     g2 = squeeze(mean(probs(:,:, ones(NVarstr*NLatent,1)).*gstr,2)); % NP x NVarstr*NLatent
+    g2 = reshape(mean(bsxfun(@times,probs,gstr),2),[NP,NVarStr*NLatent]); % NP x NVarstr*NLatent
     
     g = [g,g2,g3];
-    g = -g./p(:, ones(1, length(B)));
+    g = -g./p(:,ones(1,length(B)));
+
 end
-%% f = -log(mean(probs.*L_mea,2));
+
+% f = -log(mean(probs.*L_mea,2));
 
