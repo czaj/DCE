@@ -396,10 +396,8 @@ elseif nargout == 2 %  function value + gradient
             end
             
             if FullCov == 0
-                
                 sumVC2tmp = sumFsqueezed.*VC2(:,:,n);  % NVarA x NRep
                 gtmp = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA,1),:)],2)./p0(n);
-                
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);   
                 gtmp =  -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
@@ -476,15 +474,32 @@ elseif nargout == 2 %  function value + gradient
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ];  %NVarA x NRep
                 sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
             end            
+            if NVarS >0
+                if WTP_space == 0
+                    FScale = sum(sumFsqueezed.*b_mtx_n,1); % 1 x NRep
+                else
+                    if WTP_space == 1
+                        FScale = sum(squeeze(sum(F2,1)).*b_mtx_n(NVarA-WTP_space+1:end,:),1); % 1 x NRep
+                    else
+                        FScale = sum(squeeze(sum(F2,1))'.*b_mtx_n(NVarA-WTP_space+1:end,:),1); % 1 x NRep
+                    end
+                end
+                Xs_tmp = squeeze(Xs_sliced(1,n,:));
+                FScale = FScale(ones(NVarS,1),:).*Xs_tmp(:, ones(NRep,1)); % NVarS x NRep
+            end
+            
             if FullCov == 0
                 sumVC2tmp = sumFsqueezed.*VC2(:,:,n);  % NVarA x NRep
-%                 g(n,:) = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:);sumVC2tmp.*U_prod(ones(NVarA,1),:)],2)./p0(n);
-                g(n,:) = -mean([bsxfun(@times,sumFsqueezed,U_prod); bsxfun(@times,sumVC2tmp,U_prod)],2)./p0(n);
+                gtmp = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA,1),:)],2)./p0(n);
             else % FullCov = 1
-                sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
-%                 g(n,:) = -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:);sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
-                g(n,:) = -mean([bsxfun(@times,sumFsqueezed,U_prod);bsxfun(@times,sumVC2tmp,U_prod)],2)./p0(n);
+                sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);   
+                gtmp =  -mean([sumFsqueezed.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
             end
+            if NVarS > 0
+                gtmp= [gtmp;-mean(FScale.*U_prod(ones(NVarS,1),:),2)./p0(n)];
+            end
+            g(n,:) = gtmp';
+            
         end
     end;
     if NVarM > 0
