@@ -11,8 +11,8 @@ end
 if type == 0 % HMNL
     ba = B(1:EstimOpt.NVarA); % b atrybutów
     bl = reshape(B(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NLatent+1)), EstimOpt.NVarA, EstimOpt.NLatent); % b interakcji z LV
-    bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+1)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA), EstimOpt.NVarstr, EstimOpt.NLatent); % b równania struktury
-   % bmea = B((EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA+1:end); % b measurement
+    bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+1)+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA), EstimOpt.NVarStr, EstimOpt.NLatent); % b równania struktury
+   % bmea = B((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA+1:end); % b measurement
 
     LV_tmp = X_str*bstr; % NP x NLatent
     LV_tmp = reshape(permute(LV_tmp(:,:, ones(EstimOpt.NRep,1)),[2 3 1]), EstimOpt.NLatent, EstimOpt.NRep*EstimOpt.NP); % NLatent*NRep*NP
@@ -77,7 +77,7 @@ elseif type == 1 % HLC
 
     bNClass = [B(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1));zeros(EstimOpt.NVarC + EstimOpt.NLatent,1)];
     bNClass = reshape(bNClass, EstimOpt.NVarC+EstimOpt.NLatent, EstimOpt.NClass);
-    bstr = reshape(B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarstr),EstimOpt.NVarstr, EstimOpt.NLatent);
+    bstr = reshape(B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarStr),EstimOpt.NVarStr, EstimOpt.NLatent);
 
     LV_tmp = X_str*bstr; % NP x NLatent
     LV_tmp = reshape(permute(LV_tmp(:,:, ones(EstimOpt.NRep,1)),[2 3 1]), EstimOpt.NLatent, EstimOpt.NRep*EstimOpt.NP);
@@ -111,7 +111,7 @@ elseif type ==2 % HMXL
         VC = diag(bv.^2);
         bm = reshape(B(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarM+2)), EstimOpt.NVarA, EstimOpt.NVarM); % b mean covariates
         bl = reshape(B((2+EstimOpt.NVarM)*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)), EstimOpt.NVarA, EstimOpt.NLatent); % b interakcji z LV
-        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA), EstimOpt.NVarstr, EstimOpt.NLatent); % b równania struktury
+        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent+2+EstimOpt.NVarM)+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+(2+EstimOpt.NVarM)*EstimOpt.NVarA), EstimOpt.NVarStr, EstimOpt.NLatent); % b równania struktury
     else
         ba = B(1:EstimOpt.NVarA); % b atrybutów
         bv = B(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA,2));
@@ -119,7 +119,7 @@ elseif type ==2 % HMXL
         VC(VC==1) = bv;
         bm = reshape(B(EstimOpt.NVarA+sum(1:EstimOpt.NVarA,2)+1:EstimOpt.NVarA*(EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarA, EstimOpt.NVarM); % b mean covariates
         bl = reshape(B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)+1:EstimOpt.NVarA*(EstimOpt.NLatent+1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarA, EstimOpt.NLatent); % b interakcji z LV
-        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent++EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)+1:(EstimOpt.NVarA+EstimOpt.NVarstr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarstr, EstimOpt.NLatent); % b równania struktury
+        bstr = reshape(B(EstimOpt.NVarA*(EstimOpt.NLatent++EstimOpt.NVarM+1)+sum(1:EstimOpt.NVarA,2)+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+sum(1:EstimOpt.NVarA,2)), EstimOpt.NVarStr, EstimOpt.NLatent); % b równania struktury
     end
 
     LV_tmp = X_str*bstr; % NP x NLatent

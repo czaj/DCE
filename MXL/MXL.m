@@ -393,11 +393,11 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-% if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
-% 	EstimOpt.NumGrad = 1;
-%     OptimOpt.GradObj = 'off';
-% 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
-% end
+if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0 && any(isnan(INPUT.Xa(:)))
+	EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
+end
 
 if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
 	EstimOpt.NumGrad = 1;
