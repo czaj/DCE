@@ -287,7 +287,7 @@ else % function value + gradient
        
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
             
-        for n = 1:NP   
+        parfor n = 1:NP   
             b_mtx_n = b_mtx_sliced(:,:,n);
             Yy_n = Y(:,n)==1;
             Xa_n = Xa(:,:,n);

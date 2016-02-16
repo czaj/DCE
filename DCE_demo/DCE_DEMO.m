@@ -37,7 +37,7 @@ EstimOpt.NP = length(INPUT.Y)/EstimOpt.NCT/EstimOpt.NAlt; % 789; % Number of res
 
 % EstimOpt.eps = 1.e-12; % overall precision level
 
-[INPUT, Results, EstimOpt, OptimOpt] = DataClean(INPUT,EstimOpt);
+[INPUT, Results, EstimOpt, OptimOpt] = DataCleanDCE(INPUT,EstimOpt);
 
 % EstimOpt.NRep = 1e3; % number of draws for numerical simulation
 % OptimOpt.MaxIter = 1e3; % maximum number of iterations
