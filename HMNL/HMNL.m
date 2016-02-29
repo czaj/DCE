@@ -269,6 +269,29 @@ for i = 1:size(INPUT.Xmea,2)
         if EstimOpt.MeaExpMatrix(i) ~=0
            EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
         end
+    elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB  
+        EstimOpt.NVarcut = EstimOpt.NVarcut +3 +sum(EstimOpt.MeaMatrix(:,i)) +2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
+        EstimOpt.CutMatrix(i) = 3+2*sum(EstimOpt.MeaMatrix(:,i))+ 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 3;
+        EstimOpt.Names = [EstimOpt.Names, 'ZINB ']; 
+        EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
+        k = find(EstimOpt.MeaMatrix(:,i) == 1);
+        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+            EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
+        end    
+        if EstimOpt.MeaExpMatrix(i) ~=0
+           EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
+        end
+        
+        EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
+        k = find(EstimOpt.MeaMatrix(:,i) == 1);
+        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+            EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
+        end    
+        if EstimOpt.MeaExpMatrix(i) ~=0
+           EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
+        end
+        EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Theta'}];
     end
 end
 
@@ -435,14 +458,20 @@ if  ~exist('b0','var')
                 l = l+1 + sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;     
             elseif EstimOpt.MeaSpecMatrix(i) == 4 % NB
                 b0(l + 1) = Results.MIMIC0.bhat(k+1);
-                b0(l + 2+ sum(EstimOpt.MeaMatrix(:,i)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp,1)) = Results.MIMIC0.bhat(k+2); % theta
+                b0(l + 2+ sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % theta
                 k = k+2;
                 l = l+2 + sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;  
             elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP
                 b0(l + 1) = Results.MIMIC0.bhat(k+1);
-                b0(l + 2+ sum(EstimOpt.MeaMatrix(:,i)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp,1)) = Results.MIMIC0.bhat(k+2); % second constant
+                b0(l + 2+ sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % second constant
                 k = k+2;
                 l = l+2 + 2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;     
+            elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
+                b0(l + 1) = Results.MIMIC0.bhat(k+1);
+                b0(l + 2+ sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % Second constant
+                b0(l + 3+ 2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+3); % Theta 
+                k = k+3;
+                l = l+3 + 2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;  
             end
         end
     else
@@ -756,6 +785,18 @@ for i = 1:size(INPUT.Xmea,2)
         disp('var.   coef.     st.err.  p-value')
         disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])        
         l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
+    elseif EstimOpt.MeaSpecMatrix(i) == 6
+        disp('Estimated using Zero Inflated Negative Binomial regression')
+        disp('Probability of Non-participation (logit)')
+        disp('var.   coef.     st.err.  p-value')
+        disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
+        l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
+        
+        disp('Negative binomial model')
+        disp('var.   coef.     st.err.  p-value')
+        Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1:3) = [exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)), Results.DetailsM(l+tmp+sum(EstimOpt.MeaMatrix(:,i))+2,2)*exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)),pv(exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)), Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,2)*exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)))];
+        disp([char(EstimOpt.NamesLV(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])        
+        l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
     end
 end
 
@@ -808,6 +849,8 @@ for i = 1:size(INPUT.Xmea,2)
         model = 'NB';
     elseif EstimOpt.MeaSpecMatrix(i) == 5
         model = 'ZIP';
+    elseif EstimOpt.MeaSpecMatrix(i) == 6
+        model = 'ZINB';
     end
     Results.R_out(EstimOpt.NVarStr+3+l+2,1) = cellfun(@(x)[x model],{'Estimated using '},'UniformOutput',0);
     Results.R_out(EstimOpt.NVarStr+3+l+3,1:4) = head;

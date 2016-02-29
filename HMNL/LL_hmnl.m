@@ -174,7 +174,7 @@ if nargout == 1 % function value only
             if RealMin == 1
                 L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam)./min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax);
             else
-                L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam)./ gamma(Xmea(:,i*ones(NRep,1))+1);
+                L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam-gammaln(Xmea(:,i*ones(NRep,1))+1));
             end
             L_mea = L_mea.*L;
             l = l+size(X,2);        
@@ -194,7 +194,7 @@ if nargout == 1 % function value only
             if RealMin == 1
                 L = min(gamma(theta+Xmea(:,i*ones(NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax));
             else
-                L = gamma(theta+Xmea(:,i*ones(NRep,1))) ./ (gamma(theta) .* gamma(Xmea(:,i*ones(NRep,1))+1));
+                L = exp(gammaln(theta+Xmea(:,i*ones(NRep,1))) -gammaln(theta) -gammaln(Xmea(:,i*ones(NRep,1))+1));
             end
             L = L.*(u.^theta).*((1-u).^Xmea(:,i*ones(NRep,1)));
             L_mea = L_mea.*L;
@@ -219,10 +219,36 @@ if nargout == 1 % function value only
             if RealMin == 1
                 L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1),realmax);
             else
-                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1);
+              %  L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1);
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:)-gammaln(Xmea(~IndxZIP,i*ones(NRep,1))+1));
             end
             L_mea = L_mea.*L;
             l = l+2*size(X,2);
+        elseif MeaSpecMatrix(i) == 6 % ZINB
+            if MeaExpMatrix(i) == 0
+                X = [ones(NRep*NP,1), LV(MeaMatrix(:,i)'== 1,:)']; ...
+            else
+                X = [ones(NRep*NP,1), LV(MeaMatrix(:,i)'== 1,:)', Xmea_exp]; ...
+            end
+            bzip = bmea(l+1:l+size(X,2)); ...
+            bpoiss = bmea(l+size(X,2)+1:l+2*size(X,2));
+            fit = reshape(X*bpoiss, NRep, NP)';
+            theta = exp(bmea(l+2*size(X,2)+1));
+            p = reshape(exp(X*bzip), NRep, NP)';
+            p = p./(1+p);
+            L = zeros(NP, NRep);
+            lam = exp(fit);
+            u = theta./(theta+lam); 
+            IndxZIP = Xmea(:,i) == 0;
+            L(IndxZIP,:) = p(IndxZIP,:) + (1-p(IndxZIP,:)).*(u(IndxZIP,:).^theta);
+            if RealMin == 1
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*min(gamma(theta+Xmea(~IndxZIP,i*ones(NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1),realmax));
+            else
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(gammaln(theta+Xmea(~IndxZIP,i*ones(NRep,1))) - gammaln(Xmea(~IndxZIP,i*ones(NRep,1))+1)-gammaln(theta));
+            end
+            L(~IndxZIP,:) = L(~IndxZIP,:).*(u(~IndxZIP,:).^theta).*((1-u(~IndxZIP,:)).^Xmea(~IndxZIP,i*ones(NRep,1)));
+            L_mea = L_mea.*L; ...
+            l = l+2*size(X,2)+1; ...    
         end
     end
     
@@ -696,6 +722,80 @@ else % function value + gradient
                     grad_tmp2(:,:,ones(NVarMeaExp,1)).*Xmea_exp_expand ;
             end
             l = l+2*size(X,2);
+        elseif MeaSpecMatrix(i) == 6 % ZINB
+            if MeaExpMatrix(i) == 0
+                X = [ones(NRep*NP,1), LV(MeaMatrix(:,i)'== 1,:)']; ...
+            else
+                X = [ones(NRep*NP,1), LV(MeaMatrix(:,i)'== 1,:)', Xmea_exp]; ...
+            end
+            bzip = bmea(l+1:l+size(X,2)); ...
+            bpoiss = bmea(l+size(X,2)+1:l+2*size(X,2));
+            fit = reshape(X*bpoiss, NRep, NP)';
+            theta = exp(bmea(l+2*size(X,2)+1));
+            p = reshape(exp(X*bzip), NRep, NP)';
+            p = p./(1+p);
+            L = zeros(NP, NRep);
+            lam = exp(fit);
+            u = theta./(theta+lam); 
+            IndxZIP = Xmea(:,i) == 0;
+            L(IndxZIP,:) = p(IndxZIP,:) + (1-p(IndxZIP,:)).*(u(IndxZIP,:).^theta);
+            if RealMin == 1
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*min(gamma(theta+Xmea(~IndxZIP,i*ones(NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1),realmax));
+            else
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(gammaln(theta+Xmea(~IndxZIP,i*ones(NRep,1))) - gammaln(Xmea(~IndxZIP,i*ones(NRep,1))+1)-gammaln(theta));
+            end
+            L(~IndxZIP,:) = L(~IndxZIP,:).*(u(~IndxZIP,:).^theta).*((1-u(~IndxZIP,:)).^Xmea(~IndxZIP,i*ones(NRep,1)));
+            L_mea = L_mea.*L; ...
+          
+            % Calculations for gradient 
+            grad_tmp1 = zeros(NP, NRep);
+            grad_tmp2 = zeros(NP, NRep);
+            grad_tmp3 = zeros(NP, NRep); % for theta
+            if RealMin == 1
+                grad_tmp1(IndxZIP,:) = (-(1-p(IndxZIP,:)).*p(IndxZIP,:).*(u(IndxZIP,:).^theta)+p(IndxZIP,:)-p(IndxZIP,:).^2)./max(L(IndxZIP,:),realmin);
+                grad_tmp2(IndxZIP,:) = (p(IndxZIP,:)-1).*lam(IndxZIP,:).*(u(IndxZIP,:).^(theta+1))./max(L(IndxZIP,:),realmin);
+                grad_tmp3(IndxZIP,:) = (1-p(IndxZIP,:)).*(u(IndxZIP,:).^theta).*(log(u(IndxZIP,:))+1-u(IndxZIP,:))./max(L(IndxZIP,:),realmin);
+            else
+                grad_tmp1(IndxZIP,:) = (-(1-p(IndxZIP,:)).*p(IndxZIP,:).*(u(IndxZIP,:).^theta)+p(IndxZIP,:)-p(IndxZIP,:).^2)./L(IndxZIP,:);
+                grad_tmp2(IndxZIP,:) = (p(IndxZIP,:)-1).*lam(IndxZIP,:).*(u(IndxZIP,:).^(theta+1))./L(IndxZIP,:);
+                grad_tmp3(IndxZIP,:) = theta*(1-p(IndxZIP,:)).*(u(IndxZIP,:).^theta).*(log(u(IndxZIP,:))+1-u(IndxZIP,:))./L(IndxZIP,:);
+            end
+            % For ZIP 
+            grad_tmp1(~IndxZIP,:) = -p(~IndxZIP,:);
+            % For NB
+            grad_tmp2(~IndxZIP,:) = u(~IndxZIP,:).*(Xmea(~IndxZIP,i*ones(NRep,1)) - lam(~IndxZIP,:));
+            grad_tmp3(~IndxZIP,:) = psi(theta+Xmea(~IndxZIP,i*ones(NRep,1)))*theta - psi(theta)*theta+theta*log(u(~IndxZIP,:))...
+                    + theta*(1-u(~IndxZIP,:)) - Xmea(~IndxZIP,i*ones(NRep,1)).*u(~IndxZIP,:); % theta;
+           
+            LVindx = find(MeaMatrix(:,i)'== 1);
+            % gradient for structural equation
+            if sum(MeaMatrix(:,i)'== 1) > 1
+                bx1 = bzip(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
+                bx1 = permute(bx1(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                bx2 = bpoiss(2:1+sum(MeaMatrix(:,i)'== 1)); % parameters for LV
+                bx2 = permute(bx2(:, ones(NP, 1), ones(NRep, 1), ones(NVarStr,1)), [2 3 4 1]);
+                
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx1+...
+                    grad_tmp2(:,:, ones(NVarStr,1), ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx2;
+            else
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*bzip(2)+...
+                    grad_tmp2(:,:, ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*bpoiss(2);
+            end
+            gmea(:,:,l+1) = grad_tmp1; % constant
+            gmea(:,:,l+2:l+1+sum(MeaMatrix(:,i)'== 1)) = grad_tmp1(:,:, ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % parameters for LV
+            gmea(:,:,l+sum(MeaMatrix(:,i)'== 1)+MeaExpMatrix(i)*NVarMeaExp+2) = grad_tmp2; % constant
+            gmea(:,:,l+sum(MeaMatrix(:,i)'== 1)+MeaExpMatrix(i)*NVarMeaExp+3:l+2*sum(MeaMatrix(:,i)'== 1)+MeaExpMatrix(i)*NVarMeaExp+2) = ...
+                grad_tmp2(:,:, ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % parameters for LV
+            
+            if MeaExpMatrix(i) ~= 0
+                gmea(:,:,l+2+sum(MeaMatrix(:,i)'== 1):l+1+sum(MeaMatrix(:,i)'== 1)+NVarMeaExp) = ...
+                    grad_tmp1(:,:,ones(NVarMeaExp,1)).*Xmea_exp_expand ;
+                gmea(:,:,l+2*sum(MeaMatrix(:,i)'== 1)+MeaExpMatrix(i)*NVarMeaExp+3:l+2*sum(MeaMatrix(:,i)'== 1)+2*MeaExpMatrix(i)*NVarMeaExp+2) = ...
+                    grad_tmp2(:,:,ones(NVarMeaExp,1)).*Xmea_exp_expand ;
+            end
+            gmea(:,:, l+2*sum(MeaMatrix(:,i)'== 1)+2*MeaExpMatrix(i)*NVarMeaExp+3) = grad_tmp3;
+
+            l = l+2*size(X,2)+1; ...  
         end
     end
     probs = probs.*L_mea;

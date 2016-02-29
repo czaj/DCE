@@ -2,7 +2,6 @@ function [LL,g,h] = LL_mimic_MATlike(Xstr, Xmea,Xmea_exp, err, EstimOpt, OptimOp
 
 LLfun = @(B) LL_mimic(Xstr, Xmea,Xmea_exp, err, EstimOpt,B);
 
-
 % [f,j] = LLfun(b0);
 %         j(:,EstimOpt.BActive ==0) = 0;
 %         g = sum(j,1)'; ...
@@ -13,7 +12,10 @@ LLfun = @(B) LL_mimic(Xstr, Xmea,Xmea_exp, err, EstimOpt,B);
 %         g2 = sum(j2,1)';  
 % [g,g2, abs(g-g2)]
 % EstimOpt.NumGrad = 0;
+% 
 % pause;
+
+
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0

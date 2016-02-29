@@ -69,6 +69,19 @@ for i = 1:size(Xmea,2)
         L(Xmea(:,i) ~= 0) = (1-p)*exp(bx(2)*Xmea(Xmea(:,i) ~= 0,i) - exp(bx(2)))./min(gamma(Xmea(Xmea(:,i) ~= 0,i)+1),realmax);
         L_mea = L_mea.*L; ...
         l = l+2; ...
+    elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
+       
+        bx = b(l+1:l+2); ...
+        theta = exp(b(l+3));
+        p = exp(bx(1));
+        p = p/(1+p);
+        L = zeros(EstimOpt.NP,1);
+        lam = exp(bx(2));
+        u = theta./(theta+lam);
+        L(Xmea(:,i) == 0) = p + (1-p)*u^theta;
+        L(Xmea(:,i) ~= 0) = (1-p)*exp(gammaln(theta+Xmea(Xmea(:,i) ~= 0,i)) - gammaln(Xmea(Xmea(:,i) ~= 0,i)+1)-gammaln(theta)).*(u.^theta).*((1-u).^Xmea(Xmea(:,i) ~= 0,i));
+        L_mea = L_mea.*L; ...
+        l = l+3; ...
     end
 end
 f = -sum(log(L_mea))+sum(LogFact);
