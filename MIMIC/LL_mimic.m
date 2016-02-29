@@ -84,8 +84,12 @@ if nargout == 1 % function value only
             b = bmea(l+1:l+size(X,2)); ...
             fit = reshape(X*b, EstimOpt.NRep, EstimOpt.NP)';
             lam = exp(fit);
-%             L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
-            L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./ gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1);
+            if EstimOpt.RealMin == 1
+                L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
+            else
+              %  L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./ gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1);
+              L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam-gammaln(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+            end
            % L = (lam.^X_mea(:,i*ones(EstimOpt.NRep,1))).*exp(-lam);
            % L = L./factorial(X_mea(:,i*ones(EstimOpt.NRep,1)));
             L_mea = L_mea.*L; ...
@@ -103,10 +107,13 @@ if nargout == 1 % function value only
             lam = exp(fit);
             theta = exp(bmea(l+size(X,2)+1));
             u = theta./(theta+lam);  
-%             L = min(gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
-            L = gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+            if EstimOpt.RealMin == 1
+                L = min(gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
+            else
+                %L = gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+                L = exp(gammaln(theta+X_mea(:,i*ones(EstimOpt.NRep,1))) - gammaln(X_mea(:,i*ones(EstimOpt.NRep,1))+1)-gammaln(theta));
+            end
             L = L.*(u.^theta).*((1-u).^X_mea(:,i*ones(EstimOpt.NRep,1)));
-            %any(any(isinf(L))
             L_mea = L_mea.*L; ...
             l = l+size(X,2)+1; ...
             %LogFact = LogFact + gammaln(X_mea(:,i)+1);
@@ -125,10 +132,39 @@ if nargout == 1 % function value only
             lam = exp(fit);
             IndxZIP = X_mea(:,i) == 0;
             L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*exp(-lam(IndxZIP,:));
-%             L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
-            L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
+            if EstimOpt.RealMin == 1
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
+            else
+              %  L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
+              L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:)-gammaln(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1));
+            end
             L_mea = L_mea.*L; ...
             l = l+2*size(X,2); ...
+        elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
+            if EstimOpt.MeaExpMatrix(i) == 0
+                X = [ones(EstimOpt.NRep*EstimOpt.NP,1), LV(EstimOpt.MeaMatrix(:,i)'== 1,:)']; ...
+            else
+                X = [ones(EstimOpt.NRep*EstimOpt.NP,1), LV(EstimOpt.MeaMatrix(:,i)'== 1,:)', Xmea_exp]; ...
+            end
+            bzip = bmea(l+1:l+size(X,2)); ...
+            bpoiss = bmea(l+size(X,2)+1:l+2*size(X,2));
+            fit = reshape(X*bpoiss, EstimOpt.NRep, EstimOpt.NP)';
+            theta = exp(bmea(l+2*size(X,2)+1));
+            pzip = reshape(exp(X*bzip), EstimOpt.NRep, EstimOpt.NP)';
+            pzip = pzip./(1+pzip);
+            L = zeros(EstimOpt.NP, EstimOpt.NRep);
+            lam = exp(fit);
+            u = theta./(theta+lam); 
+            IndxZIP = X_mea(:,i) == 0;
+            L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*(u(IndxZIP,:).^theta);
+            if EstimOpt.RealMin == 1
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*min(gamma(theta+X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax));
+            else
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(gammaln(theta+X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))) - gammaln(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1)-gammaln(theta));
+            end
+            L(~IndxZIP,:) = L(~IndxZIP,:).*(u(~IndxZIP,:).^theta).*((1-u(~IndxZIP,:)).^X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)));
+            L_mea = L_mea.*L; ...
+            l = l+2*size(X,2)+1; ...    
         end
     end
     % f = -log(mean(L_mea,2)) +LogFact;
@@ -290,14 +326,13 @@ elseif nargout == 2 % function value + gradient
            % L2 = (lam.^X_mea(:,i*ones(EstimOpt.NRep,1))).*exp(-lam);
             fit = reshape(X*b, EstimOpt.NRep, EstimOpt.NP)';
             lam = exp(fit);
-            L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam);
-%             L = L./min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
-            L = L./gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1);
-            %any(isnan(L([720 1216 1672],:)),2)
-%             sum(sum(abs(L([720 1216 1672],:)-L2([720 1216 1672],:)),1),2)
-%             sum(sum(abs(L([1:719],:)-L2([1:719],:)),1),2)
+            if EstimOpt.RealMin == 1
+                L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax);
+            else
+              %  L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam)./ gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1);
+              L = exp(fit.*X_mea(:,i*ones(EstimOpt.NRep,1))-lam-gammaln(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+            end
             
-            %L = L./factorial(X_mea(:,i*ones(EstimOpt.NRep,1)));
             L_mea = L_mea.*L; ...
             %LogFact = LogFact + gammaln(X_mea(:,i)+1);
             grad_tmp = X_mea(:,i*ones(EstimOpt.NRep,1)) - lam;
@@ -333,8 +368,12 @@ elseif nargout == 2 % function value + gradient
             lam = exp(fit);
             theta = exp(bmea(l+size(X,2)+1));
             u = theta./(theta+lam);  
-%             L = min(gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
-            L = gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+            if EstimOpt.RealMin == 1
+                L = min(gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1),realmax));
+            else
+                %L = gamma(theta+X_mea(:,i*ones(EstimOpt.NRep,1)))./(gamma(theta).*gamma(X_mea(:,i*ones(EstimOpt.NRep,1))+1));
+                L = exp(gammaln(theta+X_mea(:,i*ones(EstimOpt.NRep,1))) - gammaln(X_mea(:,i*ones(EstimOpt.NRep,1))+1)-gammaln(theta));
+            end
             L = L.*(u.^theta).*((1-u).^X_mea(:,i*ones(EstimOpt.NRep,1)));
             L_mea = L_mea.*L; ...
             % Calculations for gradient 
@@ -381,18 +420,28 @@ elseif nargout == 2 % function value + gradient
             lam = exp(fit);
             IndxZIP = X_mea(:,i) == 0;
             L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*exp(-lam(IndxZIP,:));
-            L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./ gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
+            if EstimOpt.RealMin == 1
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./min(gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax);
+            else
+              %  L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:))./gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1);
+              L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))-lam(~IndxZIP,:)-gammaln(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1));
+            end
             L_mea = L_mea.*L; ...
 
             % Calculations for gradient 
             grad_tmp1 = zeros(EstimOpt.NP, EstimOpt.NRep);
             grad_tmp2 = zeros(EstimOpt.NP, EstimOpt.NRep);
 %             grad_tmp = zeros(EstimOpt.NP, EstimOpt.NRep);
+            if EstimOpt.RealMin == 1
+                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./max(L(IndxZIP,:),realmin);
+                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./max(L(IndxZIP,:),realmin);
+            else
+                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./L(IndxZIP,:);
+                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./L(IndxZIP,:);
+            end
             % For ZIP 
-            grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*exp(-lam(IndxZIP,:))+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./L(IndxZIP,:);
             grad_tmp1(~IndxZIP,:) = -pzip(~IndxZIP,:);
             % For Poiss
-            grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*exp(fit(IndxZIP,:)-lam(IndxZIP,:))./L(IndxZIP,:);
             grad_tmp2(~IndxZIP,:) = X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)) - lam(~IndxZIP,:);
             
             LVindx = find(EstimOpt.MeaMatrix(:,i)'== 1);
@@ -422,24 +471,99 @@ elseif nargout == 2 % function value + gradient
                     grad_tmp2(:,:,ones(EstimOpt.NVarmea_exp,1)).*Xmea_exp_expand ;
             end
             l = l+2*size(X,2); ...
+                
+        elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
+            if EstimOpt.MeaExpMatrix(i) == 0
+                X = [ones(EstimOpt.NRep*EstimOpt.NP,1), LV(EstimOpt.MeaMatrix(:,i)'== 1,:)']; ...
+            else
+                X = [ones(EstimOpt.NRep*EstimOpt.NP,1), LV(EstimOpt.MeaMatrix(:,i)'== 1,:)', Xmea_exp]; ...
+            end
+            bzip = bmea(l+1:l+size(X,2)); ...
+            bpoiss = bmea(l+size(X,2)+1:l+2*size(X,2));
+            fit = reshape(X*bpoiss, EstimOpt.NRep, EstimOpt.NP)';
+            theta = exp(bmea(l+2*size(X,2)+1));
+            pzip = reshape(exp(X*bzip), EstimOpt.NRep, EstimOpt.NP)';
+            pzip = pzip./(1+pzip);
+            L = zeros(EstimOpt.NP, EstimOpt.NRep);
+            lam = exp(fit);
+            u = theta./(theta+lam); 
+            IndxZIP = X_mea(:,i) == 0;
+            L(IndxZIP,:) = pzip(IndxZIP,:) + (1-pzip(IndxZIP,:)).*(u(IndxZIP,:).^theta);
+            if EstimOpt.RealMin == 1
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*min(gamma(theta+X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))), realmax)./(gamma(theta).*min(gamma(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1),realmax));
+            else
+                L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(gammaln(theta+X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))) - gammaln(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1))+1)-gammaln(theta));
+            end
+            L(~IndxZIP,:) = L(~IndxZIP,:).*(u(~IndxZIP,:).^theta).*((1-u(~IndxZIP,:)).^X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)));
+            L_mea = L_mea.*L; ...
+          
+            % Calculations for gradient 
+            grad_tmp1 = zeros(EstimOpt.NP, EstimOpt.NRep);
+            grad_tmp2 = zeros(EstimOpt.NP, EstimOpt.NRep);
+            grad_tmp3 = zeros(EstimOpt.NP, EstimOpt.NRep); % for theta
+            if EstimOpt.RealMin == 1
+                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*(u(IndxZIP,:).^theta)+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./max(L(IndxZIP,:),realmin);
+                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*lam(IndxZIP,:).*(u(IndxZIP,:).^(theta+1))./max(L(IndxZIP,:),realmin);
+                grad_tmp3(IndxZIP,:) = (1-pzip(IndxZIP,:)).*(u(IndxZIP,:).^theta).*(log(u(IndxZIP,:))+1-u(IndxZIP,:))./max(L(IndxZIP,:),realmin);
+            else
+                grad_tmp1(IndxZIP,:) = (-(1-pzip(IndxZIP,:)).*pzip(IndxZIP,:).*(u(IndxZIP,:).^theta)+pzip(IndxZIP,:)-pzip(IndxZIP,:).^2)./L(IndxZIP,:);
+                grad_tmp2(IndxZIP,:) = (pzip(IndxZIP,:)-1).*lam(IndxZIP,:).*(u(IndxZIP,:).^(theta+1))./L(IndxZIP,:);
+                grad_tmp3(IndxZIP,:) = theta*(1-pzip(IndxZIP,:)).*(u(IndxZIP,:).^theta).*(log(u(IndxZIP,:))+1-u(IndxZIP,:))./L(IndxZIP,:);
+            end
+            % For ZIP 
+            grad_tmp1(~IndxZIP,:) = -pzip(~IndxZIP,:);
+            % For NB
+            grad_tmp2(~IndxZIP,:) = u(~IndxZIP,:).*(X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)) - lam(~IndxZIP,:));
+            grad_tmp3(~IndxZIP,:) = psi(theta+X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)))*theta - psi(theta)*theta+theta*log(u(~IndxZIP,:))...
+                    + theta*(1-u(~IndxZIP,:)) - X_mea(~IndxZIP,i*ones(EstimOpt.NRep,1)).*u(~IndxZIP,:); % theta;
+           
+            LVindx = find(EstimOpt.MeaMatrix(:,i)'== 1);
+            % gradient for structural equation
+            if sum(EstimOpt.MeaMatrix(:,i)'== 1) > 1
+                bx1 = bzip(2:1+sum(EstimOpt.MeaMatrix(:,i)'== 1)); % parameters for LV
+                bx1 = permute(bx1(:, ones(EstimOpt.NP, 1), ones(EstimOpt.NRep, 1), ones(EstimOpt.NVarstr,1)), [2 3 4 1]);
+                bx2 = bpoiss(2:1+sum(EstimOpt.MeaMatrix(:,i)'== 1)); % parameters for LV
+                bx2 = permute(bx2(:, ones(EstimOpt.NP, 1), ones(EstimOpt.NRep, 1), ones(EstimOpt.NVarstr,1)), [2 3 4 1]);
+                
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(EstimOpt.NVarstr,1), ones(sum(EstimOpt.MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx1+...
+                    grad_tmp2(:,:, ones(EstimOpt.NVarstr,1), ones(sum(EstimOpt.MeaMatrix(:,i)'== 1),1)).*LV_der(:,:,:,LVindx).*bx2;
+            else
+                gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp1(:,:, ones(EstimOpt.NVarstr,1)).*LV_der(:,:,:,LVindx)*bzip(2)+...
+                    grad_tmp2(:,:, ones(EstimOpt.NVarstr,1)).*LV_der(:,:,:,LVindx)*bpoiss(2);
+            end
+            gmea(:,:,l+1) = grad_tmp1; % constant
+            gmea(:,:,l+2:l+1+sum(EstimOpt.MeaMatrix(:,i)'== 1)) = grad_tmp1(:,:, ones(sum(EstimOpt.MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,EstimOpt.MeaMatrix(:,i)'== 1); % parameters for LV
+            gmea(:,:,l+sum(EstimOpt.MeaMatrix(:,i)'== 1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+2) = grad_tmp2; % constant
+            gmea(:,:,l+sum(EstimOpt.MeaMatrix(:,i)'== 1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+3:l+2*sum(EstimOpt.MeaMatrix(:,i)'== 1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+2) = ...
+                grad_tmp2(:,:, ones(sum(EstimOpt.MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,EstimOpt.MeaMatrix(:,i)'== 1); % parameters for LV
+            
+            if EstimOpt.MeaExpMatrix(i) ~= 0
+                gmea(:,:,l+2+sum(EstimOpt.MeaMatrix(:,i)'== 1):l+1+sum(EstimOpt.MeaMatrix(:,i)'== 1)+EstimOpt.NVarmea_exp) = ...
+                    grad_tmp1(:,:,ones(EstimOpt.NVarmea_exp,1)).*Xmea_exp_expand ;
+                gmea(:,:,l+2*sum(EstimOpt.MeaMatrix(:,i)'== 1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+3:l+2*sum(EstimOpt.MeaMatrix(:,i)'== 1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+2) = ...
+                    grad_tmp2(:,:,ones(EstimOpt.NVarmea_exp,1)).*Xmea_exp_expand ;
+            end
+            gmea(:,:, l+2*sum(EstimOpt.MeaMatrix(:,i)'== 1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarmea_exp+3) = grad_tmp3;
+
+            l = l+2*size(X,2)+1; ...       
+        
         end
     end
 end
-
-%     p = max(realmin,mean(L_mea,2));
-    p = mean(L_mea,2);
-    
+    if EstimOpt.RealMin == 1
+        p = max(realmin,mean(L_mea,2));
+    else
+        p = mean(L_mea,2);
+    end
 %     p([720 1216 1672])
     f = -log(p); %+LogFact;
-    if EstimOpt.NumGrad == 0
+    if EstimOpt.NumGrad == 0 && nargout == 2 
         gstr = reshape(gstr, EstimOpt.NP, EstimOpt.NRep, EstimOpt.NVarstr*EstimOpt.NLatent);
         g = squeeze(mean(L_mea(:,:, ones(EstimOpt.NVarstr*EstimOpt.NLatent,1)).*gstr,2)); % NP x NVarstr*NLatent
         g2 = squeeze(mean(L_mea(:,:, ones(length(bmea),1)).*gmea,2)); % NP x NVarmea    
         g = [g,g2];
-
     %     g([720 1216 1672],:)
     %     pause;
-
         g = -g./p(:, ones(1, length(B)));
     end
 end
