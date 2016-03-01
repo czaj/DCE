@@ -579,13 +579,14 @@ else % function value + gradient
             b = bmea(l+1:l+size(X,2));
             fit = reshape(X*b, NRep, NP)';
             lam = exp(fit);
-            L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam);
+            
 %             L = L./min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax);
 %             L = L./gamma(Xmea(:,i*ones(NRep,1))+1);
             if RealMin == 1
+                L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam);
                 L = L./min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax);
             else
-                L = L./gamma(Xmea(:,i*ones(NRep,1))+1);
+                L =exp(fit.*Xmea(:,i*ones(NRep,1))-lam-gammaln(Xmea(:,i*ones(NRep,1))+1));
             end
             L_mea = L_mea.*L;
             grad_tmp = Xmea(:,i*ones(NRep,1)) - lam;
@@ -622,7 +623,7 @@ else % function value + gradient
             if RealMin == 1
                 L = min(gamma(theta+Xmea(:,i*ones(NRep,1))), realmax)./(gamma(theta).*min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax));
             else
-                L = gamma(theta+Xmea(:,i*ones(NRep,1)))./(gamma(theta).*gamma(Xmea(:,i*ones(NRep,1))+1));
+                L = exp(gammaln(theta+Xmea(:,i*ones(NRep,1)))-gammaln(theta)-gammaln(Xmea(:,i*ones(NRep,1))+1));
             end
             L = L.*(u.^theta).*((1-u).^Xmea(:,i*ones(NRep,1)));
             L_mea = L_mea.*L;
@@ -672,7 +673,7 @@ else % function value + gradient
             if RealMin == 1
                 L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:))./min(gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1),realmax);
             else
-                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:))./ gamma(Xmea(~IndxZIP,i*ones(NRep,1))+1);
+                L(~IndxZIP,:) = (1-p(~IndxZIP,:)).*exp(fit(~IndxZIP,:).*Xmea(~IndxZIP,i*ones(NRep,1))-lam(~IndxZIP,:)-gammaln(Xmea(~IndxZIP,i*ones(NRep,1))+1));
             end
             L_mea = L_mea.*L;
 
