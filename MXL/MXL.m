@@ -215,7 +215,8 @@ if EstimOpt.FullCov == 0
         if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
-            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
+%             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
+            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,abs(Results_old.MNL.bhat(1:EstimOpt.NVarA)));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
                 b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
@@ -709,7 +710,8 @@ if EstimOpt.FullCov == 0
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
     std_out = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);...
     std_out(imag(Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2)) ~= 0) = NaN; ...
-    Results.DetailsV = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),pv((Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)))];
+%     Results.DetailsV = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),pv((Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)))];
+    Results.DetailsV = [abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),std_out,pv(abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),std_out)];
     if sum(EstimOpt.Dist(2:end) == 3) > 0
         Results.DetailsA(EstimOpt.Dist(2:end) == 3,:) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
