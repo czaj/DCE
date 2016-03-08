@@ -67,9 +67,11 @@ end
 LV_tmp = Xstr*bstr; % NP x Latent
 LV_tmp = reshape(permute(LV_tmp(:,:,ones(NRep,1)),[2 3 1]),NLatent,NRep*NP); % Latent*NRep*NP
 LV_tmp = LV_tmp + err_sliced(NVarA+1:end,:); % Latent x NRep*NP
-mLV = mean(LV_tmp,2);
 sLV = std(LV_tmp,0,2);
-LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
+LV_tmp = LV_tmp ./ sLV(:,ones(1,size(LV_tmp,2)));
+mLV = mean(LV_tmp,2);
+LV = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
+% LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 
 if EstimOpt.NVarM > 0
     ba = ba(:,ones(NP,1))+bm*Xm; % NVarA x NP
@@ -317,7 +319,7 @@ else % function value + gradient
        
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
             
-        for n = 1:NP   
+        parfor n = 1:NP   
             b_mtx_n = b_mtx_sliced(:,:,n);
             Yy_n = Y(:,n)==1;
             Xa_n = Xa(:,:,n);

@@ -566,7 +566,6 @@ if sum(EstimOpt.Dist == -1) > 0
         VCtmp2(1:EstimOpt.NVarA, 1:EstimOpt.NVarA) = 0;
         VCtmp(VCtmp2 == 1) = 0;
         EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent) = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent) .* (Vt(VCtmp~=0)'); 
-    
     end
 end
 
@@ -767,7 +766,6 @@ end
 Results.LL = -LL;
 R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm,INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 2);
 
-
 Results.b0_old = b0;
 if EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
@@ -932,7 +930,8 @@ for i = 1:size(INPUT.Xmea,2)
         if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary 
             g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
             for n = 2:length(unique(INPUT.Xmea(:,i)))-1
-                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
+                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
+                stdx(~isreal(stdx)) = NaN;
                 Results.DetailsM(l+n,1:3) = [sum(g(1:n),1), stdx, pv(sum(g(1:n),1), stdx)];
                 disp([num2str([n, Results.DetailsM(l+n,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+n,3)), num2str(Results.DetailsM(l+n,2:3),'%8.4f %8.4f')])
             end
@@ -940,25 +939,21 @@ for i = 1:size(INPUT.Xmea,2)
         l = l+length(unique(INPUT.Xmea(:,i)))-1;
     elseif EstimOpt.MeaSpecMatrix(i) == 3
         disp('Estimated using Poisson regression')
-        disp('var.   coef.     st.err.  p-value')
-        
+        disp('var.   coef.     st.err.  p-value')        
         disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
         l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
     elseif EstimOpt.MeaSpecMatrix(i) == 4
         disp('Estimated using Negative Binomial regression')
         disp('var.   coef.     st.err.  p-value')
         Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1:3) = [exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)), Results.DetailsM(l+tmp+sum(EstimOpt.MeaMatrix(:,i))+2,2)*exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)),pv(exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)), Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,2)*exp(Results.DetailsM(l+sum(EstimOpt.MeaMatrix(:,i))+tmp+2,1)))];
-
         disp([char(EstimOpt.NamesLV(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+2+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
         l = l+sum(EstimOpt.MeaMatrix(:,i))+2+tmp;
     elseif EstimOpt.MeaSpecMatrix(i) == 5
         disp('Estimated using Zero Inflated Poisson regression')
         disp('Probability of Non-participation (logit)')
         disp('var.   coef.     st.err.  p-value')
-
         disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])
-        l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
-        
+        l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;        
         disp('Poisson model')
         disp('var.   coef.     st.err.  p-value')
         disp([char(EstimOpt.NamesLV(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)) ,blanks(1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp)',num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,1),'%11.4f'), star_sig(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,3)), num2str(Results.DetailsM(l+1:l+1+sum(EstimOpt.MeaMatrix(:,i),1)+tmp,2:3),'%7.4f %8.4f')])        
@@ -977,7 +972,6 @@ for i = 1:size(INPUT.Xmea,2)
         l = l+sum(EstimOpt.MeaMatrix(:,i))+1+tmp;
     end
 end
-
 
 Results.R = [Results.DetailsA; Results.DetailsV ; Results.DetailsCM ; Results.DetailsL ; Results.DetailsS;Results.DetailsM]; 
 Results.LL0 = Results.MIMIC0.LL + Results_old.MNL0.LL;
