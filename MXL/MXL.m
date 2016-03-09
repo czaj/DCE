@@ -388,7 +388,7 @@ end
 
 %% Display Options
 
-
+    
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     OptimOpt.GradObj = 'on';
@@ -464,6 +464,16 @@ if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
+end
+
+if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
+   INPUT.W = ones(EstimOpt.NP,1);
+   cprintf(rgb('DarkOrange'), 'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
+end
+
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0; 
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
 end
 
 if  any(EstimOpt.Dist(2:end)>= 3 & EstimOpt.Dist(2:end) <= 5) && EstimOpt.NVarM ~= 0
@@ -598,7 +608,7 @@ end
 %% Estimation
 
 
-LLfun = @(B) LL_mxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,INPUT.W,EstimOpt,OptimOpt,B);
      
 if EstimOpt.ConstVarActive == 0  
     
@@ -645,6 +655,7 @@ if EstimOpt.HessEstFix == 4
 else
     Results.LLdetailed = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
 end
+Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
    idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
    idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
@@ -661,14 +672,15 @@ end
 if EstimOpt.HessEstFix == 1
 % 	f = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
 %     Results.jacobian = numdiff(@(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
-    Results.jacobian = numdiff(@(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    Results.jacobian = numdiff(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) sum(LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B)), Results.bhat);
+    Results.hess = hessian(@(B) sum(INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B)), Results.bhat);
 elseif EstimOpt.HessEstFix == 4
 
 end
+
 
 % if sum(EstimOpt.BActive == 0) > 0
 %     if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
@@ -699,6 +711,18 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat); 
+           Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;

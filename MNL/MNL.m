@@ -314,12 +314,21 @@ INPUT.Xa = INPUT.Xa(idx == 0,:);
 if EstimOpt.NVarS > 0
     INPUT.Xs = INPUT.Xs(idx == 0,:);
 end
-
-
+if any(INPUT.W ~= 1)
+    Wtmp = zeros(sum(EstimOpt.NCTMiss),1);
+    Wtmp(1:EstimOpt.NCTMiss(1)) = INPUT.W(1);
+    for i = 2:EstimOpt.NP
+        Wtmp(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i))) = INPUT.W(i);
+    end
+    INPUT.W = Wtmp;
+    INPUT.W = sum(EstimOpt.NCTMiss)*INPUT.W/sum(INPUT.W);
+else
+    INPUT.W = ones(sum(EstimOpt.NCTMiss),1);
+end
 %% Estimation
 
 
-LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa, INPUT.Xs, EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa, INPUT.Xs,INPUT.W, EstimOpt,OptimOpt,B);
 
 if EstimOpt.ConstVarActive == 0  
     
@@ -357,6 +366,7 @@ if isfield(EstimOpt,'R2type') == 0
 end
     
 Results.LLdetailed = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
+Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
    idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
    idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
@@ -374,13 +384,13 @@ end
 
 if EstimOpt.HessEstFix == 1
 	f = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    Results.jacobian = numdiff(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),-INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) sum(LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
 elseif EstimOpt.HessEstFix == 4 %missing
-    Results.hess = hessian(@(B) sum(LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
 %     EstimOpt_tmp = EstimOpt;
 %     EstimOpt_tmp.NumGrad = 0;
 %     EstimOpt_tmp.ApproxHess = 0;
@@ -397,14 +407,32 @@ if sum(EstimOpt.BActive == 0) > 0
     Results.ihess = inv(Results.hess);
     Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
     Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
-    Results.std = sqrt(diag(Results.ihess));
-	Results.std(EstimOpt.BActive == 0) = NaN;
+	
 else
 	if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
         Results.hess = Results.jacobian'*Results.jacobian;
 	end
     Results.ihess = inv(Results.hess);
-    Results.std = sqrt(diag(Results.ihess)); 
+end
+
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
+           Results.jacobian = -Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.jacobian = numdiff(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobJacob = zeros(EstimOpt.NP, size(Results.jacobian,2));
+    RobJacob(1,:) = sum(Results.jacobian(1:EstimOpt.NCTMiss(1),:),1);
+    for i = 2:EstimOpt.NP
+        RobJacob(i,:) = sum(Results.jacobian(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i)),:),1);
+    end
+    RobustHess = RobJacob'*RobJacob;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+Results.std = sqrt(diag(Results.ihess));
+if sum(EstimOpt.BActive == 0) > 0
+    Results.std(EstimOpt.BActive == 0) = NaN;
 end
 
 Results.std(imag(Results.std) ~= 0) = NaN;
