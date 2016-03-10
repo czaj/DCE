@@ -34,7 +34,11 @@ if EstimOpt.Display ~= 0
     disp(' ');
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
-    disp('Estimating MNL model ...')
+    if any(INPUT.W ~= 1)
+        cprintf('Black','Estimating '); cprintf('*Black','weighted'); cprintf('Black',' MNL model...\n');
+    else
+        disp('Estimating MNL model ...')
+    end
 end
 
 if isfield(EstimOpt, 'WTP_space') == 0

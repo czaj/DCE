@@ -32,8 +32,11 @@ warning off MATLAB:mir_warning_maybe_uninitialized_temporary
 
 format shortG;
 format compact;
-disp('Estimating GMXL model ...')
-
+if any(INPUT.W ~= 1)
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','GMXL model...\n');
+else
+    disp('Estimating GMXL model ...')
+end
 if isfield(EstimOpt,'FullCov') == 0;
 %     disp('Assuming non-correlated random parameters')
     EstimOpt.FullCov = 0;
@@ -426,6 +429,10 @@ if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) &&
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
     OptimOpt.Hessian = 'off';
 end
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0; 
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
+end
 
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
 
@@ -509,7 +516,7 @@ err_sliced = err_mtx';
 %% Estimation
 
 
-LLfun = @(B) LL_gmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_gmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 
 if EstimOpt.ConstVarActive == 0
 
@@ -541,6 +548,7 @@ Results.LL = -LL;
 Results.b0 = b0;
 
 Results.LLdetailed = LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,Results.bhat);
+Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
    idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
    idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
@@ -552,11 +560,11 @@ end
 
 if EstimOpt.HessEstFix == 1
 	f = LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    Results.jacobian = numdiff(@(B) INPUT.W.*LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) INPUT.W.*LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) sum(LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B) sum(INPUT.W.*LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),1), Results.bhat);
 end
 
 % if sum(EstimOpt.BActive == 0) > 0
@@ -588,6 +596,17 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,Results.bhat);
+           Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;

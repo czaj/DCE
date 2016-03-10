@@ -33,7 +33,11 @@ if isfield(EstimOpt,'NLatent') == 0
 	EstimOpt.NLatent = 1;
 	disp(['Assuming ', num2str(EstimOpt.NLatent)',' Latent Variable(s)']);
 end
-disp(num2str(EstimOpt.NLatent,'Estimating HMNL with %1.0f Latent Variable(s)'))
+if any(INPUT.W ~= 1)
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','HMNL with '); cprintf('Black',num2str(EstimOpt.NLatent)); cprintf('Black','  Latent Variable(s) ...\n');
+else
+    disp(num2str(EstimOpt.NLatent,'Estimating HMNL with %1.0f Latent Variable(s)'))
+end
 
 if isfield(EstimOpt, 'WTP_space') == 0
     EstimOpt.WTP_space = 0;
@@ -584,7 +588,10 @@ if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) &&
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
     OptimOpt.Hessian = 'off';
 end
-
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0; 
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
+end
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
 
 if strcmp(OptimOpt.GradObj,'on')
@@ -638,7 +645,7 @@ end
 
 %% Estimation
 
-LLfun = @(B) LL_hmnl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp, err_sliced,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_hmnl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp, err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0  
     
     if EstimOpt.HessEstFix == 0
@@ -674,11 +681,11 @@ Results.b0_old = b0;
 
 if EstimOpt.HessEstFix == 1
 	f = LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,Results.bhat);...
-	Results.jacobian = numdiff(@(B) LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+	Results.jacobian = numdiff(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B), INPUT.W.*f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-	Results.jacobian = jacobianest(@(B) LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B),Results.bhat);
+	Results.jacobian = jacobianest(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-	Results.hess = hessian(@(B) sum(LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B),1), Results.bhat);
+	Results.hess = hessian(@(B) sum(INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,B),1), Results.bhat);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
@@ -692,6 +699,18 @@ end
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,Results.bhat); 
+           Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.LLdetailed = LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, EstimOpt,Results.bhat); 
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp, err_sliced, B) ,INPUT.W.*Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
