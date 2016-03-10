@@ -34,7 +34,11 @@ warning off MATLAB:mir_warning_maybe_uninitialized_temporary
 format shortG;
 format compact;
 
-disp(num2str(EstimOpt.NClass,'Estimating LCMXL model with %1.0f classes ...'))
+if any(INPUT.W ~= 1)
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','LCMXL model with '); cprintf('Black',num2str(EstimOpt.NClass)); cprintf('Black','  classes ...\n');
+else
+    disp(num2str(EstimOpt.NClass,'Estimating LCMXL model with %1.0f classes ...'))
+end
 
 if isfield(EstimOpt,'FullCov') == 0;
     EstimOpt.FullCov = 0;
@@ -396,6 +400,11 @@ if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) &&
     OptimOpt.Hessian = 'off';
 end
 
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0; 
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
+end
+
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
 
 if strcmp(OptimOpt.GradObj,'on')
@@ -493,7 +502,7 @@ end
 %% Estimation
 
 
-LLfun = @(B) LL_lcmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_lcmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0  
     
     if EstimOpt.HessEstFix == 0
@@ -523,6 +532,8 @@ end
 
 Results.LL = -LL;
 Results.LLdetailed = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
+Results.LLdetailed = Results.LLdetailed.*INPUT.W;
+
 if any(INPUT.MissingInd == 1) % In case of some missing data
    idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
    idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
@@ -546,10 +557,12 @@ if EstimOpt.HessEstFix == 1
         f = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
     	Results.jacobian = numdiff(@(B) LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
     end
+    Results.jacobian = INPUT.W(:,ones(size(Results.jacobian,2),1)).*Results.jacobian;
 elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B)  LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),Results.bhat);
+    Results.jacobian = INPUT.W(:,ones(size(Results.jacobian,2),1)).*Results.jacobian;
 elseif EstimOpt.HessEstFix == 3
-    Results.jacobian = hessian(@(B)  sum(LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B)  sum(INPUT.W.*LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),1), Results.bhat);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
@@ -560,6 +573,17 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
+           Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;

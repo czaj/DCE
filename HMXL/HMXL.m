@@ -30,7 +30,11 @@ warning off MATLAB:mir_warning_maybe_uninitialized_temporary
 format shortG;
 format compact;
 
-disp('Estimating HMXL model ...')
+if any(INPUT.W ~= 1)
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','HMXL model...\n');
+else
+    disp('Estimating HMXL model ...')
+end
 
 if isfield(EstimOpt,'FullCov') == 0;
     EstimOpt.FullCov = 0;
@@ -678,7 +682,10 @@ if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) &&
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
     OptimOpt.Hessian = 'off';
 end
-
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0; 
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
+end
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
 
 if strcmp(OptimOpt.GradObj,'on')
@@ -733,7 +740,7 @@ end
 %% Estimation
 
 
-LLfun = @(B) LL_hmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp, err_sliced,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_hmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp, err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0  
     
     if EstimOpt.HessEstFix == 0
@@ -774,10 +781,11 @@ if EstimOpt.HessEstFix == 1
         f = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);
     	Results.jacobian = numdiff(@(B) LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B), f, Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
     end
+    Results.jacobian = INPUT.W(:,ones(size(Results.jacobian,2),1)).*Results.jacobian;
 elseif EstimOpt.HessEstFix == 2
-	Results.jacobian = jacobianest(@(B) LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),Results.bhat);
+	Results.jacobian = jacobianest(@(B) INPUT.W.*LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-	Results.hess = hessian(@(B) sum(LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),1), Results.bhat);
+	Results.hess = hessian(@(B) sum(INPUT.W.*LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea,INPUT.Xmea_exp,  err_sliced, EstimOpt,B),1), Results.bhat);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
@@ -791,6 +799,18 @@ end
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+if EstimOpt.RobustStd == 1
+    if EstimOpt.NumGrad == 0
+           [~, Results.jacobian] = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);
+           Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
+    else
+        Results.LLdetailed = LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, Results.bhat);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_hmxl(INPUT.YY,INPUT.XXa, INPUT.Xm, INPUT.Xstr, INPUT.Xmea, INPUT.Xmea_exp, err_sliced, EstimOpt, B) ,INPUT.W.*Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
+
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;

@@ -30,7 +30,11 @@ warning off MATLAB:mir_warning_maybe_uninitialized_temporary
 format shortG;
 format compact;
 
-disp('Estimating MXL model ...')
+if any(INPUT.W ~= 1)
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','MXL model...\n');
+else
+    disp('Estimating MXL model ...')
+end
 
 if isfield(EstimOpt,'FullCov') == 0;
     EstimOpt.FullCov = 0;

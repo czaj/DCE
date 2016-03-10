@@ -1,4 +1,4 @@
-function [f,g,h]= LL_gmxl_MATlike(YY,XXa,XXm,XXs,XXt,err_sliced,EstimOpt,OptimOpt,b0)
+function [f,g,h]= LL_gmxl_MATlike(YY,XXa,XXm,XXs,XXt,err_sliced,W,EstimOpt,OptimOpt,b0)
 
 % save res_LL_mxl_MATlike;
 % return
@@ -15,6 +15,7 @@ if isequal(OptimOpt.GradObj,'on')
         end
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             j = gmxl_gr8a(YY,XXa,TIMES,err_mtx,EstimOpt,b0); ... 
+            j = j.*W(:, ones(1,size(j,2)));
             g = sum(j,1)'; ...
             h = j'*j;
         else
@@ -23,14 +24,17 @@ if isequal(OptimOpt.GradObj,'on')
     else % => EstimOpt.NumGrad == 1         
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             j = numdiff(LLfun,f,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
+            j = j.*W(:, ones(1,size(j,2)));
             g = sum(j,1)'; ...
             h = j'*j;
         else % OptimOpt.Hessian ~= 'user-supplied'
             j = numdiff(LLfun,f,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
+            j = j.*W(:, ones(1,size(j,2)));
             g = sum(j,1)';
         end
     end
 end
+f = f.*W;
 f = sum(f);
 % save res_LL_mxl_MATlike;
 
