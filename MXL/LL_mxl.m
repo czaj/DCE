@@ -63,7 +63,7 @@ if EstimOpt.FullCov == 0
         b0sinhB = b0v(Dist == 5).^2;
         b0v(Dist == 5) = 1;
     end
-    b0v = b0v.^2;
+%     b0v = b0v.^2;
     VC = diag(b0v); 
     b0m = b0(NVarA*2+1:NVarA*(NVarM+2));     
     b0m = reshape(b0m,NVarA, NVarM); 
@@ -286,7 +286,8 @@ elseif nargout == 2 %  function value + gradient
     end
 	if FullCov == 0    
         g = zeros(NP, 2*NVarA + NVarNLT+NVarS);
-        VC2 = reshape(2*diag(b0(NVarA+1:NVarA*2))*err, NVarA, NRep, NP);
+%         VC2 = reshape(2*diag(b0(NVarA+1:NVarA*2))*err, NVarA, NRep, NP);
+        VC2 = reshape(err, NVarA, NRep, NP);
         VC2f = zeros(0,0,NP);
 	else
         g = zeros(NP, 2*NVarA+NVarA*(NVarA-1)/2 + NVarNLT + NVarS);
