@@ -2,8 +2,12 @@ function [f,g,h]= LL_mxl_MATlike(YY,XXa,XXm,Xs,err,W,EstimOpt,OptimOpt,b0)
 
 % save res_LL_mxl_MATlike;
 % return
-
-LLfun = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
+%b0
+if EstimOpt.NVarNLT == 0 && EstimOpt.AttDiff == 1
+    LLfun = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
+else
+    LLfun = @(B) LL_mxlNLT(YY,XXa,XXm,Xs,err,EstimOpt,B);
+end
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0

@@ -174,6 +174,13 @@ end
 if isfield(EstimOpt,'Scores') == 0 || isempty(EstimOpt.Scores)
     EstimOpt.Scores = 0;
 end
+if isfield(EstimOpt,'AttDiff') == 0 || isempty(EstimOpt.AttDiff)
+    EstimOpt.AttDiff = 1;
+end
+if EstimOpt.AttDiff == 0
+    cprintf(rgb('DarkOrange'), 'WARNING: Model is estimated on absolute values of attributes \n')
+end
+
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= EstimOpt.NVarA
     EstimOpt.NamesA = (1:EstimOpt.NVarA)';
     EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
@@ -257,7 +264,7 @@ else % EstimOpt.FullCov == 1
         end
 	end
 	if  ~exist('b0','var')
-        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
+        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MXL_d.bhat) == (2*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MXL_d results as starting values')
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             if sum(EstimOpt.Dist(2:end) >= 3) > 0
@@ -451,6 +458,8 @@ if  EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix =
     EstimOpt.HessEstFix = 0;
 end
 
+
+
 if  any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
     EstimOpt.ApproxHess = 1;
@@ -482,6 +491,12 @@ end
 
 if  any(EstimOpt.Dist(2:end)>= 3 & EstimOpt.Dist(2:end) <= 5) && EstimOpt.NVarM ~= 0
     error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
+end
+
+if  EstimOpt.AttDiff == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
+	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for estimation with attributes in differences \n')
+    EstimOpt.ApproxHess = 1;
+    EstimOpt.HessEstFix = 0;
 end
 
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
@@ -537,16 +552,29 @@ end
 
 %% Rescructure data
 
-% missing data - move to DataClean and do in a similar way for other models?
-% INPUT.Xa(INPUT.MissingInd(:,ones(1,EstimOpt.NVarA))==1) = NaN; % replace Xa in missing alternatives (missing choice-tasks do not matter anyway - see below) with NaN
 
-INPUT.YYY = reshape(INPUT.Y',EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP);
+if EstimOpt.NVarNLT == 0 && EstimOpt.AttDiff == 1 % if no non-linear transformations use differences in attributes levels
+    XaChosen = INPUT.Xa(INPUT.Y == 1,:);
+    XaNChosen = INPUT.Xa(INPUT.Y ~= 1,:);
+    XaChosen = reshape(XaChosen, 1, EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);
+    XaChosen = reshape(XaChosen(ones(EstimOpt.NAlt-1,1),:,:), (EstimOpt.NAlt-1)*EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);
+    INPUT.Xa = XaNChosen - XaChosen;
+    INPUT.XXa = reshape(INPUT.Xa,(EstimOpt.NAlt-1)*EstimOpt.NCT,EstimOpt.NP, EstimOpt.NVarA);
+    INPUT.XXa = permute(INPUT.XXa, [1 3 2]);
+    INPUT.Y = INPUT.Y(INPUT.Y~=1);
+    INPUT.YY = reshape(INPUT.Y,(EstimOpt.NAlt-1)*EstimOpt.NCT,EstimOpt.NP);
+else
+    INPUT.XXa = reshape(INPUT.Xa,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP, EstimOpt.NVarA);
+    INPUT.XXa = permute(INPUT.XXa, [1 3 2]);
+    INPUT.YY = reshape(INPUT.Y,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
+end
+
+
 % idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP])) == EstimOpt.NAlt;
 % INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:)) = NaN; % replace YYY in missing choice-tasks with NaN
 % INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP)==1;
-INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
+%INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
-XXa_tmp = reshape(INPUT.Xa',EstimOpt.NVarA, EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
 INPUT.XXm = reshape(INPUT.Xm',EstimOpt.NVarM, EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 INPUT.XXm = squeeze(INPUT.XXm(:,1,:));
@@ -554,9 +582,6 @@ if EstimOpt.NVarM == 1
     INPUT.XXm = INPUT.XXm';
 end
     
-for i = 1:EstimOpt.NP
-    INPUT.XXa(:,:,i) = XXa_tmp(:,:,i)';
-end
 
 err_mtx = err_mtx';
 % change err_mtx from NRep*NP x NVarA to NP*NRep x NVarA (incrasing the no. of draws only adds new draws for each respondent, does not change all draws per individual)
@@ -651,13 +676,15 @@ end
 Results.LL = -LL;
 Results.b0_old = b0;
 
-if EstimOpt.HessEstFix == 4
-    EstimOpt_tmp = EstimOpt;
-    EstimOpt_tmp.NumGrad = 0;
-    EstimOpt_tmp.ApproxHess = 0;
-    [Results.LLdetailed,~,Results.hess] = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt_tmp,Results.bhat);
+if EstimOpt.NVarNLT == 0 && EstimOpt.AttDiff == 1
+    LLfun2 =  @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 else
-    Results.LLdetailed = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
+    LLfun2 =  @(B) LL_mxlNLT(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+end
+if EstimOpt.HessEstFix == 4
+    [Results.LLdetailed,~,Results.hess] = LLfun2(Results.bhat);
+else
+    Results.LLdetailed = LLfun2(Results.bhat);
 end
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
@@ -676,11 +703,11 @@ end
 if EstimOpt.HessEstFix == 1
 % 	f = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
 %     Results.jacobian = numdiff(@(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
-    Results.jacobian = numdiff(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+    Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) sum(INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B)), Results.bhat);
+    Results.hess = hessian(@(B) sum(INPUT.W.*LLfun2(B)), Results.bhat);
 elseif EstimOpt.HessEstFix == 4
 
 end
@@ -718,10 +745,10 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
-           [~, Results.jacobian] = LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat); 
+           [~, Results.jacobian] = LLfun2(Results.bhat);
            Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
     else
-        Results.jacobian = numdiff(@(B) INPUT.W.*LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
     end
     RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
