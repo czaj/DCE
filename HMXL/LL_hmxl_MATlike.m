@@ -1,7 +1,21 @@
 function [LL,g,h] = LL_hmxl_MATlike(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,W,EstimOpt,OptimOpt,b0)
 
 LLfun = @(B) LL_hmxl(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
-
+% tic
+% [f,j] = LLfun(b0);
+% toc
+%         j(:,EstimOpt.BActive ==0) = 0;
+%         g = sum(j,1)'; ...
+% EstimOpt.NumGrad = 1;
+% LLfun2 = @(B) LL_hmxl(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
+% tic
+% f2 = LLfun2(b0);  
+%         j2 = numdiff(LLfun2,f2,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
+% toc
+%         g2 = sum(j2,1)';  
+% [g,g2, abs(g-g2)]
+% EstimOpt.NumGrad = 0;
+%pause;
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
         [f,j] = LLfun(b0);

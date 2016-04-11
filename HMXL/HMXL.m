@@ -418,13 +418,21 @@ if EstimOpt.NVarMeaExp > 0
 end
 EstimOpt.indx1 = [];
 EstimOpt.indx2 = [];
-if EstimOpt.NumGrad == 0 && EstimOpt.FullCov == 1
+EstimOpt.indx3 = [];
+if EstimOpt.NumGrad == 0 && EstimOpt.FullCov > 0
    for i = 1:EstimOpt.NVarA
       EstimOpt.indx1 = [EstimOpt.indx1, i:EstimOpt.NVarA];
       EstimOpt.indx2 = [EstimOpt.indx2, i*ones(1,EstimOpt.NVarA+1-i)];
    end
+   if EstimOpt.FullCov == 2
+       aa = 1;
+       ab = sum(1:EstimOpt.NVarA);
+       for i = 1:EstimOpt.NVarA
+          EstimOpt.indx3 = [EstimOpt.indx3, aa:(aa+EstimOpt.NVarA-i), ab+i];
+          aa = aa+EstimOpt.NVarA-i+1;
+       end
+   end
 end
-
 
 %% Estimating MIMIC0
 
@@ -665,9 +673,9 @@ end
 %    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
 % end
 
-if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0
+if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0 && (any(EstimOpt.MissingAlt(:) == 1) || EstimOpt.NLatent > 1 || any(EstimOpt.MeaSpecMatrix > 0))
    EstimOpt.NumGrad = 1;
-   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - correlation of random parameters and LV not supported by analytical gradient \n')
+   cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - correlation of random parameters and LV not supported by analytical gradient with missing, more than 1 LV and not OLS measurment equations\n')
 end
 if any(EstimOpt.MeaSpecMatrix >= 3) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xmea(:, EstimOpt.MeaSpecMatrix >=3) > 100))
    cprintf(rgb('DarkOrange'), 'WARNING: it is recommended to switch to numerical gradient, as analitycal can be not precise when Xmea take large values for NB \n')
@@ -855,7 +863,12 @@ elseif EstimOpt.FullCov == 2
     bhattmp = bhattmp(Indx == 1);
     covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
     covtmp = covtmp(Indx == 1,Indx==1);
+    BActivetmp = EstimOpt.BActive;
+    EstimOpt.BActive = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+    EstimOpt.BActive = EstimOpt.BActive(Indx == 1);
+    EstimOpt.BActive = [ones(1,EstimOpt.NVarA), EstimOpt.BActive];
     Results.DetailsV = sdtri(bhattmp, covtmp,EstimOpt);
+    EstimOpt.BActive = BActivetmp;
     l = EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent;
     if EstimOpt.NVarM > 0
         Results.DetailsCM = [Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), pv(Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM))];
@@ -868,9 +881,7 @@ elseif EstimOpt.FullCov == 2
     Results.DetailsM = [Results.bhat(l+(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+1:end), Results.std(l+(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+1:end), pv(Results.bhat(l+(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+1:end), Results.std(l+(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+1:end))];
     if any(EstimOpt.Dist == -1)
         VC = tril(ones(EstimOpt.NLatent+EstimOpt.NVarA));
-%         VC(find(EstimOpt.Dist == -1),:) = 0;
         VC(EstimOpt.Dist == -1,:) = 0;
-%         VC(:,find(EstimOpt.Dist == -1)) = 0;
         VC(:,EstimOpt.Dist == -1) = 0;
         VCtmp = tril(ones(size(VC)));
         VCtmp2 = diag(ones(EstimOpt.NLatent+EstimOpt.NVarA,1));
@@ -881,6 +892,10 @@ elseif EstimOpt.FullCov == 2
         bhattmp = bhattmp(Indx == 1);
         covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
         covtmp = covtmp(Indx == 1,Indx==1);
+%         save tmp1.mat; 
+%         covtmp
+%         det(covtmp)
+%         bhattmp
         [Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(bhattmp, covtmp,EstimOpt);
 
     else

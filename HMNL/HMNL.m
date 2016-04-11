@@ -383,7 +383,6 @@ end
 
 %% Starting values
 
-
 if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(1+EstimOpt.NLatent) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
     b0 = B_backup(:);
     disp('Using the starting values from Backup')
