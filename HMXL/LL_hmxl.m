@@ -28,6 +28,7 @@ b_mtx_grad = [];
 
 indx1 = EstimOpt.indx1;
 indx2 = EstimOpt.indx2;
+indx3 = EstimOpt.indx3;
 
 if FullCov == 0
     ba = B(1:NVarA); % b atrybutów
@@ -55,23 +56,28 @@ elseif FullCov == 2
     VC(VCtmp2 == 1) = 0;
     VC(VC==1) = bv;
     VC(VCtmp2 == 1) = 1;
-    tmp = sqrt(sum(VC(NVarA+1:end,:).^2,2)); 
-    VC(NVarA+1:end,:) = VC(NVarA+1:end,:)./tmp(:,ones(NVarA+NLatent,1));
+    VCGrad = VC; % before normalization, for gradient
+    NormVar = sqrt(sum(VC(NVarA+1:end,:).^2,2)); 
+    VC(NVarA+1:end,:) = VC(NVarA+1:end,:)./NormVar(:,ones(NVarA+NLatent,1));
     bm = reshape(B(NVarA+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(EstimOpt.NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent),NVarA,EstimOpt.NVarM); % b mean covariates
     bl = reshape(B(NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NLatent+1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent),NVarA,NLatent); % b interakcji z LV
     bstr = reshape(B(NVarA*(NLatent+EstimOpt.NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent+1:(NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent),NVarStr,NLatent); % b równania struktury
     bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:end); % b measurement
-    err_sliced = VC*err_sliced;
+    err = VC*err_sliced;
 end
 
 LV_tmp = Xstr*bstr; % NP x Latent
 LV_tmp = reshape(permute(LV_tmp(:,:,ones(NRep,1)),[2 3 1]),NLatent,NRep*NP); % Latent*NRep*NP
-LV_tmp = LV_tmp + err_sliced(NVarA+1:end,:); % Latent x NRep*NP
+if FullCov == 2
+    LV_tmp = LV_tmp + err(NVarA+1:end,:); % Latent x NRep*NP
+else
+    LV_tmp = LV_tmp + err_sliced(NVarA+1:end,:); % Latent x NRep*NP
+end   
 sLV = std(LV_tmp,0,2);
-LV_tmp = LV_tmp ./ sLV(:,ones(1,size(LV_tmp,2)));
+%LV_tmp = LV_tmp ./ sLV(:,ones(1,size(LV_tmp,2)));
 mLV = mean(LV_tmp,2);
-LV = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
-% LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
+%LV = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
+LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 
 if EstimOpt.NVarM > 0
     ba = ba(:,ones(NP,1))+bm*Xm; % NVarA x NP
@@ -81,7 +87,7 @@ else
 end
     
 if FullCov == 2
-    b_mtx = ba + bl*LV + err_sliced(1:NVarA,:); % NVarA x NRep*NP  
+    b_mtx = ba + bl*LV + err(1:NVarA,:); % NVarA x NRep*NP  
 else
     b_mtx = ba + bl*LV + VC*err_sliced(1:NVarA,:); % NVarA x NRep*NP
 end  
@@ -295,9 +301,24 @@ else % function value + gradient
     if FullCov == 0
         gvar = zeros(NP,NRep,NVarA); % gradient for standard deviations parameters
         VC2 = reshape(2*diag(B(NVarA+1:NVarA*2))*err_sliced(1:NVarA,:),NVarA,NRep,NP);
-    else % full correlation
+    elseif FullCov == 1 % full correlation
         gvar = zeros(NP,NRep,NVarA+NVarA*(NVarA-1)/2); % gradient for covariance matrix parameters
         VC2 = reshape(err_sliced(1:NVarA,:),NVarA,NRep,NP);
+    elseif FullCov == 2 % full correlation
+        gvar = zeros(NP,NRep,NVarA+NVarA*(NVarA-1)/2); % gradient for covariance matrix parameters
+        VC2 = reshape(err_sliced(1:NVarA,:),NVarA,NRep,NP);
+        gvarLV = zeros(NP,NRep,sum(1:NVarA + NLatent) - sum(1:NVarA) - NLatent); % gradient for other elements of covariance matrix
+        %VC3 = reshape(err_sliced,NVarA+NLatent,NRep,NP);
+        errGrad = VCGrad*err_sliced;
+        %SumVar = sum(VCGrad(NVarA+1:end,:),2)-1;
+        
+        % For now this only works for NLatent == 1, for more some
+        % additional indexing is needed
+        errGrad = errGrad(NVarA+1:end,:)./(NormVar(:,ones(1, NRep*NP)).^3); % Nlatent x NRep*NP
+        errGrad = bsxfun(@times,errGrad , VCGrad((NVarA+1),1:NVarA)');
+        EpsDer = bsxfun(@minus, err_sliced(1:NVarA,:)/NormVar, errGrad); % NVarA X NRep*NP
+        mEpsDer = mean(EpsDer,2);
+        LV_der21 = bsxfun(@minus, EpsDer, mEpsDer);% NVarA X NRep*NP
     end
     gstr = zeros(NP,NRep,NVarStr,NLatent); % gradient for parameters from structural equations
     gmea = zeros(NP,NRep,length(bmea)); % gradient for other parameters
@@ -306,17 +327,25 @@ else % function value + gradient
     mXstr = mean(Xstr,1);
     Xstr_expand = reshape(Xstr - mXstr(ones(NP,1),:),1,NP,NVarStr);
     Xstr_expand = reshape(Xstr_expand(ones(NRep*NLatent,1),:,:),NLatent,NRep*NP,NVarStr);
-    LV_tmp = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % NLatent x NRep*NP
-    LV_std = sum(LV_tmp(:,:,ones(NVarStr,1)).*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr
-    
-    Xstr_expand = Xstr_expand./sLV(:,ones(NRep*NP,1),ones(NVarStr,1));
-    LV_tmp = LV_tmp./(sLV(:,ones(NRep*NP,1)).^3);
+    LV_tmp = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % NLatent x NRep*NP - this is normalized LV
+    LV_std = sum(LV_tmp(:,:,ones(NVarStr,1)).*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr 
+    if FullCov == 2
+       LV_std2 =sum(bsxfun(@times,LV_tmp, LV_der21),2)/(NRep*NP-1) ; % derivative of sLV
+       LV_der21 = bsxfun(@rdivide, LV_der21, sLV); % NVarA X NRep*NP
+    end
+    Xstr_expand = Xstr_expand./sLV(:,ones(NRep*NP,1),ones(NVarStr,1)); % First term of differential
+    LV_tmp = LV_tmp./(sLV(:,ones(NRep*NP,1)).^3); 
+    if FullCov == 2
+       LV_der2 = LV_der21 -  bsxfun(@times, LV_tmp,LV_std2);
+       LV_der2 = permute(reshape(LV_der2, NVarA,NRep,NP),[3 2 1]); % Assuming One Latent variable
+    end
     LV_tmp = LV_tmp(:,:,ones(NVarStr,1));
 
     LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:),NLatent,NRep,NP,NVarStr); % Latent x NRep x NP x NVarstr
     LV_der = permute(LV_der,[3 2 4 1]); % NP x NRep x NVarstr x Latent
     LV_expand = permute(reshape(LV',NRep,NP,NLatent),[2 1 3])  ; 
-       
+    
+    
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
             
         parfor n = 1:NP   
@@ -377,6 +406,9 @@ else % function value + gradient
             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
 %             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
             gmnl(n,:,:) = sumFsqueezed;
+            if FullCov == 2
+                gvarLV(n,:,:) = sumFsqueezed_LV(:,ones(NVarA,1)); % NRep x NVarA
+            end
             sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:,ones(NVarStr,1)),[1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;
         
@@ -456,6 +488,9 @@ else % function value + gradient
     end
 
     gstr = gstr.*LV_der;
+    if FullCov == 2
+        gvarLV = gvarLV.*LV_der2; % NRep x NVarA
+    end
 %     LV_expand = reshape(LV_expand,NP,NRep,1,NLatent );
 %     gmnl(:,:,:,2:end) = gmnl(:,:,:,2:end).*LV_expand(:,:,ones(NVarA,1),:);
 %     LV_expand = squeeze(LV_expand);
@@ -490,7 +525,9 @@ else % function value + gradient
             else
                 gstr(:,:,:,LVindx) = gstr(:,:,:,LVindx)+ grad_tmp(:,:,ones(NVarStr,1)).*LV_der(:,:,:,LVindx)*b(2);
             end
-            
+            if FullCov == 2
+                gvarLV = gvarLV + b(2)*bsxfun(@times, grad_tmp, LV_der2); % assuming one latent variable
+            end
             gmea(:,:,l+1) = grad_tmp; % constant
             %LV_expand = permute(reshape(LV(MeaMatrix(:,i)'== 1,:)',NRep,NP,sum(MeaMatrix(:,i)'== 1)),[2 1 3])  ; 
             gmea(:,:,l+2:l+1+sum(MeaMatrix(:,i)'== 1)) = grad_tmp(:,:,ones(sum(MeaMatrix(:,i)'== 1),1)).*LV_expand(:,:,MeaMatrix(:,i)'== 1); % parameters for LV
@@ -847,8 +884,11 @@ else % function value + gradient
     g = reshape(mean(bsxfun(@times,probs,gmnl),2),[NP,NVarA*(1+NLatent)]); % 
     if FullCov == 0
         g2 = squeeze(mean(probs(:,:,ones(NVarA,1)).*gvar,2)); %
-    else
+    elseif FullCov == 1
         g2 = squeeze(mean(probs(:,:,ones(NVarA+NVarA*(NVarA-1)/2,1)).*gvar,2)); % 
+    elseif FullCov == 2
+        g2 = [squeeze(mean(probs(:,:,ones(NVarA+NVarA*(NVarA-1)/2,1)).*gvar,2)),squeeze(mean(bsxfun(@times, probs, gvarLV),2))] ; % 
+        g2 = g2(:, indx3);
     end
 %     g4 = squeeze(mean(probs(:,:,ones(length(bmea),1)).*gmea,2)); % NP x NVarmea
     g4 = reshape(mean(bsxfun(@times,probs,gmea),2),[NP,size(bmea,1)]); % NP x NVarmea
