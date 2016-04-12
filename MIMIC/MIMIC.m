@@ -377,6 +377,13 @@ if  isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
+if isfield(EstimOpt, 'StrMatrix') && size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && size(EstimOpt.StrMatrix,2) == EstimOpt.NVarstr && any(any(EstimOpt.StrMatrix ~= 1))
+    if ~isfield(EstimOpt,'BActive')
+        EstimOpt.BActive = ones(1,EstimOpt.NVarstr*EstimOpt.NLatent + EstimOpt.NVarmea + EstimOpt.NVarcut);
+    end
+    EstimOpt.BActive = StrSelect(EstimOpt,0);
+end
+
 if EstimOpt.ConstVarActive == 1
     if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
         error ('Are there any constraints on model parameters (EstimOpt.ConstVarActive)? Constraints not provided (EstimOpt.BActive).')

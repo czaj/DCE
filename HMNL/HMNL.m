@@ -349,7 +349,6 @@ idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP)) == E
 INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:) == 1) = NaN; % replace YYY in missing choice-tasks with NaN
 INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
-INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
 
 INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
 INPUT.XXa = reshape(INPUT.Xa',EstimOpt.NVarA, EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
@@ -430,6 +429,7 @@ if  ~exist('b0','var')
 %             end
             INPUT0.Y = INPUT.Y;
             INPUT0.Xm = [INPUT.Xm, LV];
+            INPUT0.W = ones(EstimOpt.NP,1);
             INPUT0.MissingInd = INPUT.MissingInd;
             
             EstimOpt0 = EstimOpt;
@@ -496,6 +496,8 @@ if  ~exist('b0','var')
         error('No starting values available - run MNL or MIMIC first')
     end
 end
+% it must be after starting values
+INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
 
 
 %% Optimization Options
@@ -503,6 +505,13 @@ end
 
 if  isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
+end
+
+if isfield(EstimOpt, 'StrMatrix') && size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && size(EstimOpt.StrMatrix,2) == EstimOpt.NVarStr && any(any(EstimOpt.StrMatrix ~= 1))
+    if ~isfield(EstimOpt,'BActive')
+        EstimOpt.BActive = ones(1,EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut);
+    end
+    EstimOpt.BActive = StrSelect(EstimOpt,1);
 end
 
 if EstimOpt.ConstVarActive == 1
