@@ -476,7 +476,7 @@ if EstimOpt.FullCov == 0
         if isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'bhat')
             disp('Using HMNL results as starting values')
             Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
-            b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); max(1,sqrt(abs(Results_old.HMNL.bhat(1:EstimOpt.NVarA)))); zeros(EstimOpt.NVarM*EstimOpt.NVarA,1); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+            b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); max(1,sqrt(abs(Results_old.HMNL.bhat(1:EstimOpt.NVarA)))); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist == 1) > 0 && ~any(Results_old.HMNL.EstimOpt.MNLDist==1)
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
@@ -507,7 +507,7 @@ elseif EstimOpt.FullCov == 1
         elseif isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'bhat')
             disp('Using HMNL results as starting values')
             Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
-            b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); zeros(sum(1:EstimOpt.NVarA,2)+EstimOpt.NVarA*EstimOpt.NVarM,1); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+            b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); zeros(sum(1:EstimOpt.NVarA,2),1); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist == 1) > 0 && ~isfield(Results_old.HMNL.EstimOpt,'XDist')                
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
