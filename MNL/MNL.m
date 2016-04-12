@@ -99,6 +99,12 @@ if isfield(EstimOpt,'SCEXP')==0
 end
 EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 
+if isfield(INPUT, 'Xm') == 0 || size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
+    INPUT.Xm = zeros(size(INPUT.Y,1),0);
+end 
+EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
+
+
 if EstimOpt.WTP_space > 0 
 	if isfield(EstimOpt, 'WTP_matrix') == 0
         WTP_att = (EstimOpt.NVarA-EstimOpt.WTP_space)/EstimOpt.WTP_space;
@@ -124,7 +130,14 @@ if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOp
 elseif size(EstimOpt.NamesA,1) ~= EstimOpt.NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
-
+if EstimOpt.NVarM > 0
+    if isfield(EstimOpt,'NamesM') == 0 || isempty(EstimOpt.NamesM)|| length(EstimOpt.NamesM) ~= EstimOpt.NVarM
+        EstimOpt.NamesM = (1:EstimOpt.NVarM)';
+        EstimOpt.NamesM = cellstr(num2str(EstimOpt.NamesM));
+    elseif size(EstimOpt.NamesM,1) ~= EstimOpt.NVarM
+        EstimOpt.NamesM = EstimOpt.NamesM';
+    end
+end
 if EstimOpt.NVarS > 0
     if isfield(EstimOpt,'NamesS') == 0 || isempty(EstimOpt.NamesS) || length(EstimOpt.NamesS) ~= EstimOpt.NVarS
         EstimOpt.NamesS = (1:EstimOpt.NVarS)';
@@ -138,16 +151,16 @@ end
 %% Starting values
 
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT
+if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
     b0 = B_backup(:);
     if EstimOpt.Display ~= 0
         disp('Using the starting values from Backup')
     end
-elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') && (length(Results_old.MNL.b0) == EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT) % MNL starting values provided
+elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') && (length(Results_old.MNL.b0) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT) % MNL starting values provided
 %     disp('Using MNL results as starting values')
     Results_old.MNL.b0_old = Results_old.MNL.b0;
     Results_old.MNL = rmfield(Results_old.MNL,'b0');
-    if length(Results_old.MNL.b0_old) ~= EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT
+    if length(Results_old.MNL.b0_old) ~= EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
         if EstimOpt.Display ~= 0
             cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
         end
@@ -164,12 +177,26 @@ if  ~exist('b0','var')
         b00 = zeros(EstimOpt.NVarS,1); ...
         Y = INPUT.Y(INPUT.MissingInd == 0);
         Xa = INPUT.Xa(INPUT.MissingInd == 0,:);
-        b0 = [regress(Y,Xa);b00;ones(EstimOpt.NVarNLT,1)];
+        if EstimOpt.NVarM > 0
+            Xm = reshape(INPUT.Xm, size(INPUT.Xa,1),1, EstimOpt.NVarM);
+            Xm = reshape(Xm(:, ones(1, EstimOpt.NVarA),:), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+            Xa2 = reshape(Xa(:,:, ones(1, EstimOpt.NVarM)), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+            b0 = [regress(Y,[Xa, Xa2.*Xm]);b00;ones(EstimOpt.NVarNLT,1)];
+        else
+            b0 = [regress(Y,Xa);b00;ones(EstimOpt.NVarNLT,1)];
+        end
 %         if EstimOpt.WTP_space > 0
 %             b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) = b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) .* b0(EstimOpt.WTP_matrix,:);
 %         end
     else
-        b0 = [regress(INPUT.Y,INPUT.Xa); ones(EstimOpt.NVarNLT,1)];                   
+        if EstimOpt.NVarM > 0
+            Xm = reshape(INPUT.Xm, size(INPUT.Xa,1),1, EstimOpt.NVarM);
+            Xm = reshape(Xm(:, ones(1, EstimOpt.NVarA),:), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+            Xa2 = reshape(INPUT.Xa(:,:, ones(1, EstimOpt.NVarM)), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+            b0 = [regress(INPUT.Y,[INPUT.Xa, Xa2.*Xm]);ones(EstimOpt.NVarNLT,1)];
+        else
+            b0 = [regress(INPUT.Y,INPUT.Xa); ones(EstimOpt.NVarNLT,1)];      
+        end
 %         if EstimOpt.WTP_space > 0
 %             b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) = b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) .* b0(EstimOpt.WTP_matrix,:);
 %         end
@@ -315,6 +342,29 @@ INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
 INPUT.Xs(INPUT.MissingInd == 1,:) = NaN;
 %Xa and Xs has NaNs where there is missing alternative
 INPUT.Xa = INPUT.Xa(idx == 0,:);
+if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
+    INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
+    EstimOpt.XmIndx = zeros(sum(EstimOpt.NCTMiss),1);
+    EstimOpt.XmIndx2 = zeros(sum(EstimOpt.NCTMiss)*EstimOpt.NAlt,1);
+    for i = 1:EstimOpt.NP
+        NCTno = sum(EstimOpt.NCTMiss(1:i-1));
+        EstimOpt.XmIndx(NCTno+1:NCTno+EstimOpt.NCTMiss(i)) = i;
+        EstimOpt.XmIndx2(NCTno*EstimOpt.NAlt+1:(NCTno+EstimOpt.NCTMiss(i))*EstimOpt.NAlt) = i;
+    end
+    NVarMOld = EstimOpt.NVarM;
+elseif EstimOpt.NVarM > 0 && EstimOpt.WTP_space == 0 && EstimOpt.NVarNLT == 0
+    INPUT.Xm = INPUT.Xm(idx == 0,:);
+    Xm = reshape(INPUT.Xm, size(INPUT.Xa,1),1, EstimOpt.NVarM);
+    Xm = reshape(Xm(:, ones(1, EstimOpt.NVarA),:), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+    Xa2 = reshape(INPUT.Xa(:,:, ones(1, EstimOpt.NVarM)), size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM);
+    INPUT.Xa = [INPUT.Xa, Xa2.*Xm];
+    EstimOpt.NVarA = EstimOpt.NVarA*(1+EstimOpt.NVarM);
+    NVarMOld = EstimOpt.NVarM;
+    EstimOpt.NVarM = 0;
+    INPUT.Xm = zeros(size(INPUT.Y,1),0);
+else
+    NVarMOld = EstimOpt.NVarM;
+end
 if EstimOpt.NVarS > 0
     INPUT.Xs = INPUT.Xs(idx == 0,:);
 end
@@ -332,7 +382,7 @@ end
 %% Estimation
 
 
-LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa, INPUT.Xs,INPUT.W, EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa,INPUT.Xm, INPUT.Xs,INPUT.W, EstimOpt,OptimOpt,B);
 
 if EstimOpt.ConstVarActive == 0  
     
@@ -369,7 +419,7 @@ if isfield(EstimOpt,'R2type') == 0
    EstimOpt.R2type = 0; 
 end
     
-Results.LLdetailed = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
+Results.LLdetailed = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm, INPUT.Xs,EstimOpt,Results.bhat);
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
    idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
@@ -387,14 +437,14 @@ else
 end
 
 if EstimOpt.HessEstFix == 1
-	f = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),-INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+	f = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
+    Results.jacobian = numdiff(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),-INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1), Results.bhat);
 elseif EstimOpt.HessEstFix == 4 %missing
-    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),1), Results.bhat);
+    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1), Results.bhat);
 %     EstimOpt_tmp = EstimOpt;
 %     EstimOpt_tmp.NumGrad = 0;
 %     EstimOpt_tmp.ApproxHess = 0;
@@ -464,13 +514,23 @@ Results.OptimOpt = OptimOpt;
 clocknote = clock;
 tocnote = toc;
 [~,DayName] = weekday(now,'long');
-
+if NVarMOld > 0 && EstimOpt.WTP_space == 0 && EstimOpt.NVarNLT == 0
+    EstimOpt.NVarA = EstimOpt.NVarA/(1+NVarMOld); 
+end
 if EstimOpt.Display ~= 0
     disp(' ');
     disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
     disp([char(EstimOpt.NamesA), blanks(EstimOpt.NVarA)', num2str(Results.R(1:EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.R(1:EstimOpt.NVarA,3)), num2str(Results.R(1:EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
     disp(' ')
-    
+    if NVarMOld > 0
+        for i = 1:NVarMOld
+            disp(' ');
+            disp(['Explanatory variable of parameters'' means - ', char(EstimOpt.NamesM(i))]);
+            disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
+            disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),1),'%8.4f'), star_sig(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),3)), num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),2:3),'%8.4f %8.4f')])
+            disp(' ')
+        end
+    end
     if EstimOpt.NVarNLT > 0
         if EstimOpt.NLTType == 1
             disp('Box-Cox transformation parameters')
@@ -478,14 +538,15 @@ if EstimOpt.Display ~= 0
             disp('Yeo-Johnson transformation parameters')
         end
         disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
+        disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
         disp(' ')
     end
     
     if EstimOpt.NVarS > 0
         disp('Covariates of scale')
         disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.bhat(EstimOpt.NVarA+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA+1:end) , Results.std(EstimOpt.NVarA+1:end))) num2str([Results.std(EstimOpt.NVarA+1:end) pv(Results.bhat(EstimOpt.NVarA+1:end) , Results.std(EstimOpt.NVarA+1:end))],'%8.4f %8.4f')])
+        disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS))) ...
+            num2str([Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS))],'%8.4f %8.4f')])
         disp(' ')
     end
     
