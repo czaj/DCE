@@ -223,11 +223,11 @@ if EstimOpt.FullCov == 0
         end
 	end
     if  ~exist('b0','var')
-        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
+        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA*(1+ EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
 %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
-            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,abs(Results_old.MNL.bhat(1:EstimOpt.NVarA)));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
+            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,abs(Results_old.MNL.bhat(1:EstimOpt.NVarA)));Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
                 b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
@@ -278,7 +278,7 @@ else % EstimOpt.FullCov == 1
         elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
-            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(EstimOpt.NVarA*(EstimOpt.NVarM)+sum(1:EstimOpt.NVarA),1);0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
+            b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA),1); Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
                 b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0_old(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
@@ -554,7 +554,11 @@ end
 
 
 if EstimOpt.NVarNLT == 0 && EstimOpt.AttDiff == 1 % if no non-linear transformations use differences in attributes levels
-    XaChosen = INPUT.Xa(INPUT.Y == 1,:);
+    Ytmp = prod(isnan(reshape(INPUT.Y, EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP))); % which CT are missing
+    INPUT.Y = reshape(INPUT.Y, EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP);
+    INPUT.Y(1, Ytmp == 1) = 1;
+    INPUT.Y = reshape(INPUT.Y, EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.NP,1);
+    XaChosen = INPUT.Xa(INPUT.Y == 1 ,:);
     XaNChosen = INPUT.Xa(INPUT.Y ~= 1,:);
     XaChosen = reshape(XaChosen, 1, EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);
     XaChosen = reshape(XaChosen(ones(EstimOpt.NAlt-1,1),:,:), (EstimOpt.NAlt-1)*EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);

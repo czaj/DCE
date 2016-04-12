@@ -1,12 +1,13 @@
-function [f,g] = LL_mnl(y,Xa,Xs,EstimOpt,b0)
+function [f,g] = LL_mnl(y,Xa,Xm,Xs,EstimOpt,b0)
 
 % save tmp_MNL_like
 % return
 
-B = b0(1:EstimOpt.NVarA + EstimOpt.NVarS);
+B = b0(1:EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS);
+
 
 if EstimOpt.NVarNLT > 0
-    bt = b0(EstimOpt.NVarA + EstimOpt.NVarS + 1:end);
+    bt = b0(EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + 1:end);
     % IndTransNon0 = (abs(bt) > 0.00001)';
     IndTransNon0 = (abs(bt) > eps)';
 
@@ -54,24 +55,43 @@ if EstimOpt.NVarNLT > 0
     
     Xa(:, EstimOpt.NLTVariables) = Xt;
 end
+
+if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
+    ba = B(1:EstimOpt.NVarA);
+    b0m = reshape(B(EstimOpt.NVarA+1:EstimOpt.NVarA*(1+EstimOpt.NVarM)), EstimOpt.NVarA, EstimOpt.NVarM);
+    ba = ba(:,ones(EstimOpt.NP,1)) + b0m*Xm'; % NVarA x NP
+else
     
+end    
 N = nansum(y,1);
 
 if EstimOpt.WTP_space > 0
-    B(1:EstimOpt.NVarA-EstimOpt.WTP_space,:) = B(1:EstimOpt.NVarA-EstimOpt.WTP_space,:).*B(EstimOpt.WTP_matrix,:);
+    if EstimOpt.NVarM == 0
+        B(1:EstimOpt.NVarA-EstimOpt.WTP_space,:) = B(1:EstimOpt.NVarA-EstimOpt.WTP_space,:).*B(EstimOpt.WTP_matrix,:);
+    else
+        ba_grad = ba;
+        ba(1:EstimOpt.NVarA-EstimOpt.WTP_space,:) = ba(1:EstimOpt.NVarA-EstimOpt.WTP_space,:).*ba(EstimOpt.WTP_matrix,:);
+    end
 end
 
 % computing utility levels
+if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
+    betaX = zeros(size(Xa,1),1);
+    for i = 1:EstimOpt.NP
+        NCTno = sum(EstimOpt.NCTMiss(1:i-1));
+        betaX(NCTno*EstimOpt.NAlt+1:(NCTno+EstimOpt.NCTMiss(i))*EstimOpt.NAlt) = Xa(NCTno*EstimOpt.NAlt+1:(NCTno+EstimOpt.NCTMiss(i))*EstimOpt.NAlt,:)*ba(:,i);
+    end
+else
+    betaX = Xa*B(1:EstimOpt.NVarA,1); %clear XX b_mtx
+end
 
 if EstimOpt.NVarS > 0 
     if EstimOpt.SCEXP==1
-        cs = exp(Xs*B(end-EstimOpt.NVarS+1:end,1));
+        cs = exp(Xs*B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS));
     else 
-        cs = Xs(:,end-EstimOpt.NVarS+1:end)*B(end-EstimOpt.NVarS+1:end,1)+1;
+        cs = Xs*B(EstimOpt.NVarA*(1+EstimOpt.NVarM)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS)+1;
     end
-    betaX = Xa*B(1:end-EstimOpt.NVarS,1).*cs; %clear XX b_mtx
-else
-    betaX = Xa*B(1:EstimOpt.NVarA); %clear XX b_mtx
+    betaX = betaX.*cs;
 end
 
 v = reshape(betaX,EstimOpt.NAlt,N);
@@ -100,24 +120,42 @@ if nargout == 2 % function value + gradient
                 Xhatlam = Xhatlam';
             end
             g = [g, XXt(y == 1, :) - Xhatlam];
+            if NVarM > 0
+               gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
+               g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
+            end
         end
     else
         % non - cost variables
-        alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*(B(EstimOpt.WTP_matrix,ones(EstimOpt.NAlt*N,1))');
+        if EstimOpt.NVarM == 0 
+            alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*(B(EstimOpt.WTP_matrix,ones(EstimOpt.NAlt*N,1))');
+        else
+
+            alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*ba_grad(EstimOpt.WTP_matrix,EstimOpt.XmIndx2)';
+        end
         alphaXX = reshape(alphaX, EstimOpt.NAlt, N, EstimOpt.NVarA - EstimOpt.WTP_space);
         Xhat1 = squeeze(sum(P(:,:,ones(EstimOpt.NVarA- EstimOpt.WTP_space,1)).*alphaXX,1));
         g1 = alphaX(y == 1, :) - Xhat1;
         % cost variables
-
+        
         if EstimOpt.WTP_space == 1
-            pX = Xa(:, EstimOpt.NVarA) + Xa(:, 1:EstimOpt.NVarA-1)*b0(1:EstimOpt.NVarA-1);
+            if EstimOpt.NVarM == 0 
+                pX = Xa(:, EstimOpt.NVarA) + Xa(:, 1:EstimOpt.NVarA-1)*b0(1:EstimOpt.NVarA-1);
+            else
+                pX = Xa(:, EstimOpt.NVarA) + sum(Xa(:, 1:EstimOpt.NVarA-1).*ba_grad(1:EstimOpt.NVarA-1,EstimOpt.XmIndx2)',2);
+            end
             pXX = reshape(pX, EstimOpt.NAlt, N);
             Xhat2 = squeeze(sum(P.*pXX,1))'; % N x 1
             g2 = pX(y == 1, :) - Xhat2;
+  
         else
             pX = zeros(EstimOpt.NAlt*N, EstimOpt.WTP_space);
             for i = 1:EstimOpt.WTP_space
-                pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
+                if EstimOpt.NVarM == 0 
+                    pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
+                else
+                    pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + sum(Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i).*ba_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i,EstimOpt.XmIndx2)',2);
+                end
             end
             pXX = reshape(pX, EstimOpt.NAlt, N, EstimOpt.WTP_space);
             Xhat2 = squeeze(sum(P(:,:, ones(EstimOpt.WTP_space,1)).*pXX,1)); % N x WTP_space
@@ -131,6 +169,10 @@ if nargout == 2 % function value + gradient
                 Xhatlam = Xhatlam';
             end
             g = [g,  XXt(y == 1, :) - Xhatlam];
+        end
+        if EstimOpt.NVarM > 0
+           gm =  g(:,repmat(1:EstimOpt.NVarA, 1, EstimOpt.NVarM)).*(Xm(EstimOpt.XmIndx ,kron(1:EstimOpt.NVarM, ones(1,EstimOpt.NVarA))));
+           g = [g(:,1:EstimOpt.NVarA),gm, g(:,EstimOpt.NVarA+1:end)];
         end
     end
 end
