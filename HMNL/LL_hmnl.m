@@ -1,4 +1,4 @@
-function [f,g] = LL_hmnl(Y,Xa,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
+function [f,g] = LL_hmnl(Y,Xa,Xm,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 
 % save tmp_LL_hmnl
 % return
@@ -8,6 +8,7 @@ NCT = EstimOpt.NCT;
 NP = EstimOpt.NP; 
 NRep = EstimOpt.NRep;
 NVarA = EstimOpt.NVarA; 
+NVarM = EstimOpt.NVarM; 
 WTP_space = EstimOpt.WTP_space; 
 WTP_matrix = EstimOpt.WTP_matrix; 
 NCTMiss = EstimOpt.NCTMiss; 
@@ -23,9 +24,10 @@ MeaExpMatrix = EstimOpt.MeaExpMatrix;
 RealMin = EstimOpt.RealMin;
 
 ba = B(1:NVarA);  % b atrybutów
-bl = reshape(B(NVarA+1:NVarA*(NLatent+1)), NVarA, NLatent); % b interakcji z LV
-bstr = reshape(B(NVarA*(NLatent+1)+1:(NVarA+NVarStr)*NLatent+NVarA), NVarStr, NLatent); % b równania struktury
-bmea = B((NVarA+NVarStr)*NLatent+NVarA+1:end); % b measurement
+bm = reshape(B(NVarA+1:NVarA*(1+NVarM)), NVarA, NVarM);
+bl = reshape(B(NVarA*(1+NVarM)+1:NVarA*(NLatent+NVarM+1)), NVarA, NLatent); % b interakcji z LV
+bstr = reshape(B(NVarA*(NLatent+NVarM+1)+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)), NVarStr, NLatent); % b równania struktury
+bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+1:end); % b measurement
 
 LV_tmp = Xstr*bstr; % NP x NLatent
 LV_tmp = reshape(permute(LV_tmp(:,:, ones(NRep,1)),[2 3 1]), NLatent, NRep*NP);
@@ -34,7 +36,13 @@ mLV = mean(LV_tmp,2);
 sLV = std(LV_tmp,0,2);
 LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 
-b_mtx = ba(:,ones(NRep*NP,1)) + bl*LV;  % NVarA x NRep*NP   
+if NVarM > 0
+    ba = ba(:,ones(NP,1))+bm*Xm'; % NVarA x NP
+    ba = reshape(permute(ba(:,:,ones(NRep,1)),[1 3 2]),NVarA,NRep*NP);
+else
+   ba = ba(:,ones(NP*NRep,1)); 
+end
+b_mtx = ba + bl*LV;  % NVarA x NRep*NP   
     
 if any(MNLDist ~= 0)
 %     if sum(MNLDist == 1) > 0; % Log - normal
@@ -818,8 +826,13 @@ else % function value + gradient
     g3 = reshape(mean(bsxfun(@times,probs,gmea),2),[NP,size(bmea,1)]); % NP x NVarmea
 %     g2 = squeeze(mean(probs(:,:, ones(NVarstr*NLatent,1)).*gstr,2)); % NP x NVarstr*NLatent
     g2 = reshape(mean(bsxfun(@times,probs,gstr),2),[NP,NVarStr*NLatent]); % NP x NVarstr*NLatent
+    if EstimOpt.NVarM > 0
+       gm =  g(:,repmat(1:NVarA,1,EstimOpt.NVarM)).*(Xm(:,kron(1:EstimOpt.NVarM,ones(1,NVarA))));
+       g = [g(:,1:EstimOpt.NVarA), gm, g(:, EstimOpt.NVarA+1:end),g2,g3];
+    else
+        g = [g,g2,g3];
+    end
     
-    g = [g,g2,g3];
     g = -g./p(:,ones(1,length(B)));
 
 end
