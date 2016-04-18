@@ -538,15 +538,15 @@ if EstimOpt.Display ~= 0
             disp('Yeo-Johnson transformation parameters')
         end
         disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
+        disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
         disp(' ')
     end
     
     if EstimOpt.NVarS > 0
         disp('Covariates of scale')
         disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS))) ...
-            num2str([Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) pv(Results.bhat(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVaMOld)+1:EstimOpt.NVarA*(1+NVaMOld)+EstimOpt.NVarS))],'%8.4f %8.4f')])
+        disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))) ...
+            num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))],'%8.4f %8.4f')])
         disp(' ')
     end
     
