@@ -243,10 +243,12 @@ elseif nargout == 2 %  function value + gradient
             U_prob = reshape(U, (NAlt-1)*NCT,1,NRep);  % (NAlt-1)*NCT x 1 x NRep
             
             % calculations for gradient
-            
+            U_prob = min(U_prob, realmax);
+            U_sum = min(U_sum, realmax);
             if WTP_space == 0   
                 X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n), NAlt-1, NCT, NVarA, NRep),1); % 1 x NCT x NVarA x NRep
                 if NCT ~= 1
+                    X_hat = min(X_hat, realmax);
                     F = -bsxfun(@rdivide,reshape(X_hat, [NCT,NVarA,NRep]), reshape(U_sum, [NCT,1,NRep]));
                     sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
                 else
@@ -278,6 +280,7 @@ elseif nargout == 2 %  function value + gradient
                 sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);   
                 
             end
+            sumFsqueezed  = min(sumFsqueezed , realmax);
             if NVarS >0
                 if WTP_space == 0
                     FScale = sum(sumFsqueezed.*b_mtx_n,1); % 1 x NRep
@@ -291,12 +294,15 @@ elseif nargout == 2 %  function value + gradient
                 Xs_tmp = squeeze(Xs_sliced(1,n,:));
                 FScale = FScale(ones(NVarS,1),:).*Xs_tmp(:, ones(NRep,1)); % NVarS x NRep
             end
+            
             if FullCov == 0
                 sumVC2tmp = bsxfun(@times, sumFsqueezed, VC2(:,:,n));
+                sumVC2tmp  = min(sumVC2tmp , realmax);
                 gtmp = -mean([bsxfun(@times, sumFsqueezed, U_prod); bsxfun(@times, sumVC2tmp, U_prod)],2)./p0(n);
             else % FullCov = 1
                 %sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);   
                 sumVC2tmp = bsxfun(@times, sumFsqueezed(indx1,:), VC2f(indx2,:,n));
+                sumVC2tmp  = min(sumVC2tmp , realmax);
                 gtmp = -mean([bsxfun(@times, sumFsqueezed, U_prod); bsxfun(@times, sumVC2tmp, U_prod)],2)./p0(n);
             end
             
