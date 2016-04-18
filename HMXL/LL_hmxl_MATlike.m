@@ -7,7 +7,7 @@ if isequal(OptimOpt.GradObj,'on')
         [f,j] = LLfun(b0);
         j(:,EstimOpt.BActive ==0) = 0;
         j = j.*W(:, ones(1,size(j,2)));
-         g = sum(j,1)'; ...
+        g = sum(j,1)'; ...
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             h = j'*j;
         end
@@ -26,3 +26,5 @@ else % No gradient
 end
 f = f.*W;
 LL = sum(f);
+
+

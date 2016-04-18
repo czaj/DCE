@@ -899,12 +899,15 @@ elseif EstimOpt.FullCov == 2
         bhattmp = bhattmp(Indx == 1);
         covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
         covtmp = covtmp(Indx == 1,Indx==1);
-%         save tmp1.mat; 
-%         covtmp
-%         det(covtmp)
-%         bhattmp
-        [Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(bhattmp, covtmp,EstimOpt);
+%         [Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(bhattmp, covtmp,EstimOpt);
 
+% Using delta method instead simulation
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 0), bhattmp); % Covariance
+        VarTmp = H*covtmp*H';
+        Results.DetailsCOV = [sdtriHe2(bhattmp, EstimOpt, 0), sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 0), sqrt(diag(VarTmp)))];
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 1), bhattmp); % Correlation
+        VarTmp = H*covtmp*H';
+        Results.DetailsCORR = [sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)))];
     else
         [Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent), Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent),EstimOpt);
     end
