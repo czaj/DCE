@@ -1,25 +1,18 @@
-function [f,g,h]= LL_mxl_MATlike(YY,XXa,XXm,Xs,err,W,EstimOpt,OptimOpt,b0)
+function [f,g,h]= LL_mxl2_MATlike(YY,XXa,XXm,Xs,err,W,EstimOpt,OptimOpt,b0)
 
 % save res_LL_mxl_MATlike;
 % return
 %b0
-LLfun = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
+LLfun = @(B) LL_mxl2(YY,XXa,XXm,Xs,err,EstimOpt,B);
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        if EstimOpt.ApproxHess == 1
-            [f,j] = LLfun(b0);
-            j(:,EstimOpt.BActive ==0) = 0;
-            j = j.*W(:, ones(1,size(j,2)));
-            g = sum(j); ...
-            if isequal(OptimOpt.Hessian,'user-supplied') == 1
-                h = j'*j;
-            end
-        else
-            [f,j,h] = LLfun(b0);
-            j(:,EstimOpt.BActive ==0) = 0;
-            j = j.*W(:, ones(1,size(j,2)));
-            g = sum(j); ...  
+        [f,j] = LLfun(b0);
+        j(:,EstimOpt.BActive ==0) = 0;
+        j = j.*W(:, ones(1,size(j,2)));
+        g = sum(j); ...
+        if isequal(OptimOpt.Hessian,'user-supplied') == 1
+            h = j'*j;
         end
     else % => EstimOpt.NumGrad == 1 
         f = LLfun(b0);
