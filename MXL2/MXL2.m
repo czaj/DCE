@@ -1,4 +1,4 @@
-function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
+function Results = MXL2(INPUT,Results_old,EstimOpt,OptimOpt)
 
 
 % save tmp_MXL
@@ -36,6 +36,8 @@ else
     disp('Estimating MXL model ...')
 end
 
+cprintf(rgb('DarkOrange'), 'Model is estimated on differences of attributes values \n')
+
 if isfield(EstimOpt,'FullCov') == 0;
     EstimOpt.FullCov = 0;
 end
@@ -62,40 +64,6 @@ else
     end
 end
 
-if isfield(EstimOpt, 'NLTVariables') && ~isempty(EstimOpt.NLTVariables)
-% 	disp('with non-linear transformation(s) ... ')
-    EstimOpt.NLTVariables = EstimOpt.NLTVariables(:);
-    EstimOpt.NVarNLT = length(unique(EstimOpt.NLTVariables));
-    if ~ismember(unique(EstimOpt.NLTVariables),1:EstimOpt.NVarA)
-        error('Incorrect non-linear variable(s) specification')
-    end
-    if isfield(EstimOpt, 'NLTType') == 0
-        cprintf(rgb('DarkOrange'), 'WARNING: Assuming Box-Cox transformation \n')
-        EstimOpt.NLTType = 1;
-    elseif EstimOpt.NLTType == 1
-        disp('with Box-Cox transformed variable(s).')
-    elseif EstimOpt.NLTType == 2
-        disp('with Yeo-Johnson transformed variable(s)')
-    else 
-        error('Incorrect transformation type')
-    end
-    if EstimOpt.NLTType == 1
-        if any(INPUT.Xa(:, EstimOpt.NLTVariables) < 0)
-            cprintf(rgb('DarkOrange'), 'WARNING: Values of Box-Cox transformed variables < 0 \n')
-        elseif any(INPUT.Xa(:, EstimOpt.NLTVariables) == 0) % not sure if this is stil necessary
-            cprintf(rgb('DarkOrange'), 'WARNING: Values of Box-Cox transformed variables including zeros shifted by 0.00001 \n')
-            for i = 1:EstimOpt.NVarNLT
-                if any(INPUT.Xa(:, EstimOpt.NLTVariables(i)) == 0)
-                    INPUT.Xa(:, EstimOpt.NLTVariables(i)) = INPUT.Xa(:, EstimOpt.NLTVariables(i)) + 0.00001;
-                end
-            end
-        end
-    end
-else
-    EstimOpt.NVarNLT = 0;
-    EstimOpt.NLTVariables = [];
-    EstimOpt.NLTType = [];
-end
 
 if isfield(EstimOpt,'Dist') == 0 || isempty(EstimOpt.Dist)
         EstimOpt.Dist = zeros(1,EstimOpt.NVarA+1);
@@ -203,13 +171,13 @@ end
 
 
 if EstimOpt.FullCov == 0
-	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + 2*EstimOpt.Johnson
             b0 = B_backup(:);
             disp('Using the starting values from Backup')
     elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'b0') % starting values provided
         Results_old.MXL_d.b0_old = Results_old.MXL_d.b0(:);
         Results_old.MXL_d = rmfield(Results_old.MXL_d,'b0');
-        if length(Results_old.MXL_d.b0_old) ~= EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+        if length(Results_old.MXL_d.b0_old) ~= EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + 2*EstimOpt.Johnson
             cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
             Results_old.MXL_d = rmfield(Results_old.MXL_d,'b0_old');
         else
@@ -217,7 +185,7 @@ if EstimOpt.FullCov == 0
         end
 	end
     if  ~exist('b0','var')
-        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA*(1+ EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
+        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (EstimOpt.NVarA*(1+ EstimOpt.NVarM) + EstimOpt.NVarS + 2*EstimOpt.Johnson)
             disp('Using MNL results as starting values')
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
 %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
@@ -244,13 +212,13 @@ if EstimOpt.FullCov == 0
         end
     end    
 else % EstimOpt.FullCov == 1    
-	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+	if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + 2*EstimOpt.Johnson
         b0 = B_backup(:);
         disp('Using the starting values from Backup')
     elseif isfield(Results_old,'MXL') && isfield(Results_old.MXL,'b0') % starting values provided
         Results_old.MXL.b0_old = Results_old.MXL.b0(:);
         Results_old.MXL = rmfield(Results_old.MXL,'b0');
-        if length(Results_old.MXL.b0_old) ~= EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+        if length(Results_old.MXL.b0_old) ~= EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + 2*EstimOpt.Johnson
             cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
             Results_old.MXL = rmfield(Results_old.MXL,'b0_old');
         else
@@ -258,7 +226,7 @@ else % EstimOpt.FullCov == 1
         end
 	end
 	if  ~exist('b0','var')
-        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MXL_d.bhat) == ((2+EstimOpt.NVarM)*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
+        if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MXL_d.bhat) == ((2+EstimOpt.NVarM)*EstimOpt.NVarA + EstimOpt.NVarS + 2*EstimOpt.Johnson)
             disp('Using MXL_d results as starting values')
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             if sum(EstimOpt.Dist(2:end) >= 3) > 0
@@ -417,65 +385,15 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-% if EstimOpt.NVarNLT > 0 && EstimOpt.NLTType == 2 && EstimOpt.NumGrad == 0
-% 	EstimOpt.NumGrad = 1;
-% 	if EstimOpt.Display ~= 0
-%         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Yeo-Johnston transformation not supported by analytical gradient \n')
-% 	end
-% end
-
 if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
     OptimOpt.Hessian = 'off';
 end
 
-if  EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian only available if analythical gradient on \n')
-    EstimOpt.ApproxHess = 1;
-end
-
-if  EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
+if  EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4
+	cprintf(rgb('DarkOrange'), 'WARNING: Exact Hessian not available - switch to MXL (instead of MXL2) \n')
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
-end
-
-if  EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
-end
-
-if  EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
-end
-
-
-
-if  any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
-end
-
-
-if  any(EstimOpt.Dist(2:EstimOpt.NVarA+1)~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
-end
-
-if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
-end
-
-if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
-   INPUT.W = ones(EstimOpt.NP,1);
-   cprintf(rgb('DarkOrange'), 'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
 end
 
 if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
@@ -540,9 +458,22 @@ end
 
 %% Rescructure data
 
-INPUT.XXa = reshape(INPUT.Xa,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP, EstimOpt.NVarA);
+
+Ytmp = prod(isnan(reshape(INPUT.Y, EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP))); % which CT are missing
+INPUT.Y = reshape(INPUT.Y, EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP);
+INPUT.Y(1, Ytmp == 1) = 1;
+INPUT.Y = reshape(INPUT.Y, EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.NP,1);
+XaChosen = INPUT.Xa(INPUT.Y == 1 ,:);
+XaNChosen = INPUT.Xa(INPUT.Y ~= 1,:);
+XaChosen = reshape(XaChosen, 1, EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);
+XaChosen = reshape(XaChosen(ones(EstimOpt.NAlt-1,1),:,:), (EstimOpt.NAlt-1)*EstimOpt.NCT*EstimOpt.NP, EstimOpt.NVarA);
+INPUT.Xa = XaNChosen - XaChosen;
+INPUT.XXa = reshape(INPUT.Xa,(EstimOpt.NAlt-1)*EstimOpt.NCT,EstimOpt.NP, EstimOpt.NVarA);
 INPUT.XXa = permute(INPUT.XXa, [1 3 2]);
-INPUT.YY = reshape(INPUT.Y,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
+INPUT.Y = INPUT.Y(INPUT.Y~=1);
+INPUT.YY = reshape(INPUT.Y,(EstimOpt.NAlt-1)*EstimOpt.NCT,EstimOpt.NP);
+
+
 
 % idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP])) == EstimOpt.NAlt;
 % INPUT.YYY(idx(ones(EstimOpt.NAlt,1),:,:)) = NaN; % replace YYY in missing choice-tasks with NaN
@@ -611,7 +542,7 @@ end
 %% Estimation
 
 
-LLfun = @(B) LL_mxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,INPUT.W,EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mxl2_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,INPUT.W,EstimOpt,OptimOpt,B);
      
 if EstimOpt.ConstVarActive == 0  
     
@@ -650,7 +581,8 @@ end
 Results.LL = -LL;
 Results.b0_old = b0;
 
-LLfun2 =  @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+LLfun2 =  @(B) LL_mxl2(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+
 if EstimOpt.HessEstFix == 4
     [Results.LLdetailed,~,Results.hess] = LLfun2(Results.bhat);
 else
@@ -760,13 +692,6 @@ if EstimOpt.FullCov == 0
         for i=1:EstimOpt.NVarM; Results.DetailsM = [Results.DetailsM, [Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))]];end
         Results.R = [Results.R, Results.DetailsM];
     end
-	if EstimOpt.NVarNLT > 0
-        Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))]];end
-        Results.DetailsNLT0 = NaN(EstimOpt.NVarA,3);
-        Results.DetailsNLT0(EstimOpt.NLTVariables,:) = Results.DetailsNLT;
-        Results.R = [Results.R, Results.DetailsNLT0];
-	end
     if EstimOpt.Johnson > 0
         ResultsJ = NaN(EstimOpt.NVarA, 6);
         % Location parameters
@@ -824,14 +749,7 @@ elseif EstimOpt.FullCov == 1
         Results.R = [Results.R, Results.DetailsM];
     end
 
-	if EstimOpt.NVarNLT > 0
-        Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i))]];end
-%         for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))]];end
-        Results.DetailsNLT0 = NaN(EstimOpt.NVarA,3);
-        Results.DetailsNLT0(EstimOpt.NLTVariables,:) = Results.DetailsNLT;
-        Results.R = [Results.R, Results.DetailsNLT0];
-	end
+
     if EstimOpt.Johnson > 0        
         ResultsJ = NaN(EstimOpt.NVARA, 6);
         % Location parameters
@@ -907,17 +825,6 @@ if EstimOpt.NVarM > 0
 
 end
 
-if EstimOpt.NVarNLT > 0
-    disp(' ');
-	if EstimOpt.NLTType == 1
-        disp('Box-Cox transformation parameters')
-	elseif EstimOpt.NLTType == 2
-        disp('Yeo-Johnson transformation parameters')
-	end
-    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-	disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,3)) num2str(Results.DetailsNLT(:,2:3),'%8.4f %8.4f')])
-    disp(' ')        
-end
 
 if EstimOpt.Johnson > 0
     disp(' ');
@@ -938,9 +845,9 @@ if EstimOpt.NVarS > 0
 end
 
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-headx = [head, repmat(head(1,2:4),1,1+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2)];
+headx = [head, repmat(head(1,2:4),1,1+EstimOpt.NVarM+(EstimOpt.Johnson>0)*2)];
 
-Results.R_out = cell(3+EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 2 + 7, 1 + 3*(2+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2));
+Results.R_out = cell(3+EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 2 + 7, 1 + 3*(2+EstimOpt.NVarM+(EstimOpt.Johnson>0)*2));
    
 if EstimOpt.FullCov == 0
     Results.R_out(1,1) = {'MXL_d'};
@@ -955,18 +862,9 @@ if EstimOpt.NVarM > 0
     Results.R_out(2,8:3:(5+EstimOpt.NVarM*3)) = EstimOpt.NamesM;
 end
 
-if EstimOpt.NVarNLT > 0
-	if EstimOpt.NLTType == 1
-        Results.R_out(2,8+EstimOpt.NVarM*3) = {'Box-Cox transformation parameters'};
-	elseif EstimOpt.NLTType == 2
-        Results.R_out(2,8+EstimOpt.NVarM*3) = {'Yeo-Johnson transformation parameters'};
-	end   
-    Results.R_out(4:(EstimOpt.NVarA+3),8+EstimOpt.NVarM*3:10+EstimOpt.NVarM*3) = num2cell(Results.DetailsNLT0);
-end
-
 if EstimOpt.Johnson > 0
-    Results.R_out(2,[8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3,8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3+3]) = {'Johnson location parameters','Johnson scale parameters'};
-	Results.R_out(4:(EstimOpt.NVarA+3),8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3:13+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3) = num2cell(ResultsJ);    
+    Results.R_out(2,[8+EstimOpt.NVarM*3,8+EstimOpt.NVarM*3+3]) = {'Johnson location parameters','Johnson scale parameters'};
+	Results.R_out(4:(EstimOpt.NVarA+3),8+EstimOpt.NVarM*3:13+EstimOpt.NVarM*3) = num2cell(ResultsJ);    
 end
 
 if EstimOpt.NVarS > 0
