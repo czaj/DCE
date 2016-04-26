@@ -179,10 +179,10 @@ end
 %% Starting values
 
 
-if isfield(EstimOpt,'gamma0') 
-    if  EstimOpt.FullCov == 0 && (isfield(Results_old,'GMXL_d') == 0 || isfield(Results_old.GMXL_d,'b0') == 0)
+if ~isfield(EstimOpt,'gamma0') 
+    if  EstimOpt.FullCov == 0 && (~isfield(Results_old,'GMXL_d') || ~isfield(Results_old.GMXL_d,'b0'))
         EstimOpt.gamma0 = 0;
-    elseif EstimOpt.FullCov == 1 && (isfield(Results_old,'GMXL') == 0 || isfield(Results_old.GMXL,'b0') == 0)
+    elseif EstimOpt.FullCov == 1 && (~isfield(Results_old,'GMXL') || ~isfield(Results_old.GMXL,'b0'))
         EstimOpt.gamma0 = 0;
     end
 end
