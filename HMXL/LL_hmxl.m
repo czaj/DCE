@@ -33,7 +33,8 @@ indx3 = EstimOpt.indx3;
 if FullCov == 0
     ba = B(1:NVarA); % b atrybutów
     bv = B(NVarA+1:2*NVarA);
-    VC = diag(bv.^2);
+    %VC = diag(bv.^2);
+    VC = diag(bv);
     bm = reshape(B(2*NVarA+1:NVarA*(EstimOpt.NVarM+2)),NVarA,EstimOpt.NVarM); % b mean covariates
     bl = reshape(B((2+EstimOpt.NVarM)*NVarA+1:NVarA*(NLatent+2+EstimOpt.NVarM)),NVarA,NLatent); % b interakcji z LV
     bstr = reshape(B(NVarA*(NLatent+2+EstimOpt.NVarM)+1:(NVarA+NVarStr)*NLatent+(2+EstimOpt.NVarM)*NVarA),NVarStr,NLatent); % b równania struktury
@@ -300,7 +301,8 @@ else % function value + gradient
     gmnl = zeros(NP, NRep, NVarA); % gradient for mnl parameters
     if FullCov == 0
         gvar = zeros(NP,NRep,NVarA); % gradient for standard deviations parameters
-        VC2 = reshape(2*diag(B(NVarA+1:NVarA*2))*err_sliced(1:NVarA,:),NVarA,NRep,NP);
+        %VC2 = reshape(2*diag(B(NVarA+1:NVarA*2))*err_sliced(1:NVarA,:),NVarA,NRep,NP);
+        VC2 = reshape(err_sliced(1:NVarA,:),NVarA,NRep,NP);
     elseif FullCov == 1 % full correlation
         gvar = zeros(NP,NRep,NVarA+NVarA*(NVarA-1)/2); % gradient for covariance matrix parameters
         VC2 = reshape(err_sliced(1:NVarA,:),NVarA,NRep,NP);

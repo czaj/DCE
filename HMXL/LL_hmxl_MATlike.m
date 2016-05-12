@@ -8,14 +8,6 @@ if isequal(OptimOpt.GradObj,'on')
         j(:,EstimOpt.BActive ==0) = 0;
         j = j.*W(:, ones(1,size(j,2)));
         g = sum(j,1)'; ...
-%         if any(isnan(g))
-%             EstimOpt.RealMin = 1;
-%             LLfun = @(B) LL_hmxl(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
-%             [f,j] = LLfun(b0);
-%             j(:,EstimOpt.BActive ==0) = 0;
-%             j = j.*W(:, ones(1,size(j,2)));
-%             g = sum(j,1)'; ...
-%         end
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             h = j'*j;
         end
