@@ -474,11 +474,18 @@ if EstimOpt.FullCov == 0
     end
     if  ~exist('b0','var')
         if isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'bhat')
-            disp('Using HMNL results as starting values')
-            Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
-            b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); max(1,sqrt(abs(Results_old.HMNL.bhat(1:EstimOpt.NVarA)))); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
-            if sum(EstimOpt.Dist == 1) > 0 && ~any(Results_old.HMNL.EstimOpt.MNLDist==1)
-                b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
+            if isfield(Results_old,'MXL_d') && isfield(Results_old.HMNL,'MXL_d')
+                disp('Using HMNL and MXL_d results as starting values')
+                Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
+                Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
+                b0 = [Results_old.MXL_d.bhat(1:2*EstimOpt.NVarA); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+            else
+                disp('Using HMNL results as starting values')
+                Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
+                b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); max(1,sqrt(abs(Results_old.HMNL.bhat(1:EstimOpt.NVarA)))); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+                if sum(EstimOpt.Dist == 1) > 0 && ~any(Results_old.HMNL.EstimOpt.MNLDist==1)
+                    b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
+                end
             end
         else
             error('No starting values available - run HMNL first')
@@ -834,7 +841,9 @@ Results.std(imag(Results.std) ~= 0) = NaN;
 
 if EstimOpt.FullCov == 0
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA))];
-    Results.DetailsV = [Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA).^2, 2*abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)).*Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA), pv(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA).^2, 2*abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)).*Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA))];
+    %Results.DetailsV = [Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA).^2, 2*abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)).*Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA), pv(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA).^2, 2*abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)).*Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA))];
+    Results.DetailsV = [abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)), Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA), pv(abs(Results.bhat(EstimOpt.NVarA+1:2*EstimOpt.NVarA)), Results.std(EstimOpt.NVarA+1:2*EstimOpt.NVarA))];
+
     if EstimOpt.NVarM > 0
         Results.DetailsCM = [Results.bhat(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+EstimOpt.NVarM)), Results.std(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+EstimOpt.NVarM)), pv(Results.bhat(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+EstimOpt.NVarM)), Results.std(2*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+EstimOpt.NVarM)))];
     else
@@ -846,6 +855,14 @@ if EstimOpt.FullCov == 0
 elseif EstimOpt.FullCov == 1
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA))];
     Results.DetailsV = sdtri(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2,EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),EstimOpt);
+%   This is to calculate DetailsV with delta method - used for endogeneity study
+%     H = jacobianest(@(b) sdtriHe2(b, EstimOpt, -1), Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2)); % standard deviations
+%     covtmp = Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2,EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2);
+%     covtmp = covtmp(EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2));
+%     VarTmp = H*covtmp*H';
+%     Results.DetailsV = zeros(EstimOpt.NVarA,3);
+%     Results.DetailsV(EstimOpt.Dist ~= -1,:) = [sdtriHe2(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),EstimOpt,-1) , sqrt(diag(VarTmp)), pv(sdtriHe2(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), EstimOpt, -1), sqrt(diag(VarTmp)))];
+%     
     l = EstimOpt.NVarA*(EstimOpt.NVarA+3)/2;
     if EstimOpt.NVarM > 0
         Results.DetailsCM = [Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), pv(Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM))];
@@ -859,23 +876,23 @@ elseif EstimOpt.FullCov == 1
  
 elseif EstimOpt.FullCov == 2
     Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA), Results.std(1:EstimOpt.NVarA))];
-    VC = tril(ones(EstimOpt.NLatent+EstimOpt.NVarA));
-    VC(EstimOpt.NVarA+1:end,:) = 0;
-    VCtmp = tril(ones(size(VC)));
-    VCtmp2 = diag(ones(EstimOpt.NLatent+EstimOpt.NVarA,1));
-    VCtmp2(1:EstimOpt.NVarA, 1:EstimOpt.NVarA) = 0;
-    VCtmp(VCtmp2 == 1) = 0;
-    Indx = VC(VCtmp ==1);
-    bhattmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
-    bhattmp = bhattmp(Indx == 1);
-    covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
-    covtmp = covtmp(Indx == 1,Indx==1);
-    BActivetmp = EstimOpt.BActive;
-    EstimOpt.BActive = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
-    EstimOpt.BActive = EstimOpt.BActive(Indx == 1);
-    EstimOpt.BActive = [ones(1,EstimOpt.NVarA), EstimOpt.BActive];
-    Results.DetailsV = sdtri(bhattmp, covtmp,EstimOpt);
-    EstimOpt.BActive = BActivetmp;
+%     VC = tril(ones(EstimOpt.NLatent+EstimOpt.NVarA));
+%     VC(EstimOpt.NVarA+1:end,:) = 0;
+%     VCtmp = tril(ones(size(VC)));
+%     VCtmp2 = diag(ones(EstimOpt.NLatent+EstimOpt.NVarA,1));
+%     VCtmp2(1:EstimOpt.NVarA, 1:EstimOpt.NVarA) = 0;
+%     VCtmp(VCtmp2 == 1) = 0;
+%     Indx = VC(VCtmp ==1);
+%     bhattmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+%     bhattmp = bhattmp(Indx == 1);
+%     covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+%     covtmp = covtmp(Indx == 1,Indx==1);
+%     BActivetmp = EstimOpt.BActive;
+%     EstimOpt.BActive = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+%     EstimOpt.BActive = EstimOpt.BActive(Indx == 1);
+%     EstimOpt.BActive = [ones(1,EstimOpt.NVarA), EstimOpt.BActive];
+%     Results.DetailsV = sdtri(bhattmp, covtmp,EstimOpt);
+%     EstimOpt.BActive = BActivetmp;
     l = EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent;
     if EstimOpt.NVarM > 0
         Results.DetailsCM = [Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), pv(Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM), Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NVarM))];
@@ -908,8 +925,29 @@ elseif EstimOpt.FullCov == 2
         H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 1), bhattmp); % Correlation
         VarTmp = H*covtmp*H';
         Results.DetailsCORR = [sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)))];
+        
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 2), bhattmp); % standard deviations
+        VarTmp = H*covtmp*H';
+        Results.DetailsV = zeros(EstimOpt.NVarA,3);
+        Results.DetailsV(EstimOpt.Dist ~= -1,:) = [sdtriHe2(bhattmp,EstimOpt,2) , sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 2), sqrt(diag(VarTmp)))];
     else
-        [Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent), Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent),EstimOpt);
+
+        bhattmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+        covtmp =  Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent);
+% Using delta method instead simulation
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 0), bhattmp); % Covariance
+        VarTmp = H*covtmp*H';
+        Results.DetailsCOV = [sdtriHe2(bhattmp, EstimOpt, 0), sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 0), sqrt(diag(VarTmp)))];
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 1), bhattmp); % Correlation
+        VarTmp = H*covtmp*H';
+        Results.DetailsCORR = [sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 1), sqrt(diag(VarTmp)))];
+        %[Results.DetailsCOV, Results.DetailsCORR] = sdtriHe(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent), Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent,EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent),EstimOpt);
+        
+        H = jacobianest(@(b) sdtriHe2(b, EstimOpt, 2), bhattmp); % standard deviations
+        VarTmp = H*covtmp*H';
+        Results.DetailsV = [sdtriHe2(bhattmp,EstimOpt,2) , sqrt(diag(VarTmp)), pv(sdtriHe2(bhattmp, EstimOpt, 2), sqrt(diag(VarTmp)))];
+        
+        
     end
 end
 
