@@ -149,7 +149,7 @@ end
 b_mtx = b0a(:,ones(NP,1)) + b0m*XXm;
 b_mtx = reshape(b_mtx((1:size(b_mtx,1))'*ones(1,NRep),(1:size(b_mtx,2))'),NVarA,NRep*NP) + VC*err;  % NVarA x NRep*NP
     
-if sum(Dist==1) > 0 % Log - normal
+if sum(Dist==1) > 0 % Log-normal
     b_mtx(Dist==1,:) = exp(b_mtx(Dist==1,:)); 
 end
 if sum(Dist==2) > 0 % Spike
