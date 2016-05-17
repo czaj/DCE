@@ -307,7 +307,7 @@ else
         end
     else
         YYy = (YY==1);
-        
+      
         parfor n = 1:NP
             YnanInd = ~isnan(YY(:,n));
             b_mtx_n = b_mtx(:,:,n);
@@ -322,13 +322,15 @@ else
             % Calculations for gradient
             U_prob = reshape(U_prob, NAltMiss(n)*NCTMiss(n),1,NRep);  % NAlt*NCT x NVarA x NRep
             X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n(YnanInd,:)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
-            if NCTMiss(n) ~= 1
+%             if NCTMiss(n) ~= 1
                 F = bsxfun(@minus,XXa_n(YYy_n,:), reshape(X_hat,[NCTMiss(n),NVarA,NRep]));  %NCT x NVarA x NRep
                 sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
-            else
-                sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCTMiss(n),NVarA,NRep]); %NVarA x NRep 
-            end   
-            b_mtx_grad_n = b_mtx_grad(:,:,n)
+%             else
+%                 sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCTMiss(n),NVarA,NRep]); %NVarA x NRep 
+%                 sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep])),[NCTMiss(n),NVarA,NRep]); %NVarA x NRep 
+%                 sumFsqueezed = reshape(sum(reshape(bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep])),[NCTMiss(n),NVarA,NRep]),1),[NVarA,NRep]);  %NVarA x NRep
+%             end   
+            b_mtx_grad_n = b_mtx_grad(:,:,n);
             if gamma0 == 0 && sum(Distx==1) > 0
                 sumFsqueezed2 = sumFsqueezed;
                 sumFsqueezed(Distx==1, :) = sumFsqueezed(Distx==1, :).*b_mtx_grad_n(Distx==1,:);
@@ -348,7 +350,7 @@ else
                 DerTau = bsxfun(@times,bsxfun(@plus,tau*errx_n,mSig_n), DerTau);
             else
                 TauTmp = bsxfun(@times, tau*errx_n, cov_tau(n,:)); %1 x Nrep
-                DerCovTau = bsxfun(@plus,bsxfun(@times,TauTmp,XXt(n,:)'),mSigCov)
+                DerCovTau = bsxfun(@plus,bsxfun(@times,TauTmp,XXt(n,:)'),mSigCov);
                 DerCovTau = bsxfun(@times, reshape(DerCovTau, 1,NVarT, NRep), reshape(DerTau, NVarA,1, NRep)); %  NVarA x NVarT x NRep
                 DerCovTau = reshape(DerCovTau, NVarA*NVarT, NRep);
                 DerTau = bsxfun(@times,bsxfun(@plus,TauTmp,mSig_n), DerTau);
