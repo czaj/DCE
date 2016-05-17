@@ -328,7 +328,13 @@ elseif nargout == 2 %  function value + gradient
 %                     tic; sumFsqueezed = squeeze(XXa(YY(:,n) == 1,:,n*ones(NRep,1))) - squeeze(X_hat);toc %NVarA x NRep 
                     sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCT,NVarA,NRep]); %NVarA x NRep 
                 end                
-                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);                 
+                %sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:); 
+                if sum(Dist==1) > 0
+                    sumFsqueezed2 = sumFsqueezed;
+                    sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
+                else
+                    sumFsqueezed2 = sumFsqueezed;
+                end
                 if NVarNLT == 1
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n*b_mtx_n(NLTVariables,:); %NAlt*NCT x NRep
@@ -365,7 +371,13 @@ elseif nargout == 2 %  function value + gradient
                 end
                 F2 = pX(YY(:,n) == 1,:,:) - squeeze(X_hat2);  %NCT x WTP_space x NRep       
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ];  %NVarA x NRep
-                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                %sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                if sum(Dist==1) > 0
+                    sumFsqueezed2 = sumFsqueezed;
+                    sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                else
+                    sumFsqueezed2 = sumFsqueezed;
+                end
                 if NVarNLT == 1
                     XXt_n = XXt(:,:,n);
 %                     b_mtx_n = b_mtx(:,:,n); % trzeba sprawdzi? czy to nie gubi wymiaru i w razie czego doda? reshape z 1 na ko?cu
@@ -384,7 +396,7 @@ elseif nargout == 2 %  function value + gradient
             end
             if NVarS >0
                 if WTP_space == 0
-                    FScale = sum(sumFsqueezed.*b_mtx_n,1); % 1 x NRep
+                    FScale = sum(sumFsqueezed2.*b_mtx_n,1); % 1 x NRep
                 else
                     if WTP_space == 1
                         FScale = sum(squeeze(sum(F2,1)).*b_mtx_n(NVarA-WTP_space+1:end,:),1); % 1 x NRep
@@ -446,7 +458,13 @@ elseif nargout == 2 %  function value + gradient
 %                 F = bsxfun(@minus,XXa_n(YYy_n,:),squeeze(X_hat));  %NCT x NVarA x NRep
                 F = bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep]));  %NCT x NVarA x NRep
                 sumFsqueezed = squeeze(sum(F,1));  %NVarA x NRep
-                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
+                %sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
+                if sum(Dist==1) > 0
+                    sumFsqueezed2 = sumFsqueezed;
+                    sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
+                else
+                    sumFsqueezed2 = sumFsqueezed;
+                end
             else
                 b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep); 
 %                 tic; Xalpha = XXa(YnanInd,1:end-WTP_space,n*ones(NRep,1)).*b_mtx_wtp(ones(NAltMiss(n)*NCTMiss(n),1),WTP_matrix,:);toc
@@ -473,11 +491,17 @@ elseif nargout == 2 %  function value + gradient
                     F2 = pX(YYy_n(YnanInd) == 1,:,:) - reshape(X_hat2,[NCTMiss(n),WTP_space,NRep]);
                 end               
                 sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ];  %NVarA x NRep
-                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                %sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                if sum(Dist==1) > 0
+                    sumFsqueezed2 = sumFsqueezed;
+                    sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
+                else
+                    sumFsqueezed2 = sumFsqueezed;
+                end
             end            
             if NVarS >0
                 if WTP_space == 0
-                    FScale = sum(sumFsqueezed.*b_mtx_n,1); % 1 x NRep
+                    FScale = sum(sumFsqueezed2.*b_mtx_n,1); % 1 x NRep
                 else
                     if WTP_space == 1
                         FScale = sum(squeeze(sum(F2,1)).*b_mtx_n(NVarA-WTP_space+1:end,:),1); % 1 x NRep

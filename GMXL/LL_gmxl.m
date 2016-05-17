@@ -1,4 +1,4 @@
-function f = LL_gmxl(YY,XXa,XXm,XXs,XXt,err,EstimOpt,b0)
+function [f,g] = LL_gmxl(YY,XXa,XXm,XXs,XXt,err,EstimOpt,b0)
 
 % save input1
 % return
@@ -15,21 +15,31 @@ WTP_space = EstimOpt.WTP_space;
 WTP_matrix = EstimOpt.WTP_matrix; 
 NCTMiss = EstimOpt.NCTMiss; 
 NAltMiss = EstimOpt.NAltMiss; 
+FullCov = EstimOpt.FullCov;
+gamma0 = EstimOpt.gamma0;
+indx3 = EstimOpt.indx3;
+if FullCov == 1 && nargout > 1
+    indx1 = EstimOpt.indx1;
+    indx2 = EstimOpt.indx2;
+else
+    indx1 = [];
+    indx2 = [];
+end
 
 b0a = b0(1:NVarA);
 
-if EstimOpt.FullCov == 0
-    b0v = (b0(NVarA+1:NVarA*2)).^2; 
+if FullCov == 0
+    b0v = (b0(NVarA+1:NVarA*2)); 
 %     b0v = b0(NVarA+1:NVarA*2);
     VC = diag(b0v);
     b0m = b0(NVarA*2+1:NVarA*(NVarM+2));
     b0m = reshape(b0m,NVarA, NVarM);
     b0s = b0(NVarA*(NVarM+2)+1:NVarA*(NVarM+2)+NVarS);
     b0t = b0(NVarA*(NVarM+2)+NVarS+1:NVarA*(NVarM+2)+NVarS+NVarT);
-    tau = (b0(NVarA*(NVarM+2)+NVarS+NVarT+1)).^2;
+    tau = exp((b0(NVarA*(NVarM+2)+NVarS+NVarT+1)));
 %     tau = exp(b0(NVarA*(NVarM+2)+NVarS+NVarT+1));
-    if isfield(EstimOpt,'gamma0') == 1 && (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
-        gamma = EstimOpt.gamma0;
+    if gamma0 == 0 || gamma0 == 1
+        gamma = gamma0;
     else
         gamma = exp(b0(NVarA*(NVarM+2)+NVarS+NVarT+2)) ./ (1 + exp(b0(NVarA*(NVarM+2)+NVarS+NVarT+2)));
     end
@@ -42,8 +52,8 @@ else
     b0s = b0(NVarA*(NVarA/2+1.5+NVarM)+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS);
     b0t = b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarT);   
     tau = exp(b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarT+1));
-    if isfield(EstimOpt,'gamma0') == 1 && (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
-        gamma = EstimOpt.gamma0;
+    if gamma0 == 0 || gamma0 == 1
+        gamma = gamma0;
     else
         gamma = exp(b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarT+2)) ./ (1 + exp(b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarT+2)));
     end
@@ -84,19 +94,27 @@ end
 sigma = reshape(sigma', 1, NRep*NP);
 
 if sum(Dist(2:end) > 0) == 0;  % Normal
-    if gamma == 0
+    if gamma0 == 0
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + VC*err(2:end,:));  % NVarA x NRep*NP
-    elseif gamma == 1
+    elseif gamma0 == 1
         b_mtx = sigma(ones(NVarA,1),:).*b0n + VC*err(2:end,:);
     else
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
     end
+    if nargout == 2
+        b_mtx_grad = zeros(NVarA,0, NP);
+    end
 elseif sum(Dist(2:end)==1) > 0;  % Log - normal
-    if gamma == 0
+    if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
+        if nargout == 2
+           b_mtx_grad =  reshape(b_mtx,NVarA, NRep,NP);
+        else
+            b_mtx_grad = zeros(NVarA,0, NP);
+        end
         b_mtx = sigma(ones(NVarA,1),:).*b_mtx;  % NVarA x NRep*NP
-    elseif gamma == 1
+    elseif gamma0 == 1
         b_mtx = sigma(ones(NVarA,1),:).*b0n + VC*err(2:end,:);
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
     else
@@ -104,16 +122,19 @@ elseif sum(Dist(2:end)==1) > 0;  % Log - normal
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
     end    
 elseif sum(Dist(2:end)==2) > 0;  % Spike       
-    if gamma == 0
+    if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
         b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
         b_mtx = sigma(ones(NVarA,1),:).*b_mtx;  % NVarA x NRep*NP
-    elseif gamma == 1
+    elseif gamma0 == 1
         b_mtx = sigma(ones(NVarA,1),:).*b0n + VC*err(2:end,:);
         b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
     else
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
         b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
+    end
+    if nargout == 2
+        b_mtx_grad = zeros(NVarA,0, NP);
     end
 elseif sum(Dist(2:end)==5) > 0; 
     if sum(sum(VC.*(1-eye(size(b0n,1)))~=0))~=0; error ('Weibull distribution can only be used with non-correlated parameters'); end;     
@@ -127,10 +148,12 @@ elseif sum(Dist(2:end)==5) > 0;
         b_mtx(Dist(2:end)==5,:) = b0n(Dist(2:end)==5).*err2(Dist(2:end)==5,:).^Wexp(:,ones(1,NRep)); 
         b_mtx = b_mtx.*sigma(ones(NVarA,1),:); 
     end
-    
+    if nargout == 2
+        b_mtx_grad = zeros(NVarA,0, NP);
+    end
 end; 
 
-if WTP_space > 0
+if WTP_space > 0 % to jest Ÿle!!! 
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:); 
 end
 
@@ -141,50 +164,243 @@ b_mtx = reshape(b_mtx,NVarA,NRep,NP);
 
 p0 = zeros(NP,1);
 
-%for n = 1:NP
-%    U = reshape(exp(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep)),NAlt,NCT,NRep); 
-%    U(isnan(U)) = 0;  % skip missing ALT
-%    U_sum = sum(U,1); 
-%    YY_n = YY(:,:,n); 
-%    P = sum(YY_n(:,:,ones(1,1,NRep)).*U ./ U_sum(ones(NAlt,1),:,:),1); 
-%    P(isnan(P)) = 1;  % skip missing NCT, alternative: A2(1,sum(MissingInd2(:,:,n),1)==NAlt,:) = 1; 
-%    p0(n) = mean(prod(P,2),3); 
-
-%end
-
-if any(isnan(XXa(:))) == 0  % faster version for complete dataset
-    YYy = YY==1;
-    parfor n = 1:NP 
-%         U = reshape(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT,NRep); 
-        U = reshape(XXa(:,:,n)*b_mtx(:,:,n),NAlt,NCT,NRep); 
-        U_max = max(U); 
-        U = exp(U - U_max(ones(NAlt,1),:,:));  % rescale utility to avoid exploding
-        U_sum = reshape(sum(U,1),NCT,NRep); 
-%         U_selected = reshape(U(YY(:,n*ones(NRep,1))==1),NCT,NRep);    
-        YYy_n = YYy(:,n);
-        U_selected = reshape(U(YYy_n(:,ones(NRep,1))),NCT,NRep);
-        p0(n) = mean(prod(U_selected ./ U_sum,1),2);
-    end; 
-else  % this works only if NAlt is constant for each respondent and if missing ALT is not the first in NCT
-    parfor n = 1:NP 
-        YnanInd = ~isnan(YY(:,n));
-        XXa_n = XXa(:,:,n);
-%         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
-% from MXL: U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
-%         U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);
-        U = reshape(XXa_n(YnanInd,:,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
-        U_max = max(U); 
-%         U = exp(U - U_max(ones(NAlt,1),:,:)); 
-% 	    U = exp(U - U_max(ones(numel(YY(~isnan(YY(:,n)),n))./(NCT-sum(isnan(YY(1:NAlt:end,n)))),1),:,:)); 
-        U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
-%         U_sum = reshape(nansum(U,1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); 
-        U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
-%         U_selected = reshape(U(YY(~isnan(YY(:,n)),n*ones(NRep,1))==1),NCT-sum(isnan(YY(1:NAlt:end,n))),NRep);    
-        YYy_n = YY(:,n)==1;
-        U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep);
-        p0(n) = mean(prod(U_selected ./ U_sum,1),2);
-    end; 
-end 
+if nargout == 1 % function value only    
+    if any(isnan(XXa(:))) == 0  % faster version for complete dataset
+        YYy = YY==1;
+        parfor n = 1:NP 
+    %         U = reshape(XXa_n(:,:,n)*b_mtx(:,((n-1)*NRep+1):n*NRep),NAlt,NCT,NRep); 
+            U = reshape(XXa(:,:,n)*b_mtx(:,:,n),NAlt,NCT,NRep); 
+            U_max = max(U); 
+            U = exp(U - U_max(ones(NAlt,1),:,:));  % rescale utility to avoid exploding
+            U_sum = reshape(sum(U,1),NCT,NRep); 
+    %         U_selected = reshape(U(YY(:,n*ones(NRep,1))==1),NCT,NRep);    
+            YYy_n = YYy(:,n);
+            U_selected = reshape(U(YYy_n(:,ones(NRep,1))),NCT,NRep);
+            p0(n) = mean(prod(U_selected ./ U_sum,1),2);
+        end; 
+    else  % this works only if NAlt is constant for each respondent and if missing ALT is not the first in NCT
+        parfor n = 1:NP 
+            YnanInd = ~isnan(YY(:,n));
+            XXa_n = XXa(:,:,n);
+            U = reshape(XXa_n(YnanInd,:,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
+            U_max = max(U); 
+            U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
+            U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
+            YYy_n = YY(:,n)==1;
+            U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep);
+            p0(n) = mean(prod(U_selected ./ U_sum,1),2);
+        end; 
+    end 
+else
+    if NVarS > 0
+        Xs_sliced = reshape(XXs, NAlt*NCT, NP, NVarS);
+    else
+        Xs_sliced = reshape(XXs, NAlt*NCT, NP, 0);
+    end
+    if FullCov == 0    
+        g = zeros(NP, 2*NVarA +  NVarS+NVarT+1 +(gamma0 ~= 0 && gamma0 ~= 1));
+%         VC2 = reshape(2*diag(b0(NVarA+1:NVarA*2))*err, NVarA, NRep, NP);
+    else
+        g = zeros(NP, 2*NVarA+NVarA*(NVarA-1)/2 +  NVarS + NVarT+1 +(gamma0 ~= 0 && gamma0 ~= 1));
+    end
+    VC2 = reshape(err(2:end,:), NVarA, NRep, NP);
+    Eta= reshape(VC*err(2:end,:),NVarA,NRep,NP); 
+    b0n = reshape(b0n,  NVarA,NRep,NP);
+    sigma = reshape(sigma,  1,NRep,NP);
+    if NVarT == 0
+        mSig = -mean(exp(tau*errx).*(tau*errx),1)./mean(exp(tau*errx),1); %1 x NRep
+        cov_tau = zeros(NP, NRep,0);
+        mSigCov = zeros(NVarT, NRep, 0);
+    else
+        mSig = -mean(exp(tau*errx.*cov_tau).*(tau*errx.*cov_tau),1)./mean(exp(tau*errx.*cov_tau),1); %1 x NRep
+        mSigTmp = reshape(exp(tau*errx.*cov_tau).*(tau*errx.*cov_tau),1, NP, NRep);
+        mSigTmp = bsxfun(@times, mSigTmp, XXt'); % NVarT x NP x NRep
+        mSigCov = -reshape(mean(mSigTmp,2), NVarT, NRep);
+        mSigTmp = mean(exp(tau*errx.*cov_tau),1);
+        mSigCov = mSigCov./mSigTmp(ones(NVarT,1),:); % NVarT x NRep
+    end
+    Distx = Dist(2:end);
+    if any(isnan(XXa(:))) == 0  % faster version for complete dataset
+        YYy = (YY==1);
+        
+        parfor n = 1:NP
+            b_mtx_n = b_mtx(:,:,n);
+            XXa_n = XXa(:,:,n);
+            U = reshape(XXa_n*b_mtx_n,NAlt,NCT,NRep);  % NAlt x NCT x NRep
+            U = exp(bsxfun(@minus,U,max(U)));  % rescale utility to avoid exploding 
+            U_prob = bsxfun(@rdivide,U,sum(U,1)); % NAlt x NCT x NRep
+            YYy_n = YYy(:,n);
+            U_prod = prod(reshape(U_prob(YYy_n(:,ones(NRep,1))),NCT,NRep),1);  % 1 x NRep
+            p0(n) = mean(U_prod);
+            
+            % Calculations for gradient
+            U_prob = reshape(U_prob, NAlt*NCT,1,NRep);  % NAlt*NCT x NVarA x NRep
+            X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n), NAlt, NCT, NVarA, NRep),1);
+            if NCT ~= 1
+                F = bsxfun(@minus,XXa_n(YYy_n,:), reshape(X_hat,[NCT,NVarA,NRep]));  %NCT x NVarA x NRep
+                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
+            else
+                sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCT,NVarA,NRep]); %NVarA x NRep 
+            end   
+            b_mtx_grad_n = b_mtx_grad(:,:,n)
+            if gamma0 == 0 && sum(Distx==1) > 0
+                sumFsqueezed2 = sumFsqueezed;
+                sumFsqueezed(Distx==1, :) = sumFsqueezed(Distx==1, :).*b_mtx_grad_n(Distx==1,:);
+            else
+                sumFsqueezed2 = sumFsqueezed;
+            end
+            sigma_n = sigma(:,:,n);
+            errx_n = errx(n,:);
+            mSig_n = mSig;
+            if gamma0 == 0 && sum(Distx==1)
+                DerTau = b_mtx_grad_n;
+            else
+                DerTau = bsxfun(@plus,b0n(:,:,n),(1-gamma)*Eta(:,:,n));
+            end
+            DerTau = bsxfun(@times,DerTau,sigma_n);
+            if NVarT == 0
+                DerTau = bsxfun(@times,bsxfun(@plus,tau*errx_n,mSig_n), DerTau);
+            else
+                TauTmp = bsxfun(@times, tau*errx_n, cov_tau(n,:)); %1 x Nrep
+                DerCovTau = bsxfun(@plus,bsxfun(@times,TauTmp,XXt(n,:)'),mSigCov)
+                DerCovTau = bsxfun(@times, reshape(DerCovTau, 1,NVarT, NRep), reshape(DerTau, NVarA,1, NRep)); %  NVarA x NVarT x NRep
+                DerCovTau = reshape(DerCovTau, NVarA*NVarT, NRep);
+                DerTau = bsxfun(@times,bsxfun(@plus,TauTmp,mSig_n), DerTau);
+            end
+            if gamma0 ~= 0 && gamma0 ~= 1% gradient for gamma
+                DerGam = bsxfun(@times,gamma*(1-gamma)*Eta(:,:,n),1-sigma_n);
+            end
+            
+            if NVarS >0
+                FScale = sum(sumFsqueezed2.*b_mtx_n,1); % 1 x NRep
+                Xs_tmp = squeeze(Xs_sliced(1,n,:));
+                FScale = FScale(ones(NVarS,1),:).*Xs_tmp(:, ones(NRep,1)); % NVarS x NRep
+            end
+            
+            sumBeta = bsxfun(@times,sumFsqueezed, sigma_n);
+            VC2tmp = (1-gamma)*bsxfun(@times,VC2(:,:,n), sigma_n) + gamma*VC2(:,:,n);
+            if FullCov == 0
+                sumVC2tmp = sumFsqueezed.*VC2tmp;  % NVarA x NRep
+                gtmp = -mean([sumBeta.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA,1),:)],2)./p0(n);
+            else % FullCov = 1
+                sumVC2tmp = sumFsqueezed(indx1,:).*VC2tmp(indx2,:);   
+                gtmp =  -mean([sumBeta.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
+            end
+            if NVarS > 0
+                gtmp = [gtmp;-mean(FScale.*U_prod(ones(NVarS,1),:),2)./p0(n)];
+            end
+            
+            sumTau = sum(sumFsqueezed2.*DerTau,1); %1 x NRep
+            if gamma0 ~= 0 && gamma0 ~= 1% gradient for gamma
+                sumGam = sum(sumFsqueezed.*DerGam,1);
+                gtmp2 = -mean([sumTau.*U_prod; sumGam.*U_prod],2)./p0(n);
+            else
+                gtmp2 = -mean(sumTau.*U_prod,2)./p0(n);
+            end
+            if NVarT > 0
+                sumCovTau = bsxfun(@times,sumFsqueezed2(indx3,:), DerCovTau);
+                sumCovTau = reshape(sum(reshape(sumCovTau, NVarA, NVarT, NRep),1),NVarT, NRep);
+                gtmp2 = [-mean(bsxfun(@times,sumCovTau, U_prod),2)./p0(n);gtmp2];
+            end
+            gtmp = [gtmp; gtmp2];
+            g(n,:) = gtmp';
+        end
+    else
+        YYy = (YY==1);
+        
+        parfor n = 1:NP
+            YnanInd = ~isnan(YY(:,n));
+            b_mtx_n = b_mtx(:,:,n);
+            XXa_n = XXa(:,:,n);
+            U = reshape(XXa_n(YnanInd,:)*b_mtx_n,NAltMiss(n),NCTMiss(n),NRep);  % NAlt x NCT x NRep
+            U = exp(bsxfun(@minus,U,max(U)));  % rescale utility to avoid exploding 
+            U_prob = bsxfun(@rdivide,U,sum(U,1)); % NAlt x NCT x NRep
+            YYy_n = YYy(:,n);
+            U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep),1);  % 1 x NRep
+            p0(n) = mean(U_prod);
+            
+            % Calculations for gradient
+            U_prob = reshape(U_prob, NAltMiss(n)*NCTMiss(n),1,NRep);  % NAlt*NCT x NVarA x NRep
+            X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n(YnanInd,:)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
+            if NCTMiss(n) ~= 1
+                F = bsxfun(@minus,XXa_n(YYy_n,:), reshape(X_hat,[NCTMiss(n),NVarA,NRep]));  %NCT x NVarA x NRep
+                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
+            else
+                sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCTMiss(n),NVarA,NRep]); %NVarA x NRep 
+            end   
+            b_mtx_grad_n = b_mtx_grad(:,:,n)
+            if gamma0 == 0 && sum(Distx==1) > 0
+                sumFsqueezed2 = sumFsqueezed;
+                sumFsqueezed(Distx==1, :) = sumFsqueezed(Distx==1, :).*b_mtx_grad_n(Distx==1,:);
+            else
+                sumFsqueezed2 = sumFsqueezed;
+            end
+            sigma_n = sigma(:,:,n);
+            errx_n = errx(n,:);
+            mSig_n = mSig;
+            if gamma0 == 0 && sum(Distx==1)
+                DerTau = b_mtx_grad_n;
+            else
+                DerTau = bsxfun(@plus,b0n(:,:,n),(1-gamma)*Eta(:,:,n));
+            end
+            DerTau = bsxfun(@times,DerTau,sigma_n);
+            if NVarT == 0
+                DerTau = bsxfun(@times,bsxfun(@plus,tau*errx_n,mSig_n), DerTau);
+            else
+                TauTmp = bsxfun(@times, tau*errx_n, cov_tau(n,:)); %1 x Nrep
+                DerCovTau = bsxfun(@plus,bsxfun(@times,TauTmp,XXt(n,:)'),mSigCov)
+                DerCovTau = bsxfun(@times, reshape(DerCovTau, 1,NVarT, NRep), reshape(DerTau, NVarA,1, NRep)); %  NVarA x NVarT x NRep
+                DerCovTau = reshape(DerCovTau, NVarA*NVarT, NRep);
+                DerTau = bsxfun(@times,bsxfun(@plus,TauTmp,mSig_n), DerTau);
+            end
+            if gamma0 ~= 0 && gamma0 ~= 1% gradient for gamma
+                DerGam = bsxfun(@times,gamma*(1-gamma)*Eta(:,:,n),1-sigma_n);
+            end
+            
+            if NVarS >0
+                FScale = sum(sumFsqueezed2.*b_mtx_n,1); % 1 x NRep
+                Xs_tmp = squeeze(Xs_sliced(1,n,:));
+                FScale = FScale(ones(NVarS,1),:).*Xs_tmp(:, ones(NRep,1)); % NVarS x NRep
+            end
+            
+            sumBeta = bsxfun(@times,sumFsqueezed, sigma_n);
+            VC2tmp = (1-gamma)*bsxfun(@times,VC2(:,:,n), sigma_n) + gamma*VC2(:,:,n);
+            if FullCov == 0
+                sumVC2tmp = sumFsqueezed.*VC2tmp;  % NVarA x NRep
+                gtmp = -mean([sumBeta.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA,1),:)],2)./p0(n);
+            else % FullCov = 1
+                sumVC2tmp = sumFsqueezed(indx1,:).*VC2tmp(indx2,:);   
+                gtmp =  -mean([sumBeta.*U_prod(ones(NVarA,1),:); sumVC2tmp.*U_prod(ones(NVarA*(NVarA-1)/2+NVarA,1),:)],2)./p0(n);
+            end
+            if NVarS > 0
+                gtmp = [gtmp;-mean(FScale.*U_prod(ones(NVarS,1),:),2)./p0(n)];
+            end
+            
+            sumTau = sum(sumFsqueezed2.*DerTau,1); %1 x NRep
+            if gamma0 ~= 0 && gamma0 ~= 1% gradient for gamma
+                sumGam = sum(sumFsqueezed.*DerGam,1);
+                gtmp2 = -mean([sumTau.*U_prod; sumGam.*U_prod],2)./p0(n);
+            else
+                gtmp2 = -mean(sumTau.*U_prod,2)./p0(n);
+            end
+            if NVarT > 0
+                sumCovTau = bsxfun(@times,sumFsqueezed2(indx3,:), DerCovTau);
+                sumCovTau = reshape(sum(reshape(sumCovTau, NVarA, NVarT, NRep),1),NVarT, NRep);
+                gtmp2 = [-mean(bsxfun(@times,sumCovTau, U_prod),2)./p0(n);gtmp2];
+            end
+            gtmp = [gtmp; gtmp2];
+            g(n,:) = gtmp';
+        end
+    end
+    if NVarM > 0
+       gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(XXm(kron(1:NVarM, ones(1,NVarA)),:)');
+       if EstimOpt.FullCov == 0
+            g = [g(:,1:2*NVarA),gm, g(:,2*NVarA+1:end)];
+       else
+           g = [g(:,1:NVarA*(NVarA/2+1.5)),gm, g(:,NVarA*(NVarA/2+1.5)+1:end)];    
+       end
+    end
+end
 
 f = -log(p0);
 % f = -log(max(p0,realmin));
