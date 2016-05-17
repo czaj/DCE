@@ -208,10 +208,11 @@ end
 
 
 if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-	EstimOpt.NumGrad = 1;
+% 	EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
     if EstimOpt.Display ~= 0
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+%         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - missing alternatives not supported by analytical gradient \n')
     end
 end
 
@@ -255,9 +256,11 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
 end
 
 if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
-	EstimOpt.NumGrad = 1;
+% 	EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
 	if EstimOpt.Display ~= 0
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
+%         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
 	end
 end
 
@@ -331,7 +334,7 @@ end
 
 
 
-%% Restucturing Data - get rids of not completed choice tasks, but leaves missing alternatives
+%% Restucturing Data - gets rid of not completed choice tasks, but leaves missing alternatives
 
 
 idx = sum(reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP)) == EstimOpt.NAlt; ...
@@ -443,7 +446,7 @@ elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1), Results.bhat);
-elseif EstimOpt.HessEstFix == 4 %missing
+elseif EstimOpt.HessEstFix == 4 % analytical - missing
     Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1), Results.bhat);
 %     EstimOpt_tmp = EstimOpt;
 %     EstimOpt_tmp.NumGrad = 0;
