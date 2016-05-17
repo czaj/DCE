@@ -474,7 +474,7 @@ if EstimOpt.FullCov == 0
     end
     if  ~exist('b0','var')
         if isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'bhat')
-            if isfield(Results_old,'MXL_d') && isfield(Results_old.HMNL,'MXL_d')
+            if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat')
                 disp('Using HMNL and MXL_d results as starting values')
                 Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
                 Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
