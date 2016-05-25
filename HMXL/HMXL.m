@@ -569,11 +569,18 @@ if  isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
-if isfield(EstimOpt, 'StrMatrix') && size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && size(EstimOpt.StrMatrix,2) == EstimOpt.NVarStr && any(any(EstimOpt.StrMatrix ~= 1))
-    if ~isfield(EstimOpt,'BActive')
-        EstimOpt.BActive = ones(1,size(b0,1));
+if isfield(EstimOpt, 'StrMatrix')
+    if size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && (size(EstimOpt.StrMatrix,2) == 1 || size(EstimOpt.StrMatrix,2) == EstimOpt.NVarStr) && any(any(EstimOpt.StrMatrix ~= 1))
+        if size(EstimOpt.StrMatrix,2) ~= EstimOpt.NVarStr
+            EstimOpt.StrMatrix = repmat(EstimOpt.StrMatrix,[1,EstimOpt.NVarStr]);
+        end                 
+        if ~isfield(EstimOpt,'BActive')
+            EstimOpt.BActive = ones(1,size(b0,1));
+        end
+        EstimOpt.BActive = StrSelect(EstimOpt,EstimOpt.FullCov+2);
+    else
+        error('Structural variables matrix (EstimOpt.StrMatrix) erroneously defined')
     end
-    EstimOpt.BActive = StrSelect(EstimOpt,EstimOpt.FullCov +2);
 end
 
 if sum(EstimOpt.Dist == -1) > 0

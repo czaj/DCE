@@ -216,7 +216,7 @@ if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
     end
 end
 
-if  isfield(EstimOpt,'BActive')
+if isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
@@ -525,15 +525,17 @@ if EstimOpt.Display ~= 0
     disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
     disp([char(EstimOpt.NamesA), blanks(EstimOpt.NVarA)', num2str(Results.R(1:EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.R(1:EstimOpt.NVarA,3)), num2str(Results.R(1:EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
     disp(' ')
+    
     if NVarMOld > 0
         for i = 1:NVarMOld
             disp(' ');
-            disp(['Explanatory variable of parameters'' means - ', char(EstimOpt.NamesM(i))]);
+            disp(['Interactions with choice attributes - ', char(EstimOpt.NamesM(i))]);
             disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
             disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),1),'%8.4f'), star_sig(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),3)), num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),2:3),'%8.4f %8.4f')])
             disp(' ')
         end
     end
+    
     if EstimOpt.NVarNLT > 0
         if EstimOpt.NLTType == 1
             disp('Box-Cox transformation parameters')
@@ -560,16 +562,52 @@ if EstimOpt.Display ~= 0
     disp(' ');
 end
 
-Results.R_out = cell(12 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 4 + (EstimOpt.NVarNLT>0)*3); 
+if NVarMOld > 0
+    Results.DetailsM = [];
+    for i = 1:NVarMOld; 
+        Results.DetailsM = [Results.DetailsM, [Results.bhat(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)),Results.std(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)),pv(Results.bhat(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)),Results.std(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)))]];
+    end
+%     Results.R(end-EstimOpt.NVarA*NVarMOld+1:end,:) = [];
+%     Results.R = [Results.R, Results.DetailsM];
+end
+
+
+Results.R_out = cell(12 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 4 + (NVarMOld + (EstimOpt.NVarNLT>0))*3); 
 
 Results.R_out(1,1) = {'MNL'};
 
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-headx = [head, repmat(head(1,2:4),1,(EstimOpt.NVarNLT>0))];
-Results.R_out(3,:) = headx;
+headx = [head, repmat(head(1,2:4),1,NVarMOld+(EstimOpt.NVarNLT>0))];
 
+Results.R_out(3,:) = headx;
 Results.R_out(4:3+EstimOpt.NVarA,1:4) = [EstimOpt.NamesA,num2cell([Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))])];
 
+if NVarMOld > 0
+    Results.R_out(4:3+EstimOpt.NVarA,5:4+NVarMOld*3) = num2cell(Results.DetailsM);
+    Results.R_out(2,5:3:(2+NVarMOld*3)) = EstimOpt.NamesM;
+end
+
+
+
+% if EstimOpt.NVarMOld > 0
+%     for i = 1:EstimOpt.NVarMOld
+%         disp(' ');
+%         disp(['Explanatory variable of random parameters'' means - ', char(EstimOpt.NamesM(i))]);
+%         disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
+%         disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.DetailsM(:,i*3-2),'%8.4f'), star_sig(Results.DetailsM(:,i*3)), num2str(Results.DetailsM(:,i*3-1:i*3),'%8.4f %8.4f')])
+%     end
+%     %     headM = 'var.  coef.     st.err.  p-value';
+%     %     formM = '%1.0f %8.4f %8.4f %8.4f';
+%     %     for i = 2:EstimOpt.NVarM
+%     %         formM = [formM, ' %8.4f %8.4f %8.4f'];
+%     %         headM = [headM, '    coef.  sd.err.  p-value'];
+%     %     end
+%     %     disp(headM);
+%     %     disp(num2str([(1:EstimOpt.NVarA)', Results.DetailsM],formM))
+%     
+% end
+
+% this probably fails due to Xm
 if EstimOpt.NVarNLT > 0
 	Results.DetailsNLT = [Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarS+1:end),pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarS+1:end))];
 	Results.DetailsNLT0 = NaN(EstimOpt.NVarA,3);
@@ -585,7 +623,7 @@ end
 if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA + 4,1) = {'Covariates of Scale'};
     Results.R_out(EstimOpt.NVarA + 5,1:4) = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA+EstimOpt.NVarS+5,:) = [EstimOpt.NamesS, num2cell([Results.bhat(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end), pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarNLT+1:end))])];
+    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA+EstimOpt.NVarS+5,1:4) = [EstimOpt.NamesS, num2cell([Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarNLT+1:end), pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarNLT+1:end),Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarNLT+1:end))])];
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
