@@ -653,7 +653,7 @@ Results.b0_old = b0;
 LLfun2 =  @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 if EstimOpt.HessEstFix == 0
     [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-if EstimOpt.HessEstFix == 1
+elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
         Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
