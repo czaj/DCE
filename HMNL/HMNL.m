@@ -507,11 +507,18 @@ if  isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
-if isfield(EstimOpt, 'StrMatrix') && size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && size(EstimOpt.StrMatrix,2) == EstimOpt.NVarStr && any(any(EstimOpt.StrMatrix ~= 1))
-    if ~isfield(EstimOpt,'BActive')
-        EstimOpt.BActive = ones(1,EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut);
+if isfield(EstimOpt, 'StrMatrix')
+    if size(EstimOpt.StrMatrix,1) == EstimOpt.NLatent && (size(EstimOpt.StrMatrix,2) == 1 || size(EstimOpt.StrMatrix,2) == EstimOpt.NVarStr) && any(any(EstimOpt.StrMatrix ~= 1))
+        if size(EstimOpt.StrMatrix,2) ~= EstimOpt.NVarStr
+            EstimOpt.StrMatrix = repmat(EstimOpt.StrMatrix,[1,EstimOpt.NVarStr]);
+        end                 
+        if ~isfield(EstimOpt,'BActive')
+            EstimOpt.BActive = ones(1,EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut);
+        end
+        EstimOpt.BActive = StrSelect(EstimOpt,1);
+    else
+        error('Structural variables matrix (EstimOpt.StrMatrix) erroneously defined')
     end
-    EstimOpt.BActive = StrSelect(EstimOpt,1);
 end
 
 if EstimOpt.ConstVarActive == 1
@@ -699,7 +706,7 @@ end
 
 Results.LL = -LL;
 
-R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],[],INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
+R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,[],INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
 Results.b0_old = b0;
 
 if EstimOpt.HessEstFix == 1
