@@ -501,7 +501,7 @@ if isfield(EstimOpt,'BActive')
 end
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL) + 2*EstimOpt.Params*(EstimOpt.Params+1)/(EstimOpt.NObs-EstimOpt.Params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.Params];
+    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; (2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.Params];
 end
 
 if EstimOpt.WTP_space == 0
@@ -572,9 +572,16 @@ if NVarMOld > 0
 end
 
 
-Results.R_out = cell(12 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 4 + (NVarMOld + (EstimOpt.NVarNLT>0))*3); 
+Results.R_out = cell(17 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 4 + (NVarMOld + (EstimOpt.NVarNLT>0))*3); 
 
 Results.R_out(1,1) = {'MNL'};
+
+if EstimOpt.Display ~= 0
+    if EstimOpt.WTP_space > 0
+        Results.R_out(1,2) = {'in WTP-space'};
+    else
+         Results.R_out(1,2) = {'in preference-space'}; 
+    end
 
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
 headx = [head, repmat(head(1,2:4),1,NVarMOld+(EstimOpt.NVarNLT>0))];
@@ -586,8 +593,6 @@ if NVarMOld > 0
     Results.R_out(4:3+EstimOpt.NVarA,5:4+NVarMOld*3) = num2cell(Results.DetailsM);
     Results.R_out(2,5:3:(2+NVarMOld*3)) = EstimOpt.NamesM;
 end
-
-
 
 % if EstimOpt.NVarMOld > 0
 %     for i = 1:EstimOpt.NVarMOld
@@ -627,9 +632,76 @@ if EstimOpt.NVarS > 0
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k';'Estimation method';'Simulation (amount/type of draws)';'Optimization method';'Gradient';'Hessian';};
+
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-	Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,2) = num2cell(Results.stats);
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 12,2) = num2cell(Results.stats);
+end
+
+if any(INPUT.W ~= 1)
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'weighted'};
+else
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'maximum likelihood method'};
+end
+
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {EstimOpt.NRep ;OptimOpt.Algorithm;};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,3) = {EstimOpt.Draws;};
+
+if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {'user-supplied, analytical'};
+        else
+            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {'user-supplied, numerical'};
+            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,3) = {OptimOpt.FinDiffType};
+        end
+else
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {'built-in'}; 
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,3) = {OptimOpt.FinDiffType};
+        
+end
+
+if isequal(OptimOpt.Algorithm,'quasi-newton')
+   switch EstimOpt.HessEstFix
+           case 0
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'off,'};
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'retained from optimization'};
+           case 1
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'off,'};
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated using BHHH'};
+           case 2
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'off,'};
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated using high-precision BHHH'};
+           case 3
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'off,'};
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated numerically'};
+           case 4
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'off,'};
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated analytically'};
+    end
+else
+    if strcmp(OptimOpt.Hessian,'user-supplied')
+        if EstimOpt.ApproxHess == 1
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'user-supplied, BHHH,'};
+             
+        else
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'user-supplied, analytical,'};
+        end
+    else
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'built-in, analytical,'};
+		      Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,4) = {OptimOpt.HessUpdate};
+    end
+    switch EstimOpt.HessEstFix
+           case 0
+               Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'retained from optimization'};
+           case 1
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated using BHHH'};
+           case 2
+              Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated using high-precision BHHH'};
+           case 3
+               Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated numerically'};
+           case 4
+               Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,3) = {'ex-post calculated analytically'};
+    end
 end
 
 Results.clocknote = clocknote;
