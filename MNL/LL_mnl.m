@@ -97,7 +97,7 @@ end
 
 v = reshape(betaX,EstimOpt.NAlt,N);
 maxv = max(v,[],1);
-evdiff = exp(v- maxv(ones(EstimOpt.NAlt,1),:)); %clear v maxv
+evdiff = exp(v - maxv(ones(EstimOpt.NAlt,1),:)); %clear v maxv
 sum_evdiff = nansum(evdiff,1); %1 by N
 P = evdiff./sum_evdiff(ones(EstimOpt.NAlt,1),:); % NAlt x N
 probs = P(y == 1);

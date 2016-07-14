@@ -17,7 +17,7 @@ if isequal(OptimOpt.GradObj,'on')
         end
     else % => EstimOpt.NumGrad == 1 
         f = LLfun(b0);  
-        j = numdiff(LLfun,f,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);...
+        j = numdiff(LLfun,f,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
         j = j.*W(:, ones(1,size(j,2)));
         g = sum(j,1)';   
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
