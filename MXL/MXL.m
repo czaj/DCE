@@ -717,13 +717,16 @@ end
 % save out_MXL
 
 if EstimOpt.FullCov == 0
-    Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
+    Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
+    Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
     std_out = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);...
         std_out(imag(Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2)) ~= 0) = NaN; ...
         %     Results.DetailsV = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),pv((Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)).^2,2.*std_out.*abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)))];
-    Results.DetailsV = [abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),std_out,pv(abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),std_out)];
+    Results.DetailsV(1:EstimOpt.NVarA,1) = abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2));
+    Results.DetailsV(1:EstimOpt.NVarA,3:4) =  [std_out,pv(abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)),std_out)];
     if sum(EstimOpt.Dist(2:end) == 3) > 0
-        Results.DetailsA(EstimOpt.Dist(2:end) == 3,:) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3))];
+        Results.DetailsA(EstimOpt.Dist(2:end) == 3,1) = exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang';
+        Results.DetailsA(EstimOpt.Dist(2:end) == 3,3:4)= [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
         stdx = zeros(sum(EstimOpt.Dist(2:end) == 3),1);
         g = [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)), exp(btmp(EstimOpt.Dist(2:end) == 3))];
@@ -731,23 +734,27 @@ if EstimOpt.FullCov == 0
         for i = 1:sum(EstimOpt.Dist(2:end) == 3)
             stdx(i) = sqrt(g(i,:)*Results.ihess([indx(i), indx(i)+EstimOpt.NVarA], [indx(i), indx(i)+EstimOpt.NVarA])*g(i,:)');
         end
-        Results.DetailsV(EstimOpt.Dist(2:end) == 3,:) = [exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx, pv(exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx) ];
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,1)  = exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang';
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,3:4) = [stdx, pv(exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx) ];
     end
     if sum(EstimOpt.Dist(2:end) == 4) > 0
-        Results.DetailsA(EstimOpt.Dist(2:end) == 4,:) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4))];
+        Results.DetailsA(EstimOpt.Dist(2:end) == 4,1) = exp(Results.bhat(EstimOpt.Dist(2:end) == 4));
+        Results.DetailsA(EstimOpt.Dist(2:end) == 4,3:4) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
         stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
-        Results.DetailsV(EstimOpt.Dist(2:end) == 4,:) = [exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
+        Results.DetailsV(EstimOpt.Dist(2:end) == 4,1) = exp(btmp(EstimOpt.Dist(2:end) == 4));
+        Results.DetailsV(EstimOpt.Dist(2:end) == 4,3:4) = [stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
     end
     Results.R = [Results.DetailsA, Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM; Results.DetailsM = [Results.DetailsM, [Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))]];end
+        for i=1:EstimOpt.NVarM; 
+            Results.DetailsM = [Results.DetailsM, [Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),[0;0;0;0;0;0;],Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))]];end
         Results.R = [Results.R, Results.DetailsM];
     end
-    if EstimOpt.NVarNLT > 0
+    if EstimOpt.NVarNLT > 0 %popr
         Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))]];end
+        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),[0;0;0;0;0;0;],Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))]];end
         Results.DetailsNLT0 = NaN(EstimOpt.NVarA,3);
         Results.DetailsNLT0(EstimOpt.NLTVariables,:) = Results.DetailsNLT;
         Results.R = [Results.R, Results.DetailsNLT0];
@@ -755,26 +762,32 @@ if EstimOpt.FullCov == 0
     if EstimOpt.Johnson > 0
         ResultsJ = NaN(EstimOpt.NVarA, 6);
         % Location parameters
-        Results.DetailsJL = [Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),pv(Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)))];
+        Results.DetailsJL(1:EstimOpt.NVarA,1) = Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
+        Results.DetailsJL(1:EstimOpt.NVarA,3:4) =   [Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),pv(Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)))];
         % Scale parameters
-        Results.DetailsJS = [exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end),pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end))];
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:3) =   Results.DetailsJL;
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,4:6) =   Results.DetailsJS;
+        Results.DetailsJS(1:EstimOpt.NVarA,1) = exp(Results.bhat((end - EstimOpt.Johnson+1):end));
+        Results.DetailsJS(1:EstimOpt.NVarA,3:4) =    [exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end),pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end))];
+        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
+        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
         Results.R = [Results.R, ResultsJ];
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
-        for i=1:EstimOpt.NVarS; Results.DetailsS = [Results.DetailsS; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i))]];end
+        for i=1:EstimOpt.NVarS; Results.DetailsS = [Results.DetailsS; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),[0;0;0;0;0;0;],Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i))]];end
         DetailsS0 = NaN(EstimOpt.NVarA,3);
         DetailsS0(1:EstimOpt.NVarS,1:3) = Results.DetailsS;
         Results.R = [Results.R, DetailsS0]; % might not work if NVarS > NVarA
     end
     
 elseif EstimOpt.FullCov == 1
-    Results.DetailsA = [Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
+    Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
+    Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
     Results.DetailsV = sdtri(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2,EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),EstimOpt);
+    
+    
     if sum(EstimOpt.Dist(2:end) == 3) > 0
-        Results.DetailsA(EstimOpt.Dist(2:end) == 3,:) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3))];
+        Results.DetailsA(EstimOpt.Dist(2:end) == 3,1) = exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang';
+        Results.DetailsA(EstimOpt.Dist(2:end) == 3,3:4) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', exp(Results.bhat(EstimOpt.Dist(2:end) == 3)).*Results.std(EstimOpt.Dist(2:end) == 3))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
         btmp = btmp(EstimOpt.DiagIndex);
         stdx = zeros(sum(EstimOpt.Dist(2:end) == 3),1);
@@ -784,34 +797,45 @@ elseif EstimOpt.FullCov == 1
         for i = 1:sum(EstimOpt.Dist(2:end) == 3)
             stdx(i) = sqrt(g(i,:)*Results.ihess([indx(i), DiagIndex(i)+EstimOpt.NVarA], [indx(i), DiagIndex(i)+EstimOpt.NVarA])*g(i,:)');
         end
-        Results.DetailsV(EstimOpt.Dist(2:end) == 3,:) = [exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx, pv(exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx) ];
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,:) = exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang';
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,3:4) = [stdx, pv(exp(btmp(EstimOpt.Dist(2:end) == 3))+ exp(Results.bhat(EstimOpt.Dist(2:end) == 3)) + EstimOpt.Triang', stdx) ];
     end
     if sum(EstimOpt.Dist(2:end) == 4) > 0
-        Results.DetailsA(EstimOpt.Dist(2:end) == 4,:) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4))];
+        Results.DetailsA(EstimOpt.Dist(2:end) == 4,1) = exp(Results.bhat(EstimOpt.Dist(2:end) == 4));
+        Results.DetailsA(EstimOpt.Dist(2:end) == 4,1) = [exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4), pv(exp(Results.bhat(EstimOpt.Dist(2:end) == 4)), exp(Results.bhat(EstimOpt.Dist(2:end) == 4)).*Results.std(EstimOpt.Dist(2:end) == 4))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
         btmp = btmp(EstimOpt.DiagIndex);
         stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
         stdx = stdx(EstimOpt.DiagIndex);
         stdx = exp(btmp).*stdx;
-        Results.DetailsV(EstimOpt.Dist(2:end) == 4,:) = [exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
+        Results.DetailsV(EstimOpt.Dist(2:end) == 4,1) = exp(btmp(EstimOpt.Dist(2:end) == 4)); 
+        Results.DetailsV(EstimOpt.Dist(2:end) == 4,3:4) = [stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
     end
     if sum(EstimOpt.Dist(2:end) == 5) > 0
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
         btmp = btmp(EstimOpt.DiagIndex);
         stdtmp = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
         stdtmp = stdtmp(EstimOpt.DiagIndex);
-        Results.DetailsV(EstimOpt.Dist(2:end) ==5,:) = [btmp(EstimOpt.Dist(2:end) == 5).^2, 2*btmp(EstimOpt.Dist(2:end) == 5).*stdtmp(EstimOpt.Dist(2:end) == 5), pv(btmp(EstimOpt.Dist(2:end) == 5).^2, 2*btmp(EstimOpt.Dist(2:end) == 5).*stdtmp(EstimOpt.Dist(2:end) == 5))];
+        Results.DetailsV(EstimOpt.Dist(2:end) ==5,1) = btmp(EstimOpt.Dist(2:end) == 5).^2;
+        Results.DetailsV(EstimOpt.Dist(2:end) ==5,3:4) = [2*btmp(EstimOpt.Dist(2:end) == 5).*stdtmp(EstimOpt.Dist(2:end) == 5), pv(btmp(EstimOpt.Dist(2:end) == 5).^2, 2*btmp(EstimOpt.Dist(2:end) == 5).*stdtmp(EstimOpt.Dist(2:end) == 5))];
     end
     Results.R = [Results.DetailsA, Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM; Results.DetailsM = [Results.DetailsM, [Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))]]; end
-        Results.R = [Results.R, Results.DetailsM];
+        for i=1:EstimOpt.NVarM; 
+        Results.DetailsM(1:EstimOpt.NVarA,(4*i -3)) = Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)); 
+        Results.DetailsM(1:EstimOpt.NVarA,(4*i -1):4*i) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))]; 
+        end
+    
+    Results.R = [Results.R, Results.DetailsM];
     end
+    
+    
+    
     
     if EstimOpt.NVarNLT > 0
         Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i))]];end
+        for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),[0;0;0;0;0;0;],Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i))]];end
         %         for i=1:EstimOpt.NVarNLT; Results.DetailsNLT = [Results.DetailsNLT; [Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))]];end
         Results.DetailsNLT0 = NaN(EstimOpt.NVarA,3);
         Results.DetailsNLT0(EstimOpt.NLTVariables,:) = Results.DetailsNLT;
@@ -820,22 +844,24 @@ elseif EstimOpt.FullCov == 1
     if EstimOpt.Johnson > 0
         ResultsJ = NaN(EstimOpt.NVARA, 6);
         % Location parameters
-        Results.DetailsJL = [Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),pv(Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)))];
+        Results.DetailsJL(1:EstimOpt.NVarA,1) = Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
+        Results.DetailsJL(1:EstimOpt.NVarA,3:4) = [Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),pv(Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)))];
         % Scale parameters
-        Results.DetailsJS = [exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end),pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end))];
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:3) =   Results.DetailsJL;
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,4:6) =   Results.DetailsJS;
+        Results.DetailsJS(1:EstimOpt.NVarA,1) = exp(Results.bhat((end - EstimOpt.Johnson+1):end));
+        Results.DetailsJS(1:EstimOpt.NVarA,3:4) = [exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end),pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end))];
+        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
+        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
         Results.R = [Results.R, ResultsJ];
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
-        for i=1:EstimOpt.NVarS; Results.DetailsS = [Results.DetailsS; [Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i))]];end
+        for i=1:EstimOpt.NVarS; Results.DetailsS = [Results.DetailsS; [Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),[0;0;0;0;0;0;],Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i))]];end
         DetailsS0 = NaN(EstimOpt.NVarA,3);
         DetailsS0(1:EstimOpt.NVarS,1:3) = Results.DetailsS;
         Results.R = [Results.R, DetailsS0]; % might not work of NVarS > NVarA
     end
     
-    Results.chol = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))]; %Results.R = (1:EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5),size(Results.R,2)+1:size(Results.R,2)+3) =
+    Results.chol  = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)), Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))]; %Results.R = (1:EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5),size(Results.R,2)+1:size(Results.R,2)+3) =
     Results.DetailsVcov = tril(ones(EstimOpt.NVarA)); ...
         choltmp = Results.chol(:,1);
     if sum(EstimOpt.Dist(2:end) >= 3 & EstimOpt.Dist(2:end) <= 5) > 0
@@ -858,7 +884,7 @@ EstimOpt.params = length(b0);
 % end
 EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 
-Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL) + 2*EstimOpt.params*(EstimOpt.params+1)/(EstimOpt.NObs-EstimOpt.params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.params];
+Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL)/EstimOpt.NObs); EstimOpt.NObs; EstimOpt.params];
 
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
@@ -867,19 +893,19 @@ Results.INPUT = INPUT;
 disp(' ');
 disp('Means');
 disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsA(:,1),'%8.4f') star_sig(Results.DetailsA(:,3)) num2str(Results.DetailsA(:,2:3),'%8.4f %8.4f')])
+disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsA(:,1),'%8.4f') star_sig(Results.DetailsA(:,4)) num2str(Results.DetailsA(:,3:4),'%8.4f %8.4f')])
 
 disp(' ');
 disp('Standard deviations');
 disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsV(:,1),'%8.4f') star_sig(Results.DetailsV(:,3)) num2str(Results.DetailsV(:,2:3),'%8.4f %8.4f')])
+disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsV(:,1),'%8.4f') star_sig(Results.DetailsV(:,4)) num2str(Results.DetailsV(:,3:4),'%8.4f %8.4f')])
 
 if EstimOpt.NVarM > 0
     for i = 1:EstimOpt.NVarM
         disp(' ');
         disp(['Explanatory variable of random parameters'' means - ', char(EstimOpt.NamesM(i))]);
         disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.DetailsM(:,i*3-2),'%8.4f'), star_sig(Results.DetailsM(:,i*3)), num2str(Results.DetailsM(:,i*3-1:i*3),'%8.4f %8.4f')])
+        disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.DetailsM(:,i*4-3),'%8.4f'), star_sig(Results.DetailsM(:,i*4)), num2str(Results.DetailsM(:,i*4-1:i*4),'%8.4f %8.4f')])
     end
     %     headM = 'var.  coef.     st.err.  p-value';
     %     formM = '%1.0f %8.4f %8.4f %8.4f';
@@ -900,7 +926,7 @@ if EstimOpt.NVarNLT > 0
         disp('Yeo-Johnson transformation parameters')
     end
     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,3)) num2str(Results.DetailsNLT(:,2:3),'%8.4f %8.4f')])
+    disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,4)) num2str(Results.DetailsNLT(:,3:4),'%8.4f %8.4f')])
     disp(' ')
 end
 
@@ -908,65 +934,183 @@ if EstimOpt.Johnson > 0
     disp(' ');
     disp('Johnson location parameters');
     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJL(:,1),'%8.4f') star_sig(Results.DetailsJL(:,3)) num2str(Results.DetailsJL(:,2:3),'%8.4f %8.4f')])
+    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJL(:,1),'%8.4f') star_sig(Results.DetailsJL(:,4)) num2str(Results.DetailsJL(:,3:4),'%8.4f %8.4f')])
     disp(' ');
     disp('Johnson scale parameters');
     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJS(:,1),'%8.4f') star_sig(Results.DetailsJS(:,3)) num2str(Results.DetailsJS(:,2:3),'%8.4f %8.4f')])
+    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJS(:,1),'%8.4f') star_sig(Results.DetailsJS(:,4)) num2str(Results.DetailsJS(:,3:4),'%8.4f %8.4f')])
 end
 
 if EstimOpt.NVarS > 0
     disp(' ');
     disp('Covariates of scale');
     disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.DetailsS(:,1),'%8.4f') star_sig(Results.DetailsS(:,3)) num2str(Results.DetailsS(:,2:3),'%8.4f %8.4f')])
+    disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.DetailsS(:,1),'%8.4f') star_sig(Results.DetailsS(:,4)) num2str(Results.DetailsS(:,3:4),'%8.4f %8.4f')])
 end
 
-head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
-headx = [head, repmat(head(1,2:4),1,1+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2)];
+head = {'var.' , 'coef.','sign.', 'st.err.' , 'p-value'};
+headx = ['var.' , 'dist.','coef.','sign.', 'st.err.' , 'p-value', repmat(head(1,2:5),1,1+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2)];
 
-Results.R_out = cell(3+EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 2 + 7, 1 + 3*(2+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2));
+Results.R_out = cell(3+EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 2 + 12, 2 + 4*(2+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2));
+
 
 if EstimOpt.FullCov == 0
     Results.R_out(1,1) = {'MXL_d'};
 else
     Results.R_out(1,1) = {'MXL'};
 end
-Results.R_out(2,[2,5]) = {'Means', 'Standard Deviations'  };
+
+if EstimOpt.Display ~= 0
+    if EstimOpt.WTP_space > 0
+        Results.R_out(1,2) = {'in WTP-space'};
+    else
+         Results.R_out(1,2) = {'in preference-space'}; 
+    end
+end 
+
+Results.R_out(2,[3,7]) = {'Means', 'Standard Deviations'  };
 Results.R_out(3,:) = headx;
-Results.R_out(4:(EstimOpt.NVarA+3),1:7) = [EstimOpt.NamesA, num2cell(Results.DetailsA), num2cell(Results.DetailsV)];
+
+distribution = transpose(EstimOpt.Dist(:,2:end));
+Results.R_out(4:(EstimOpt.NVarA+3),1) = EstimOpt.NamesA;
+for c=1:EstimOpt.NVarA
+    Results.R_out(3+c,2) = dist(distribution(c));
+end
+Results.R_out(4:(EstimOpt.NVarA+3),3:10) = [num2cell(Results.DetailsA), num2cell(Results.DetailsV)];
+
+for c=1:EstimOpt.NVarA
+    Results.R_out(3+c,4) = make_stars(Results.DetailsA,4,c);
+    Results.R_out(3+c,8) = make_stars(Results.DetailsV,4,c);
+end
+
 if EstimOpt.NVarM > 0
-    Results.R_out(4:(EstimOpt.NVarA+3),8:7+EstimOpt.NVarM*3) = num2cell(Results.DetailsM);
-    Results.R_out(2,8:3:(5+EstimOpt.NVarM*3)) = EstimOpt.NamesM;
+    Results.R_out(4:(EstimOpt.NVarA+3),11:10+EstimOpt.NVarM*4) = num2cell(Results.DetailsM);
+    Results.R_out(2,11:4:(2+ (EstimOpt.NVarM+2)*4)) = EstimOpt.NamesM;
+    for i = 1:EstimOpt.NVarM
+        for c=1:EstimOpt.NVarA
+            Results.R_out(3+c,8+4*i) = make_stars(Results.DetailsM,4*i,c);
+        end
+    end
 end
 
 if EstimOpt.NVarNLT > 0
     if EstimOpt.NLTType == 1
-        Results.R_out(2,8+EstimOpt.NVarM*3) = {'Box-Cox transformation parameters'};
+        Results.R_out(2,11+EstimOpt.NVarM*4) = {'Box-Cox transformation parameters'};
     elseif EstimOpt.NLTType == 2
-        Results.R_out(2,8+EstimOpt.NVarM*3) = {'Yeo-Johnson transformation parameters'};
+        Results.R_out(2,11+EstimOpt.NVarM*4) = {'Yeo-Johnson transformation parameters'};
     end
-    Results.R_out(4:(EstimOpt.NVarA+3),8+EstimOpt.NVarM*3:10+EstimOpt.NVarM*3) = num2cell(Results.DetailsNLT0);
+    Results.R_out(4:(EstimOpt.NVarA+3),11+EstimOpt.NVarM*4:14+EstimOpt.NVarM*4) = num2cell(Results.DetailsNLT0);
 end
 
 if EstimOpt.Johnson > 0
-    Results.R_out(2,[8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3,8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3+3]) = {'Johnson location parameters','Johnson scale parameters'};
-    Results.R_out(4:(EstimOpt.NVarA+3),8+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3:13+EstimOpt.NVarM*3+(EstimOpt.NVarNLT>0)*3) = num2cell(ResultsJ);
+    Results.R_out(2,[11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4,11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4+4]) = {'Johnson location parameters','Johnson scale parameters'};
+    Results.R_out(4:(EstimOpt.NVarA+3),11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4:18+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4) = num2cell(ResultsJ);
 end
 
 if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA+4,1) = {'Covariates of Scale'};
-    Results.R_out(EstimOpt.NVarA+5,1:4) = head;
-    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,1:4) = [EstimOpt.NamesS,num2cell(Results.DetailsS)];
+    Results.R_out(EstimOpt.NVarA+5,1:5) = head;
+    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,1:5) = [EstimOpt.NamesS,num2cell(Results.DetailsS)];
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,2) = num2cell(Results.stats);
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k';'Estimation method';'Simulation';'Optimization method';'Gradient';'Hessian';};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 12,2) = num2cell(Results.stats);
+
+
+if any(INPUT.W ~= 1)
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'weighted'};
+else
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'maximum simulated likelihood'};
+end
+
+switch EstimOpt.Draws
+     case 1
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+     case 2
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+     case  3
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     case 4 
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     case 5
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     case 6
+     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
+end
+
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {OptimOpt.Algorithm;};
+ 
+if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {'user-supplied, analytical'};
+        else
+            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {['user-supplied, numerical',num2str(OptimOpt.FinDiffType)]};
+        end
+else
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {['built-in',num2str(OptimOpt.FinDiffType)]}; 
+        
+end
+
+outHessian = [];
+if isequal(OptimOpt.Algorithm,'quasi-newton')
+        outHessian='off, ';    
+        switch EstimOpt.HessEstFix
+            case 0
+                outHessian = [outHessian, 'retained from optimization'];
+            case 1
+                outHessian = [outHessian, 'ex-post calculated using BHHH'];
+            case 2
+                outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
+            case 3
+                outHessian = [outHessian, 'ex-post calculated numerically'];
+            case 4
+                outHessian = [outHessian, 'ex-post calculated analytically'];
+        end
+    else
+        if strcmp(OptimOpt.Hessian,'user-supplied')
+            if EstimOpt.ApproxHess == 1
+                outHessian = 'user-supplied, BHHH, ';
+		    else
+                outHessian = 'user-supplied, analytical, ';
+            end
+        else
+            outHessian(1:3) = ['built-in, ', num2str(OptimOpt.HessUpdate), ', '];
+        end
+        switch EstimOpt.HessEstFix
+            case 0
+                outHessian = [outHessian, 'retained from optimization'];
+            case 1
+                outHessian = [outHessian, 'ex-post calculated using BHHH'];
+            case 2
+                outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
+            case 3
+                outHessian = [outHessian, 'ex-post calculated numerically'];
+            case 4
+                outHessian = [outHessian, 'ex-post calculated analytically'];
+        end
+end
+    
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {outHessian}; 
+
+
+
+
 
 disp(' ')
-disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])
-disp(' ');
+
+
+    cprintf('*Black', 'Model characteristics \n')
+    disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])
+	disp(['LL0:               ', num2str(Results_old.MNL0.LL)])
+    disp(['McFadden R2:       ', num2str(1-Results.LL/Results_old.MNL0.LL)])
+    disp(['Ben-Akiva R2:      ', num2str(R2)])
+    disp(['AIC/n:             ', num2str((2*EstimOpt.params-2*Results.LL)/EstimOpt.NObs)])
+    disp(['n:                 ', num2str(EstimOpt.NObs)])
+    disp(['k:                 ', num2str(EstimOpt.params)])
+    disp(' ')
+    
+
 clocknote = clock;
 tocnote = toc;
 [~,DayName] = weekday(now,'long');
@@ -975,6 +1119,7 @@ disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(6
 disp(' ');
 Results.clocknote = clocknote;
 Results.tocnote = clocknote;
+
 
 % save(EstimOpt.fnameout, 'Results')
 

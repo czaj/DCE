@@ -58,15 +58,21 @@ EstimOpt.HessEstFix = 1; % 0 = use optimization Hessian, 1 = use jacobian-based 
 
 % EstimOpt.WTP_space = 1; % number of cost parameters for WTP-space estimation (need to come last in Xa)
 
-Results.MNL.b0 = [0.159957022105421;0.486589496218975;0.609086367407496;0.0682084933928573;0.188272959734389;0.0142472931131374];
+%Results.MNL.b0 = [0.159957022105421;0.486589496218975;0.609086367407496;0.0682084933928573;0.188272959734389;0.0142472931131374];
 
-%Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
+Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
 
-xlswrite('MNL.xls', Results.MNL.R_out)
+%saveasexcel('sciezkapliku','nazwapliku', tablica)
+saveasexcel('C:\Users\Buczu\Documents\MATLAB\','MNL.xls', Results.MNL.R_out) %this file is formatted in Matlab
+
+xlswrite('MNL1.xls', Results.MNL.R_out); %this file is formatted in VBA 
+
+%you can choose whether to format in VBA or Matlab
+
 
 
 %% ****************************     MXL     ****************************
-
+clc
 
 % EstimOpt.Dist = zeros(size(INPUT.Xa,2)+1,1); % 0 - normal, -1 - constant, 1 - lognormal, 2 - Spike, 3 - triangular, 4 - Weibull, 5 - sinh-arcsinh, 6 - Johnson Sb, 7 - Johnson Su; the first one is for the scale parameter (include even for MXL)
 % EstimOpt.NLTVariables = [6]; % for sixth variable to be transformed with non-linear transformation
