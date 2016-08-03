@@ -1090,7 +1090,7 @@ if isfield(EstimOpt,'BActive')
     EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0);
 end
 
-Results.stats = [Results.LL0; Results.LL; 1-Results.LL/Results.LL0;R2; ((2*EstimOpt.params-2*Results.LL) + 2*EstimOpt.params*(EstimOpt.params+1)/(EstimOpt.NObs-EstimOpt.params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.params];
+Results.stats = [Results.LL0; Results.LL; 1-Results.LL/Results.LL0;R2; (2*EstimOpt.params-2*Results.LL)/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.params];
 
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
