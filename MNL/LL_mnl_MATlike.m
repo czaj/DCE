@@ -15,7 +15,7 @@ if isequal(OptimOpt.GradObj,'on')
             j(:,EstimOpt.BActive ==0) = 0;
             g = -sum(j); ...
             h = j'*j;
-        else
+        else            
             [LL, j] = LLfun(b0);
             LL = LL.*W;
             j = j.*W(:, ones(1, size(j,2)));

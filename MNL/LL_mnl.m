@@ -1,6 +1,6 @@
 function [f,g] = LL_mnl(y,Xa,Xm,Xs,EstimOpt,b0)
 
-% save tmp_MNL_like
+% save LL_mnl
 % return
 
 B = b0(1:EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS);

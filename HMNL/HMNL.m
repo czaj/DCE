@@ -74,6 +74,7 @@ if isfield(INPUT, 'Xstr') == 0 || numel(INPUT.Xstr) == 0
 	cprintf(rgb('DarkOrange'), 'WARNING: Structural equations empty.\n')
     INPUT.Xstr = zeros(size(INPUT.Y,1),0);
 end
+
 if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
 % 	error('Define attitudes to measurment equations')
     cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
@@ -103,7 +104,7 @@ if isfield(EstimOpt,'MeaMatrix')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1,2) == 0)
 %         error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
-    cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1) == 0)
         error('Measurment equations erroneously defined (some measurement variables unused)')
@@ -115,7 +116,6 @@ else
     EstimOpt.MeaMatrix = ones(EstimOpt.NLatent,size(INPUT.Xmea,2));
     disp('Assuming every Latent Variable in every measurment equation')
 end
-
 
 if (isfield(EstimOpt,'MeaSpecMatrix') == 0 || numel(EstimOpt.MeaSpecMatrix) == 0)
 	EstimOpt.MeaSpecMatrix = zeros(1, size(INPUT.Xmea,2));
