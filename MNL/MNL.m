@@ -99,9 +99,11 @@ if isfield(EstimOpt,'SCEXP')==0
 end
 EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 
-if isfield(INPUT, 'Xm') == 0 || size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
+if isfield(INPUT,'Xm') == 0 || (isfield(INPUT,'Xm') && isempty(INPUT.Xm))
     INPUT.Xm = zeros(size(INPUT.Y,1),0);
-end 
+elseif size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
+    error('Incorrect size of Xm matrix')
+end
 EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
 
 
@@ -389,7 +391,7 @@ LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa,INPUT.Xm, INPUT.Xs,INPUT.W, EstimO
 
 if EstimOpt.ConstVarActive == 0  
     
-    if EstimOpt.HessEstFix == 0
+    if EstimOpt.HessEstFix == 0        
         [Results.bhat, LL, Results.exitf, Results.output, Results.g, Results.hess] = fminunc(LLfun, b0, OptimOpt);
     else
         [Results.bhat, LL, Results.exitf, Results.output, Results.g] = fminunc(LLfun, b0, OptimOpt);

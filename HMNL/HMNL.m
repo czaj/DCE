@@ -74,6 +74,7 @@ if isfield(INPUT, 'Xstr') == 0 || numel(INPUT.Xstr) == 0
 	cprintf(rgb('DarkOrange'), 'WARNING: Structural equations empty.\n')
     INPUT.Xstr = zeros(size(INPUT.Y,1),0);
 end
+
 if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
 % 	error('Define attitudes to measurment equations')
     cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
@@ -103,7 +104,7 @@ if isfield(EstimOpt,'MeaMatrix')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1,2) == 0)
 %         error('Measurment equations erroneously defined (some Latent Variables without measurement equations in the MeaMatrix)')
-    cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Some of the LV not associated with any measurement equations.\n')
 %         EstimOpt = rmfield(EstimOpt,'MeaMatrix');
     elseif any(any(EstimOpt.MeaMatrix == 1) == 0)
         error('Measurment equations erroneously defined (some measurement variables unused)')
@@ -115,7 +116,6 @@ else
     EstimOpt.MeaMatrix = ones(EstimOpt.NLatent,size(INPUT.Xmea,2));
     disp('Assuming every Latent Variable in every measurment equation')
 end
-
 
 if (isfield(EstimOpt,'MeaSpecMatrix') == 0 || numel(EstimOpt.MeaSpecMatrix) == 0)
 	EstimOpt.MeaSpecMatrix = zeros(1, size(INPUT.Xmea,2));
@@ -355,22 +355,36 @@ INPUT.XXa = reshape(INPUT.Xa',EstimOpt.NVarA, EstimOpt.NAlt*EstimOpt.NCT,EstimOp
 INPUT.XXa = permute(INPUT.XXa, [2 1 3]); % NAlt*NCT x NVarA x NP
 
 INPUT.Xstr = double(INPUT.Xstr(1:EstimOpt.NAlt*EstimOpt.NCT:end,:));
-if isfield(EstimOpt, 'StrNorm')
-    if length(EstimOpt.StrNorm) ~= EstimOpt.NVarStr && length(EstimOpt.StrNorm) ~= 1
-        cprintf(rgb('DarkOrange'), 'WARNING: Structural variables normalization options (EstimOpt.StrNorm) incorrect - variables not normalized \n')
-    else
-        if length(EstimOpt.StrNorm) == 1
-            EstimOpt.StrNorm = EstimOpt.StrNorm(ones(EstimOpt.NVarStr,1),1);
-        end
-        meanx = mean(INPUT.Xstr);
-        stdx = std(INPUT.Xstr);
-        INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - meanx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1))./stdx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1);
-    end
+% normalize explanatory variables for structural equations:
+if ~isfield(EstimOpt,'StrNorm')
+    EstimOpt.StrNorm = ones(EstimOpt.NVarStr,1);
+elseif length(EstimOpt.StrNorm) ~= EstimOpt.NVarStr && length(EstimOpt.StrNorm) ~= 1
+    cprintf(rgb('DarkOrange'), 'WARNING:  Structural variables normalization options (EstimOpt.StrNorm) incorrect - variables not normalized \n')
+elseif length(EstimOpt.StrNorm) == 1
+    EstimOpt.StrNorm = EstimOpt.StrNorm(ones(EstimOpt.NVarStr,1),1);
+end
+if any(EstimOpt.StrNorm > 0)
+    meanx = mean(INPUT.Xstr);
+    stdx = std(INPUT.Xstr);
+    INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - meanx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1))./stdx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1);
 end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 if EstimOpt.NVarMeaExp > 0
-    INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+    INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);  
+    % normalize explanatory variables for measurement equations:
+    if ~isfield(EstimOpt, 'MeaExpNorm')
+        EstimOpt.MeaExpNorm = ones(EstimOpt.NVarMeaExp,1);
+    elseif length(EstimOpt.MeaExpNorm) ~= EstimOpt.NVarMeaExp && length(EstimOpt.MeaExpNorm) ~= 1
+        cprintf(rgb('DarkOrange'), 'WARNING: Explanatory measurement variables normalization options (EstimOpt.MeaExpNorm) incorrect - variables not normalized \n')
+    elseif length(EstimOpt.MeaExpNorm) == 1
+        EstimOpt.MeaExpNorm = EstimOpt.MeaExpNorm(ones(EstimOpt.NVarMeaExp,1),1);
+    end
+    if any(EstimOpt.MeaExpNorm > 0)
+        meanx = mean(INPUT.Xmea_exp);
+        stdx = std(INPUT.Xmea_exp);
+        INPUT.Xmea_exp(:,EstimOpt.MeaExpNorm == 1) = (INPUT.Xmea_exp(:,EstimOpt.MeaExpNorm == 1) - meanx(ones(size(INPUT.Xmea_exp,1),1),EstimOpt.MeaExpNorm == 1))./stdx(ones(size(INPUT.Xmea_exp,1),1),EstimOpt.MeaExpNorm == 1);
+    end
 end
 
 

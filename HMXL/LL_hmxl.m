@@ -93,9 +93,9 @@ else
     b_mtx = ba + bl*LV + VC*err_sliced(1:NVarA,:); % NVarA x NRep*NP
 end  
 
-if sum(Dist==1) > 0; % Log - normal
+if sum(Dist==1) > 0 % Log - normal
     b_mtx(Dist==1,:) = exp(b_mtx(Dist == 1,:));
-elseif sum(Dist==2) > 0; % Spike       
+elseif sum(Dist==2) > 0 % Spike       
     b_mtx(Dist==2,:) = max(b_mtx(Dist==2,:),0);
 end
 
@@ -148,8 +148,8 @@ if nargout == 1 % function value only
     l = 0;
 
     if NVarMeaExp > 0
-        Xmea_exp = reshape(Xmea_exp,1,NP,NVarMeaExp);
-        Xmea_exp = reshape(Xmea_exp(ones(NRep,1),:,:),NP*NRep,NVarMeaExp);
+        Xmea_exp = reshape(Xmea_exp,[1,NP,NVarMeaExp]);
+        Xmea_exp = reshape(Xmea_exp(ones(NRep,1),:,:),[NP*NRep,NVarMeaExp]);
     end
     for i = 1:size(Xmea,2)
         if MeaSpecMatrix(i) == 0 % OLS
@@ -345,7 +345,7 @@ else % function value + gradient
 
     LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:),NLatent,NRep,NP,NVarStr); % Latent x NRep x NP x NVarstr
     LV_der = permute(LV_der,[3 2 4 1]); % NP x NRep x NVarstr x Latent
-    LV_expand = permute(reshape(LV',NRep,NP,NLatent),[2 1 3])  ; 
+    LV_expand = permute(reshape(LV',NRep,NP,NLatent),[2 1 3]); 
     
     
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
@@ -642,7 +642,6 @@ else % function value + gradient
                 end
             end
             
-
             L_mea = L_mea.*L;
             l = l+k+size(X,2);   
         elseif MeaSpecMatrix(i) == 3 % POISS
@@ -659,7 +658,7 @@ else % function value + gradient
                 L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam);
                 L = L./min(gamma(Xmea(:,i*ones(NRep,1))+1),realmax);
             else
-                L =exp(fit.*Xmea(:,i*ones(NRep,1))-lam-gammaln(Xmea(:,i*ones(NRep,1))+1));
+                L = exp(fit.*Xmea(:,i*ones(NRep,1))-lam-gammaln(Xmea(:,i*ones(NRep,1))+1));
             end
             L_mea = L_mea.*L;
             grad_tmp = Xmea(:,i*ones(NRep,1)) - lam;
@@ -817,7 +816,7 @@ else % function value + gradient
                 L(~IndxZIP,:) = (1-pzip(~IndxZIP,:)).*exp(gammaln(theta+Xmea(~IndxZIP,i*ones(NRep,1))) - gammaln(Xmea(~IndxZIP,i*ones(NRep,1))+1)-gammaln(theta));
             end
             L(~IndxZIP,:) = L(~IndxZIP,:).*(u(~IndxZIP,:).^theta).*((1-u(~IndxZIP,:)).^Xmea(~IndxZIP,i*ones(NRep,1)));
-            L_mea = L_mea.*L; ...
+            L_mea = L_mea.*L; 
           
             % Calculations for gradient 
             grad_tmp1 = zeros(NP, NRep);

@@ -329,20 +329,37 @@ INPUT.YY = reshape(INPUT.YYY(:,:,ones(EstimOpt.NClass,1)),EstimOpt.NAlt, EstimOp
 INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
 
 INPUT.Xstr = double(INPUT.Xstr(1:EstimOpt.NAlt*EstimOpt.NCT:end,:));
-if isfield(EstimOpt, 'StrNorm')
-    if length(EstimOpt.StrNorm) ~= EstimOpt.NVarstr
-        cprintf(rgb('DarkOrange'), 'WARNING: Structural variables normalization options (EstimOpt.StrNorm) incorrect - variables not normalized \n')
-    else
-        meanx = mean(INPUT.Xstr);
-        stdx = std(INPUT.Xstr);
-        INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - meanx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1))./stdx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1);
-    end
+% normalize explanatory variables for structural equations:
+if ~isfield(EstimOpt,'StrNorm')
+    EstimOpt.StrNorm = ones(EstimOpt.NVarStr,1);
+elseif length(EstimOpt.StrNorm) ~= EstimOpt.NVarStr && length(EstimOpt.StrNorm) ~= 1
+    cprintf(rgb('DarkOrange'), 'WARNING:  Structural variables normalization options (EstimOpt.StrNorm) incorrect - variables not normalized \n')
+elseif length(EstimOpt.StrNorm) == 1
+    EstimOpt.StrNorm = EstimOpt.StrNorm(ones(EstimOpt.NVarStr,1),1);
+end
+if any(EstimOpt.StrNorm > 0)
+    meanx = mean(INPUT.Xstr);
+    stdx = std(INPUT.Xstr);
+    INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - meanx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1))./stdx(ones(size(INPUT.Xstr,1),1),EstimOpt.StrNorm == 1);
 end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
-if EstimOpt.NVarmea_exp > 0
-    INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+if EstimOpt.NVarMeaExp > 0
+    INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);  
+    % normalize explanatory variables for measurement equations:
+    if ~isfield(EstimOpt, 'MeaExpNorm')
+        EstimOpt.MeaExpNorm = ones(EstimOpt.NVarMeaExp,1);
+    elseif length(EstimOpt.MeaExpNorm) ~= EstimOpt.NVarMeaExp && length(EstimOpt.MeaExpNorm) ~= 1
+        cprintf(rgb('DarkOrange'), 'WARNING: Explanatory measurement variables normalization options (EstimOpt.MeaExpNorm) incorrect - variables not normalized \n')
+    elseif length(EstimOpt.MeaExpNorm) == 1
+        EstimOpt.MeaExpNorm = EstimOpt.MeaExpNorm(ones(EstimOpt.NVarMeaExp,1),1);
+    end
+    if any(EstimOpt.MeaExpNorm > 0)
+        meanx = mean(INPUT.Xmea_exp);
+        stdx = std(INPUT.Xmea_exp);
+        INPUT.Xmea_exp(:,EstimOpt.MeaExpNorm == 1) = (INPUT.Xmea_exp(:,EstimOpt.MeaExpNorm == 1) - meanx(ones(size(INPUT.Xmea_exp,1),1),EstimOpt.MeaExpNorm == 1))./stdx(ones(size(INPUT.Xmea_exp,1),1),EstimOpt.MeaExpNorm == 1);
+    end
 end
 
 
