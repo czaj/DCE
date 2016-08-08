@@ -562,7 +562,7 @@ end
 
 
 if isfield(EstimOpt,'Seed1') == 1
-	rng(EstimOpt.Seed1);
+	%rng(EstimOpt.Seed1);
 end
 
 cprintf('Simulation with ');
@@ -720,7 +720,8 @@ end
 
 Results.LL = -LL;
 
-R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,[],INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
+%R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,[],INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
+R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm, INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
 Results.b0_old = b0;
 
 if EstimOpt.HessEstFix == 1
