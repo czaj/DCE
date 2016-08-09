@@ -69,6 +69,11 @@ else
 end
 EstimOpt.NVarC = size(INPUT.Xc,2); % no. of variables explaining class probabilities
 
+if isfield(INPUT, 'Xs') == 0 || numel(INPUT.Xs) == 0
+    INPUT.Xs = zeros(size(INPUT.Y,1),0);
+end    
+EstimOpt.NVarS = size(INPUT.Xs,2); % no. of variables explaining class probabilities  
+
 if isfield(EstimOpt, 'ClassScores') == 0
    EstimOpt.ClassScores = 0; 
 end
@@ -111,6 +116,14 @@ if EstimOpt.NVarC > 1
 else
     EstimOpt.NamesC = {'Cons'};
 end
+if EstimOpt.NVarS > 0
+    if isfield(EstimOpt,'NamesS') == 0 || isempty(EstimOpt.NamesS) || length(EstimOpt.NamesS) ~= EstimOpt.NVarS
+        EstimOpt.NamesS = (1:EstimOpt.NVarS)';
+        EstimOpt.NamesS = cellstr(num2str(EstimOpt.NamesS));
+    elseif size(EstimOpt.NamesS,1) ~= EstimOpt.NVarS
+        EstimOpt.NamesS = EstimOpt.NamesS';
+    end
+end
 
 if ~isfield(EstimOpt,'BActiveClass') || isempty(EstimOpt.BActiveClass) || sum(EstimOpt.BActiveClass == 0) == 0
     EstimOpt.BActiveClass = ones(EstimOpt.NVarA,1);
@@ -127,7 +140,7 @@ end
 EstimOpt.jitter1 = 1.1; % Jittering parameter (relative) for MNL starting values (attributes)
 EstimOpt.jitter2 = 0.1; % Jittering parameter (absolute) for class probabilities starting values
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NClass-1)*EstimOpt.NVarC
+if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass + (EstimOpt.NClass-1)*EstimOpt.NVarC
     b0 = B_backup(:);
     if EstimOpt.Display == 1
         disp('Using the starting values from Backup')
@@ -135,7 +148,7 @@ if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt
 elseif isfield(Results_old,'LC') && isfield(Results_old.LC,'b0') % starting values provided
     Results_old.LC.b0_old = Results_old.LC.b0(:);
     Results_old.LC = rmfield(Results_old.LC,'b0');
-    if length(Results_old.LC.b0_old) ~= EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NClass-1)*EstimOpt.NVarC
+    if length(Results_old.LC.b0_old) ~= (EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass + (EstimOpt.NClass-1)*EstimOpt.NVarC
         if EstimOpt.Display == 1
             cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
         end
@@ -150,7 +163,7 @@ if  ~exist('b0','var')
             disp('Using MNL results as starting values')
         end
         b0 = [Results_old.MNL.bhat((1:size(Results_old.MNL.bhat,1))'*ones(1,EstimOpt.NClass),:) .* ...
-            (EstimOpt.jitter1 .* unifrnd(0,ones(EstimOpt.NVarA.*EstimOpt.NClass,1))) ; ...
+            (EstimOpt.jitter1 .* unifrnd(0,ones((EstimOpt.NVarA+EstimOpt.NVarS).*EstimOpt.NClass,1))) ; ...
             EstimOpt.jitter2 + unifrnd(-1,ones(EstimOpt.NVarC.*(EstimOpt.NClass-1),1))];    
     else
             error('No starting values available - run MNL first')
@@ -303,6 +316,7 @@ end
 
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 
+
 INPUT.YY = reshape(INPUT.Y,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP);...
 INPUT.YY = INPUT.YY(:,[1:size(INPUT.YY,2)]'*ones(1,EstimOpt.NClass)); %NAlt x NCT*NP*NClass
 
@@ -331,7 +345,7 @@ end
 
 %% ESTIMATION
 
-LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,INPUT.W, EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,INPUT.W, EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0  
     
     if EstimOpt.HessEstFix == 0
@@ -362,7 +376,7 @@ end
 Results.LL = -LL;
 Results.b0_old = b0;
 
-Results.LLdetailed = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat);
+Results.LLdetailed = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 
 if any(INPUT.MissingInd == 1) % In case of some missing data
@@ -376,16 +390,16 @@ end
 
 
 if EstimOpt.ClassScores ~= 0 
-    Results.ClassScores = BayesProbs(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat);
+    Results.ClassScores = BayesProbs(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
 end
 
 if EstimOpt.HessEstFix == 1
-	f = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,B),INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+	f = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
+    Results.jacobian = numdiff(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B),INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) sum(INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,B)), Results.bhat);
+    Results.hess = hessian(@(B) sum(INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B)), Results.bhat);
 end
 
 % if sum(EstimOpt.BActive == 0) > 0
@@ -419,10 +433,10 @@ Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
-           [~, Results.jacobian] = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat);
+           [~, Results.jacobian] = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
            Results.jacobian = Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
     else
-        Results.jacobian = numdiff(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
     end
     RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
@@ -453,12 +467,16 @@ else
    Results.DetailsA = [reshape(Bclass, EstimOpt.NClass*EstimOpt.NVarA,1), reshape(stdclass, EstimOpt.NClass*EstimOpt.NVarA,1), pv(reshape(Bclass, EstimOpt.NClass*EstimOpt.NVarA,1), reshape(stdclass, EstimOpt.NClass*EstimOpt.NVarA,1))];
    l = EstimOpt.NVarA + (EstimOpt.NClass - 1)*sum(EstimOpt.BActiveClass,1);
 end
+if EstimOpt.NVarS > 0
+    Results.DetailsS = [Results.bhat(l+1:l+EstimOpt.NClass*EstimOpt.NVarS), Results.std(l+1:l+EstimOpt.NClass*EstimOpt.NVarS), pv(Results.bhat(l+1:l+EstimOpt.NClass*EstimOpt.NVarS), Results.std(l+1:l+EstimOpt.NClass*EstimOpt.NVarS))];
+    l = l+EstimOpt.NClass*EstimOpt.NVarS;
+end
 Results.DetailsV = [Results.bhat(l+1:end), Results.std(l+1:end), pv(Results.bhat(l+1:end), Results.std(l+1:end))];
 
 if sum(EstimOpt.BActiveClass == 0,1) == 0
-    bclass = reshape([Results.bhat(EstimOpt.NVarA*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);	
+    bclass = reshape([Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);	
 else
-	bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
+	bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
     Results.bhat = [Results.DetailsA(:,1);Results.DetailsV(:,1)];
 end
 
@@ -467,11 +485,15 @@ Vsum = sum(V,2); ...
 Results.PClass = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1); %1 x NClass
 clear bclass l stdclass i f V Vsum
 
-Results.R = [Results.DetailsA; Results.DetailsV; [Results.PClass',zeros(size(Results.PClass')),zeros(size(Results.PClass'))]];
+if EstimOpt.NVarS > 0
+    Results.R = [Results.DetailsA; Results.DetailsS; Results.DetailsV; [Results.PClass',zeros(size(Results.PClass')),zeros(size(Results.PClass'))]];
+else
+    Results.R = [Results.DetailsA; Results.DetailsV; [Results.PClass',zeros(size(Results.PClass')),zeros(size(Results.PClass'))]];
+end
 
 Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL) + 2*EstimOpt.params*(EstimOpt.params+1)/(EstimOpt.NObs-EstimOpt.params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.params];
 
-Results.R_out = cell(3+EstimOpt.NVarA + 2 + EstimOpt.NVarC + 3 + 2 + 7, 1 + 3*EstimOpt.NClass);  
+Results.R_out = cell(3+EstimOpt.NVarA + 2 + EstimOpt.NVarC + 3 + 2 + 7 +(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS), 1 + 3*EstimOpt.NClass);  
 Results.R_out(1,1) = {'LC'};
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
 NClasses = {'Class 1','Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9','Class 10'};
@@ -483,18 +505,26 @@ Results.R_out(3,:) = headx;
 Results.R_out(4:(EstimOpt.NVarA+3),1) = EstimOpt.NamesA;
 for i = 1: EstimOpt.NClass
     Results.R_out(4:(EstimOpt.NVarA+3),2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,:));
+    if EstimOpt.NVarS > 0
+        Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA+5+EstimOpt.NVarS,2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarS+1:i*EstimOpt.NVarS,:));
+    end
 end
-Results.R_out(EstimOpt.NVarA+4,1) = {'Latent class probability model'};
-Results.R_out(EstimOpt.NVarA+5,1:end-3) = headx(1:end-3);
-Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA+5+EstimOpt.NVarC,1) = EstimOpt.NamesC;
+Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0),1) = {'Explanatory variables of scale'};
+Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2,:) = headx;
+if EstimOpt.NVarS > 0
+    Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2+1:EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2+EstimOpt.NVarS,1) = EstimOpt.NamesS;
+end
+Results.R_out(EstimOpt.NVarA+4+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1) = {'Latent class probability model'};
+Results.R_out(EstimOpt.NVarA+5+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1:end-3) = headx(1:end-3);
+Results.R_out(EstimOpt.NVarA+6+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS):EstimOpt.NVarA+5+EstimOpt.NVarC+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1) = EstimOpt.NamesC;
 for i = 1: EstimOpt.NClass-1
-    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA+5+EstimOpt.NVarC,2+ 3*(i-1):1+3*i) = num2cell(Results.DetailsV((i-1)*EstimOpt.NVarC+1:i*EstimOpt.NVarC,:));
+    Results.R_out(EstimOpt.NVarA+6+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS):EstimOpt.NVarA+5+EstimOpt.NVarC+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),2+ 3*(i-1):1+3*i) = num2cell(Results.DetailsV((i-1)*EstimOpt.NVarC+1:i*EstimOpt.NVarC,:));
 end
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+2,1) = {'Average class probabilities'};
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+3,1:EstimOpt.NClass) = num2cell(Results.PClass);
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+5,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+6:end,2) = num2cell(Results.stats);
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+2+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1) = {'Average class probabilities'};
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+3+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1:EstimOpt.NClass) = num2cell(Results.PClass);
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+5+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1) = {'Model characteristics'};
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+6+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS):end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+6+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS):end,2) = num2cell(Results.stats);
 
 
 
@@ -504,8 +534,15 @@ if EstimOpt.Display == 1
         disp(num2str(j,'Latent class parameters %1.0f'));
         disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
         disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)',num2str(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,3)), num2str(Results.DetailsA(((j-1)*EstimOpt.NVarA+1):j*EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
+        if EstimOpt.NVarS > 0
+            disp(' ')
+            disp('Scale explanatory variables');
+            disp(['var.', blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
+            disp([char(EstimOpt.NamesS),blanks(EstimOpt.NVarS)',num2str(Results.DetailsS(((j-1)*EstimOpt.NVarS+1):j*EstimOpt.NVarS,1),'%8.4f'), star_sig(Results.DetailsS(((j-1)*EstimOpt.NVarS+1):j*EstimOpt.NVarS,3)), num2str(Results.DetailsS(((j-1)*EstimOpt.NVarS+1):j*EstimOpt.NVarS,2:3),'%8.4f %8.4f')])
+        
+        end
     end
-
+    
     for j = 1:EstimOpt.NClass -1 
         disp(' ')
         disp(num2str(j,'Latent class probability model %1.0f'))
