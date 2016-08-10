@@ -1,9 +1,9 @@
-function [LL,g,h]= LL_lc_MATlike(YY,Xa,Xc,MissingInd,W,EstimOpt,OptimOpt,b0)
+function [LL,g,h]= LL_lc_MATlike(YY,Xa,Xc,Xs,MissingInd,W,EstimOpt,OptimOpt,b0)
 
 % save tmp_LL_lc_MATlike;
 % return
 
-LLfun = @(B) LL_lc(YY,Xa,Xc,MissingInd,EstimOpt,B);
+LLfun = @(B) LL_lc(YY,Xa,Xc,Xs,MissingInd,EstimOpt,B);
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
