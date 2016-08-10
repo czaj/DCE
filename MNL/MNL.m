@@ -99,11 +99,9 @@ if isfield(EstimOpt,'SCEXP')==0
 end
 EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 
-if isfield(INPUT,'Xm') == 0 || (isfield(INPUT,'Xm') && isempty(INPUT.Xm))
+if isfield(INPUT, 'Xm') == 0 || size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
     INPUT.Xm = zeros(size(INPUT.Y,1),0);
-elseif size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
-    error('Incorrect size of Xm matrix')
-end
+end 
 EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
 
 
@@ -209,14 +207,14 @@ end
 %% Optimization Options
 
 
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
-% 	EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-    if EstimOpt.Display ~= 0
-%         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - missing alternatives not supported by analytical gradient \n')
-    end
-end
+% if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+% % 	EstimOpt.NumGrad = 1;
+%     OptimOpt.GradObj = 'off';
+%     if EstimOpt.Display ~= 0
+% %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
+%         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - missing alternatives not supported by analytical gradient \n')
+%     end
+% end
 
 if isfield(EstimOpt,'BActive')
 	EstimOpt.BActive = EstimOpt.BActive(:)';
@@ -391,7 +389,7 @@ LLfun = @(B) LL_mnl_MATlike(INPUT.Y, INPUT.Xa,INPUT.Xm, INPUT.Xs,INPUT.W, EstimO
 
 if EstimOpt.ConstVarActive == 0  
     
-    if EstimOpt.HessEstFix == 0        
+    if EstimOpt.HessEstFix == 0
         [Results.bhat, LL, Results.exitf, Results.output, Results.g, Results.hess] = fminunc(LLfun, b0, OptimOpt);
     else
         [Results.bhat, LL, Results.exitf, Results.output, Results.g] = fminunc(LLfun, b0, OptimOpt);
@@ -476,7 +474,7 @@ end
 
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
-           [~, Results.jacobian] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
+           [~, Results.jacobian] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,Results.bhat);
            Results.jacobian = -Results.jacobian.*INPUT.W(:, ones(1,size(Results.jacobian,2)));
     else
         Results.jacobian = numdiff(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xs,EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
