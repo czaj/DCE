@@ -1,9 +1,9 @@
-function [LL,g,h] = LL_lcmxl_MATlike(YY,Xa,Xc,err_sliced,W,EstimOpt,OptimOpt,b0)
+function [LL,g,h] = LL_lcmxl_MATlike(YY,Xa,Xc,Xs,err_sliced,W,EstimOpt,OptimOpt,b0)
 
 % save tmp_LL_lcmxl_MATlike
 % return
 
-LLfun = @(B) LL_lcmxl(YY,Xa,Xc,err_sliced,EstimOpt,B);
+LLfun = @(B) LL_lcmxl(YY,Xa,Xc,Xs,err_sliced,EstimOpt,B);
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0

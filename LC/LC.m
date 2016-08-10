@@ -509,9 +509,10 @@ for i = 1: EstimOpt.NClass
         Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA+5+EstimOpt.NVarS,2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarS+1:i*EstimOpt.NVarS,:));
     end
 end
-Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0),1) = {'Explanatory variables of scale'};
-Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2,:) = headx;
+
 if EstimOpt.NVarS > 0
+    Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0),1) = {'Explanatory variables of scale'};
+    Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2,:) = headx;
     Results.R_out(EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2+1:EstimOpt.NVarA+3 + (EstimOpt.NVarS>0)*2+EstimOpt.NVarS,1) = EstimOpt.NamesS;
 end
 Results.R_out(EstimOpt.NVarA+4+(EstimOpt.NVarS>0)*(2+EstimOpt.NVarS),1) = {'Latent class probability model'};
