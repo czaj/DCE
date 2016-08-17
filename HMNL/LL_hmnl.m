@@ -436,7 +436,7 @@ else % function value + gradient
             
         end;
     else 
-        if NVarS > 0
+        if NVarS > 0 || ScaleLV == 1
            YCT = reshape(sum(reshape(~isnan(Y), NAlt, NCT, NP),1) ~= 0, NCT, NP); 
         else
             YCT = zeros(0,NP);
@@ -459,7 +459,7 @@ else % function value + gradient
             if WTP_space == 0   
                 X_hat = sum(reshape(U_prob(:,ones(1,NVarA,1),:).* Xa_n(YnanInd,:,ones(NRep,1)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1); 
                 F = bsxfun(@minus,Xa_n(Yy_n,:,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep])); %NCT x NVarA x NRep 
-                if NVarS > 0
+                if NVarS > 0 || ScaleLV == 1
                    bss = reshape(b_mtx_n,1,NVarA, NRep);
                    Fs = sum(bsxfun(@times, F, bss),2); % NCT x 1 x NRep
                    if ScaleLV == 1
@@ -468,15 +468,23 @@ else % function value + gradient
                       FsX = sum(Fs,1); % 1 x 1 x NRep
                       FsLV = reshape(sum(FsLV,1), NLatent, NRep);
                    end
-                   Xs_n = Xs(:,:,n);
-                   Fs = bsxfun(@times, Fs, Xs_n(YCT(:,n),:)); % NCT x NVarS x NRep
-                   Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   if NVarS > 0
+                       Xs_n = Xs(:,:,n);
+                       Fs = bsxfun(@times, Fs, Xs_n(YCT(:,n),:)); % NCT x NVarS x NRep
+                       Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   end
                 end
                 if ScaleLV == 1
                    F = bsxfun(@times, ScaleLVX(:,n,:), F);
                 end
                 sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); %NVarA x NRep     
-                sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_n(MNLDist==1,:); 
+                if ScaleLV == 1 && any(MNLDist == 1)
+                    b_mtx_grad_n = b_mtx_grad(:,:,n);
+                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_grad_n(MNLDist==1,:);
+                else
+                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_n(MNLDist==1,:);
+                end
+                %sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_n(MNLDist==1,:); 
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep);

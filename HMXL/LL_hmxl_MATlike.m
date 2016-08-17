@@ -1,6 +1,6 @@
-function [LL,g,h] = LL_hmxl_MATlike(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,W,EstimOpt,OptimOpt,b0)
+function [LL,g,h] = LL_hmxl_MATlike(Y,Xa,Xm,Xs, X_str,X_mea,Xmea_exp, err_sliced,W,EstimOpt,OptimOpt,b0)
 
-LLfun = @(B) LL_hmxl(Y,Xa,Xm, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
+LLfun = @(B) LL_hmxl(Y,Xa,Xm,Xs, X_str,X_mea,Xmea_exp, err_sliced,EstimOpt,B);
 
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0

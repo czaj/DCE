@@ -1,4 +1,4 @@
-function [f,g] = LL_hmxl(Y,Xa,Xm,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
+function [f,g] = LL_hmxl(Y,Xa,Xm,Xs,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 
 % save tmp_LL_hmxl
 % return
@@ -21,7 +21,9 @@ MeaExpMatrix = EstimOpt.MeaExpMatrix;
 Dist = EstimOpt.Dist;
 FullCov = EstimOpt.FullCov;
 RealMin = EstimOpt.RealMin;
-
+ScaleLV = EstimOpt.ScaleLV;
+NVarS = EstimOpt.NVarS; 
+NVarM = EstimOpt.NVarM; 
 b_mtx_grad = [];
 
 %NAltMiss = NAltMiss; 
@@ -35,19 +37,21 @@ if FullCov == 0
     bv = B(NVarA+1:2*NVarA);
     %VC = diag(bv.^2);
     VC = diag(bv);
-    bm = reshape(B(2*NVarA+1:NVarA*(EstimOpt.NVarM+2)),NVarA,EstimOpt.NVarM); % b mean covariates
-    bl = reshape(B((2+EstimOpt.NVarM)*NVarA+1:NVarA*(NLatent+2+EstimOpt.NVarM)),NVarA,NLatent); % b interakcji z LV
-    bstr = reshape(B(NVarA*(NLatent+2+EstimOpt.NVarM)+1:(NVarA+NVarStr)*NLatent+(2+EstimOpt.NVarM)*NVarA),NVarStr,NLatent); % b równania struktury
-    bmea = B((NVarA+NVarStr)*NLatent+(2+EstimOpt.NVarM)*NVarA+1:end); % b measurement    
+    bm = reshape(B(2*NVarA+1:NVarA*(NVarM+2)),NVarA,NVarM); % b mean covariates
+    bl = reshape(B((2+NVarM)*NVarA+1:NVarA*(NLatent+2+NVarM)),NVarA,NLatent); % b interakcji z LV
+    bs = B(NVarA*(NLatent+NVarM+2)+1:NVarA*(NLatent+NVarM+2)+NVarS); % b scale
+    bstr = reshape(B(NVarA*(NLatent+2+NVarM)+NVarS+1:(NVarA+NVarStr)*NLatent+(2+NVarM)*NVarA+NVarS),NVarStr,NLatent); % b równania struktury
+    bmea = B((NVarA+NVarStr)*NLatent+(2+NVarM)*NVarA+NVarS+1:end); % b measurement    
 elseif FullCov == 1
     ba = B(1:NVarA); % b atrybutów
     bv = B(NVarA+1:NVarA+sum(1:NVarA,2));
     VC = tril(ones(NVarA));
     VC(VC==1) = bv;
-    bm = reshape(B(NVarA+sum(1:NVarA,2)+1:NVarA*(EstimOpt.NVarM+1)+sum(1:NVarA,2)),NVarA,EstimOpt.NVarM); % b mean covariates
-    bl = reshape(B(NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA,2)+1:NVarA*(NLatent+1+EstimOpt.NVarM)+sum(1:NVarA,2)),NVarA,NLatent); % b interakcji z LV
-    bstr = reshape(B(NVarA*(NLatent++EstimOpt.NVarM+1)+sum(1:NVarA,2)+1:(NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA,2)),NVarStr,NLatent); % b równania struktury
-    bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA,2)+1:end); % b measurement
+    bm = reshape(B(NVarA+sum(1:NVarA,2)+1:NVarA*(NVarM+1)+sum(1:NVarA,2)),NVarA,NVarM); % b mean covariates
+    bl = reshape(B(NVarA*(1+NVarM)+sum(1:NVarA,2)+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)),NVarA,NLatent); % b interakcji z LV
+    bs = B(NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)+NVarS); % b scale
+    bstr = reshape(B(NVarA*(NLatent+NVarM+1)+sum(1:NVarA,2)+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA,2)+NVarS),NVarStr,NLatent); % b równania struktury
+    bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA,2)+NVarS+1:end); % b measurement
 elseif FullCov == 2
     ba = B(1:NVarA); % b atrybutów
     bv = B(NVarA+1:NVarA+sum(1:NVarA+NLatent,2)-NLatent);
@@ -62,9 +66,17 @@ elseif FullCov == 2
     VC(NVarA+1:end,:) = VC(NVarA+1:end,:)./NormVar(:,ones(NVarA+NLatent,1));
     bm = reshape(B(NVarA+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(EstimOpt.NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent),NVarA,EstimOpt.NVarM); % b mean covariates
     bl = reshape(B(NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NLatent+1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent),NVarA,NLatent); % b interakcji z LV
-    bstr = reshape(B(NVarA*(NLatent+EstimOpt.NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent+1:(NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent),NVarStr,NLatent); % b równania struktury
-    bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:end); % b measurement
+    bs = B(NVarA*(NLatent+1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NLatent+1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS); % b scale
+    bstr = reshape(B(NVarA*(NLatent+EstimOpt.NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS),NVarStr,NLatent); % b równania struktury
+    bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+EstimOpt.NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS+1:end); % b measurement
     err = VC*err_sliced;
+end
+if ScaleLV == 1
+   bsLV = bs(NVarS - NLatent+1:end)';
+   bs = bs(1:NVarS - NLatent); 
+   NVarS = NVarS - NLatent;
+else
+    bsLV = zeros(1,0);
 end
 
 LV_tmp = Xstr*bstr; % NP x Latent
@@ -105,11 +117,25 @@ if WTP_space > 0
     end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:);
 elseif nargout == 2
-    b_mtx_grad = zeros(0,0,NP);
+    if ScaleLV == 1 && any(Dist == 1)
+        b_mtx_grad = reshape(b_mtx,NVarA,NRep,NP);% needed for gradient calculation in WTP_space
+    else
+        b_mtx_grad = zeros(0,0,NP); 
+    end
+end
+if ScaleLV == 1
+    ScaleLVX =exp(bsLV*LV);
+    b_mtx = bsxfun(@times,ScaleLVX, b_mtx); 
+    ScaleLVX = permute(reshape(ScaleLVX, 1,NRep, NP), [1 3 2]);
+else
+    ScaleLVX = zeros(0, NP, 0);
 end
 
 b_mtx_sliced = reshape(b_mtx,[NVarA,NRep,NP]); % NVarA x NRep x NP
-
+if NVarS > 0
+   Scale = reshape(exp(Xs*bs), NAlt*NCT, 1, NP);
+   Xa = bsxfun(@times, Xa, Scale);
+end
 
 probs = zeros(NP,NRep);
     
@@ -299,6 +325,7 @@ else % function value + gradient
     
 %     gmnl = zeros(NP,NRep,NVarA,(1+NLatent)); % gradient for mnl parameters
     gmnl = zeros(NP, NRep, NVarA); % gradient for mnl parameters
+    gs = zeros(NP, NRep, NVarS+(ScaleLV == 1)*NLatent);  
     if FullCov == 0
         gvar = zeros(NP,NRep,NVarA); % gradient for standard deviations parameters
         %VC2 = reshape(2*diag(B(NVarA+1:NVarA*2))*err_sliced(1:NVarA,:),NVarA,NRep,NP);
@@ -346,7 +373,15 @@ else % function value + gradient
     LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:),NLatent,NRep,NP,NVarStr); % Latent x NRep x NP x NVarstr
     LV_der = permute(LV_der,[3 2 4 1]); % NP x NRep x NVarstr x Latent
     LV_expand = permute(reshape(LV',NRep,NP,NLatent),[2 1 3]); 
-    
+    if NVarS > 0
+        Xs = reshape(Xs(1:NAlt:end,:), NCT, NP, NVarS);
+        Xs = permute(Xs, [1 3 2]);
+    else
+        Xs = zeros(0,0, NP);
+    end
+    if ScaleLV > 0
+       bsLV = bsLV'; 
+    end
     
     if any(isnan(Xa(:))) == 0 % faster version for complete dataset
             
@@ -366,16 +401,32 @@ else % function value + gradient
             
             %XfitLV = Xa(:,:,n)*bl; %NAlt * NCT x Latent
             if WTP_space == 0   
-%                 X_hat = sum(reshape(U_prob(:,ones(1,NVarA,1),:).* Xa_n(:,:,ones(NRep,1)),NAlt,NCT,NVarA,NRep),1);
                 X_hat = sum(reshape(bsxfun(@times,U_prob,Xa_n),[NAlt,NCT,NVarA,NRep]),1);
-
-                if NCT ~= 1
-                    F = Xa_n(Yy_n,:,ones(NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
-                    sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep                   
+                F = bsxfun(@minus,Xa_n(Yy_n,:,:),reshape(X_hat,[NCT,NVarA,NRep])); %NCT x NVarA x NRep 
+                if NVarS > 0 || ScaleLV == 1
+                   bss = reshape(b_mtx_n,1,NVarA, NRep);
+                   Fs = sum(bsxfun(@times, F, bss),2); % NCT x 1 x NRep
+                   if ScaleLV == 1
+                      LV_tmp = permute(LV_expand(n,:,:), [1 3 2]); % 1 x NLatent x NRep
+                      FsLV = bsxfun(@times, Fs, LV_tmp);
+                      FsX = sum(Fs,1); % 1 x 1 x NRep
+                      FsLV = reshape(sum(FsLV,1), NLatent, NRep);
+                   end
+                   if NVarS > 0
+                       Fs = bsxfun(@times, Fs, Xs(:,:,n)); % NCT x NVarS x NRep
+                       Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   end
+                end
+                if ScaleLV == 1
+                   F = bsxfun(@times, ScaleLVX(:,n,:), F);
+                end
+                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); 
+                if ScaleLV == 1 && any(Dist == 1)
+                    b_mtx_grad_n = b_mtx_grad(:,:,n);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_grad_n(Dist==1,:);
                 else
-                    sumFsqueezed = squeeze(Xa_n(Yy_n,:,ones(NRep,1))) - squeeze(X_hat); %NVarA x NRep 
-                end                   
-                sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_n(Dist==1,:);
+                end
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x Latent
             else
                 b_mtx_wtp = reshape(b_mtx_n,1,NVarA,NRep);
@@ -399,8 +450,24 @@ else % function value + gradient
                     X_hat2 = sum(reshape(U_prob(:,ones(1,WTP_space),:).* pX,NAlt,NCT,WTP_space,NRep),1);
                 end
                 F2 = pX(Y(:,n) == 1,:,:) - squeeze(X_hat2); %NCT x WTP_space x NRep  
-               
-                sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ]; %NVarA x NRep
+                if NVarS > 0 || ScaleLV == 1
+                   bss = reshape(b_mtx_n(NVarA-WTP_space+1:end,:),1,WTP_space, NRep);
+                   Fs = sum(bsxfun(@times, reshape(F2, NCT, WTP_space, NRep), bss),2); % NCT x 1 x NRep
+                   if ScaleLV == 1
+                      LV_tmp = permute(LV_expand(n,:,:), [1 3 2]); % 1 x NLatent x NRep
+                      FsLV = bsxfun(@times, Fs, LV_tmp);
+                      FsX = sum(Fs,1); % 1 x 1 x NRep
+                      FsLV = reshape(sum(FsLV,1), NLatent, NRep);
+                   end
+                   if NVarS > 0
+                       Fs = bsxfun(@times, Fs, Xs(:,:,n)); % NCT x NVarS x NRep
+                       Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   end
+                end
+                if ScaleLV == 1
+                   F2 = bsxfun(@times, ScaleLVX(:,n,:), reshape(F2, NCT, WTP_space, NRep));
+                end
+                sumFsqueezed = [reshape(sum(F1,1),NVarA - WTP_space, NRep);reshape(sum(F2,1),WTP_space, NRep) ]; %NVarA x NRep
                 sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_grad_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x Latent
             end
@@ -408,12 +475,25 @@ else % function value + gradient
             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
 %             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
             gmnl(n,:,:) = sumFsqueezed;
+            if NVarS > 0 && ScaleLV == 0
+                gs(n,:,:) = Fs';
+            elseif NVarS > 0 && ScaleLV == 1
+                gs(n,:,:) = [Fs; FsLV]';
+            elseif NVarS == 0 && ScaleLV == 1
+                gs(n,:,:) = FsLV';
+            end
+            
             if FullCov == 2
                 gvarLV(n,:,:) = sumFsqueezed_LV(:,ones(NVarA,1)); % NRep x NVarA
             end
             sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:,ones(NVarStr,1)),[1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;
-        
+            if ScaleLV == 1
+                bsLVx = bsLV;
+                FsLV_tmp = FsX(ones(NLatent,1),:,:).*bsLVx(:,:, ones(1, NRep));
+                FsLV_tmp = permute(FsLV_tmp, [4 3 2 1]);
+                gstr(n,:,:,:) = bsxfun(@plus, gstr(n,:,:,:), FsLV_tmp);
+            end
             if FullCov == 0
                 gvar(n,:,:) = sumFsqueezed.*VC2(:,:,n)';
             else % FullCov = 1
@@ -422,6 +502,11 @@ else % function value + gradient
             end
         end;
     else
+        if NVarS > 0 || ScaleLV == 1
+           YCT = reshape(sum(reshape(~isnan(Y), NAlt, NCT, NP),1) ~= 0, NCT, NP); 
+        else
+            YCT = zeros(0,NP);
+        end
         parfor n = 1:NP
             YnanInd = ~isnan(Y(:,n));
             Xa_n = Xa(:,:,n);
@@ -439,13 +524,33 @@ else % function value + gradient
             U_prob = reshape(U_prob,NAltMiss(n)*NCTMiss(n),1,NRep); % NAlt*NCT x NVarA x NRep
             if WTP_space == 0   
                 X_hat = sum(reshape(U_prob(:,ones(1,NVarA,1),:).* Xa_n(YnanInd,:,ones(NRep,1)),NAltMiss(n),NCTMiss(n),NVarA,NRep),1);
-                if NCTMiss(n) ~= 1
-                    F = Xa_n(Yy_n,:,ones(NRep,1)) - squeeze(X_hat); %NCT x NVarA x NRep 
-                    sumFsqueezed = squeeze(sum(F,1)); %NVarA x NRep
+                F = bsxfun(@minus,Xa_n(Yy_n,:,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep])); %NCT x NVarA x NRep 
+                if NVarS > 0 || ScaleLV == 1
+                   bss = reshape(b_mtx_n,1,NVarA, NRep);
+                   Fs = sum(bsxfun(@times, F, bss),2); % NCT x 1 x NRep
+                   if ScaleLV == 1
+                      LV_tmp = permute(LV_expand(n,:,:), [1 3 2]); % 1 x NLatent x NRep
+                      FsLV = bsxfun(@times, Fs, LV_tmp);
+                      FsX = sum(Fs,1); % 1 x 1 x NRep
+                      FsLV = reshape(sum(FsLV,1), NLatent, NRep);
+                   end
+                   if NVarS > 0
+                       Xs_n = Xs(:,:,n);
+                       Fs = bsxfun(@times, Fs, Xs_n(YCT(:,n),:)); % NCT x NVarS x NRep
+                       Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   end
+                end
+                if ScaleLV == 1
+                   F = bsxfun(@times, ScaleLVX(:,n,:), F);
+                end
+                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); %NVarA x NRep  
+                if ScaleLV == 1 && any(Dist == 1)
+                    b_mtx_grad_n = b_mtx_grad(:,:,n);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_grad_n(Dist==1,:);
                 else
-                    sumFsqueezed = squeeze(Xa_n(Yy_n,:,ones(NRep,1))) - squeeze(X_hat); %NVarA x NRep 
-                end                   
-                sumFsqueezed(Dist ==1,:) = sumFsqueezed(Dist ==1,:).*b_mtx_n(Dist==1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_n(Dist==1,:);
+                end
+                %sumFsqueezed(Dist ==1,:) = sumFsqueezed(Dist ==1,:).*b_mtx_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x Latent
                 
             else
@@ -469,17 +574,48 @@ else % function value + gradient
                     end
                     X_hat2 = sum(reshape(U_prob(:,ones(1,WTP_space),:).* pX,NAltMiss(n),NCTMiss(n),WTP_space,NRep),1);
                     F2 = pX(Yy_n(YnanInd),:,:) - reshape(X_hat2,NCTMiss(n),WTP_space,NRep); %NCT x WTP x NRep 
-                end                
-                sumFsqueezed = [squeeze(sum(F1,1));squeeze(sum(F2,1)) ]; %NVarA x NRep            
+                end     
+                if NVarS > 0 || ScaleLV == 1
+                   bss = reshape(b_mtx_n(NVarA-WTP_space+1:end,:),1,WTP_space, NRep);
+                   Fs = sum(bsxfun(@times, reshape(F2, NCTMiss(n), WTP_space, NRep), bss),2); % NCT x 1 x NRep
+                   if ScaleLV == 1
+                      LV_tmp = permute(LV_expand(n,:,:), [1 3 2]); % 1 x NLatent x NRep
+                      FsLV = bsxfun(@times, Fs, LV_tmp);
+                      FsX = sum(Fs,1); % 1 x 1 x NRep
+                      FsLV = reshape(sum(FsLV,1), NLatent, NRep);
+                   end
+                   if NVarS > 0
+                       Xs_n = Xs(:,:,n);
+                       Fs = bsxfun(@times, Fs, Xs_n(YCT(:,n),:)); % NCT x NVarS x NRep
+                       Fs = reshape(sum(Fs,1), NVarS, NRep);
+                   end
+                end
+                if ScaleLV == 1
+                   F2 = bsxfun(@times, ScaleLVX(:,n,:), reshape(F2, NCTMiss(n), WTP_space, NRep));
+                end
+                sumFsqueezed = [reshape(sum(F1,1),NVarA - WTP_space, NRep);reshape(sum(F2,1),WTP_space, NRep) ]; %NVarA x NRep
                 sumFsqueezed(Dist ==1,:) = sumFsqueezed(Dist ==1,:).*b_mtx_grad_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x Latent
             end        
             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
 %             gmnl(n,:,:,:) = sumFsqueezed(:,:,ones(1+NLatent,1)); 
             gmnl(n,:,:) = sumFsqueezed;
+            if NVarS > 0 && ScaleLV == 0
+                gs(n,:,:) = Fs';
+            elseif NVarS > 0 && ScaleLV == 1
+                gs(n,:,:) = [Fs; FsLV]';
+            elseif NVarS == 0 && ScaleLV == 1
+                gs(n,:,:) = FsLV';
+            end
+            
             sumFsqueezed_LV = permute(sumFsqueezed_LV(:,:,ones(NVarStr,1)),[1 3 2]);
             gstr(n,:,:,:) = sumFsqueezed_LV;
-            
+            if ScaleLV == 1
+                bsLVx = bsLV;
+                FsLV_tmp = FsX(ones(NLatent,1),:,:).*bsLVx(:,:, ones(1, NRep));
+                FsLV_tmp = permute(FsLV_tmp, [4 3 2 1]);
+                gstr(n,:,:,:) = bsxfun(@plus, gstr(n,:,:,:), FsLV_tmp);
+            end
             if FullCov == 0
                 gvar(n,:,:) = sumFsqueezed.*VC2(:,:,n)';
             else % FullCov = 1
@@ -505,6 +641,9 @@ else % function value + gradient
     if NVarMeaExp > 0
         Xmea_exp = reshape(Xmea_exp,1,NP,NVarMeaExp);
         Xmea_exp = reshape(Xmea_exp(ones(NRep,1),:,:),NP*NRep,NVarMeaExp);
+    end
+    if ScaleLV == 1
+       NVarS = NVarS + NLatent; 
     end
     Xmea_exp_expand = permute(reshape(Xmea_exp,NRep,NP,NVarMeaExp),[2 1 3]);
 
@@ -902,7 +1041,13 @@ else % function value + gradient
     else
         gm = [];
     end
-
-    g = [g(:,1:NVarA),g2,gm,g(:,NVarA+1:end),g3,g4];
+    if NVarS > 0
+        gss = reshape(mean(bsxfun(@times, gs, probs),2), NP, NVarS);
+        %g = [g(:,1:NVarA*(2+NVarM+NLatent)), gss, g(:, NVarA*(2+NVarM+NLatent)+1:end)];
+    else
+        gss = [];
+    end
+    g = [g(:,1:NVarA),g2,gm,g(:,NVarA+1:end),gss,g3,g4];
+    
     g = -g./p(:,ones(1,length(B)));
 end

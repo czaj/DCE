@@ -678,8 +678,8 @@ end
 
 if EstimOpt.ScaleLV == 1 && EstimOpt.WTP_space > 0
     cprintf(rgb('DarkOrange'), 'WARNING: LV in scale cannot be identified in WTP-space with log-normal cost parameter unless there are some further constraints in the model\n')
-
 end
+
 if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
     OptimOpt.Hessian = 'off';
@@ -773,7 +773,7 @@ end
 Results.LL = -LL;
 
 %R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xstr,[],INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
-R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm, INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
+R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm,INPUT.Xs, INPUT.MissingInd, err_sliced,EstimOpt,Results.bhat, 0);
 Results.b0_old = b0;
 
 if EstimOpt.HessEstFix == 1
@@ -852,7 +852,6 @@ end
 
 if EstimOpt.NVarS > 0
     disp(' ')
-
     disp('Covariates of scale')
     disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
     disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)',num2str(Results.DetailsScale(:,1),'%8.4f'), star_sig(Results.DetailsScale(:,3)), num2str(Results.DetailsScale(:,2:3),'%8.4f %8.4f')])
