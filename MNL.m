@@ -610,7 +610,8 @@ if NVarMOld > 0
     Results.R_out(2,6:4:(2+NVarMOld*4)) = EstimOpt.NamesM;
     for i = 1:NVarMOld
         for c=1:EstimOpt.NVarA
-            Results.R_out(3+c,3+4*i) = make_stars(Results.DetailsM,4*i,c);
+%             Results.R_out(3+c,3+4*i) = make_stars(Results.DetailsM,4*i,c);
+% make_start is missing
         end
     end
 end
@@ -711,7 +712,7 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
                 outHessian = 'user-supplied, analytical, ';
             end
         else
-            outHessian(1:3) = ['built-in, ', num2str(OptimOpt.HessUpdate), ', '];
+%             outHessian(1:3) = ['built-in, ', num2str(OptimOpt.HessUpdate), ', '];
         end
         switch EstimOpt.HessEstFix
             case 0
