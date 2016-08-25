@@ -40,13 +40,13 @@ EstimOpt.NP = length(INPUT.Y)/EstimOpt.NCT/EstimOpt.NAlt; % 789; % Number of res
 [INPUT, Results, EstimOpt, OptimOpt] = DataCleanDCE(INPUT,EstimOpt);
 
 % EstimOpt.NRep = 1e3; % number of draws for numerical simulation
- OptimOpt.MaxIter = 100; % maximum number of iterations
+% OptimOpt.MaxIter = 100; % maximum number of iterations
 % OptimOpt.Algorithm = 'trust-region'; % 'quasi-newton'
- EstimOpt.NumGrad = 1; % 0
+% EstimOpt.NumGrad = 1; % 0
 % OptimOpt.GradObj = 'on'; % 'off'
 % OptimOpt.FinDiffType = 'central'; % 'forward'
- OptimOpt.Hessian = 'off'; % 'off'
-EstimOpt.HessEstFix = 4; % 0 = use optimization Hessian, 1 = use jacobian-based (BHHH) Hessian, 2 - use high-precision jacobian-based (BHHH) Hessian 3 - use numerical Hessian
+% OptimOpt.Hessian = 'off'; % 'off'
+EstimOpt.HessEstFix = 1; % 0 = use optimization Hessian, 1 = use jacobian-based (BHHH) Hessian, 2 - use high-precision jacobian-based (BHHH) Hessian 3 - use numerical Hessian
 
 
 %% ****************************     MNL     ****************************
