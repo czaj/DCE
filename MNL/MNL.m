@@ -597,20 +597,13 @@ headx = [head, repmat(head(1,2:5),1,NVarMOld+(EstimOpt.NVarNLT>0))];
 
 Results.R_out(3,:) = headx;
 Results.R_out(4:3+EstimOpt.NVarA,1:2) = [EstimOpt.NamesA, num2cell(Results.bhat(1:EstimOpt.NVarA))];
+Results.R_out(4:3+EstimOpt.NVarA,3) = star_sig_cell(pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA)));
 Results.R_out(4:3+EstimOpt.NVarA,4:5) = num2cell([Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))]);
-for i=1:EstimOpt.NVarA
-%    Results.R_out(3+i,3) = make_stars(pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA)),1,i);
-end
-
 
 if NVarMOld > 0
-    Results.R_out(4:3+EstimOpt.NVarA,6:5+NVarMOld*4) = num2cell(Results.DetailsM);
     Results.R_out(2,6:4:(2+NVarMOld*4)) = EstimOpt.NamesM;
-    for i = 1:NVarMOld
-        for c=1:EstimOpt.NVarA
-            Results.R_out(3+c,3+4*i) = make_stars(Results.DetailsM,4*i,c);
-        end
-    end
+    Results.R_out(4:3+EstimOpt.NVarA,6:5+NVarMOld*4) = num2cell(Results.DetailsM);    
+    Results.R_out(4:3+EstimOpt.NVarA,[7:4:5+NVarMOld*4]) = star_sig_cell(Results.DetailsM(:,4:4:end));
 end
 
 
@@ -645,19 +638,15 @@ if EstimOpt.NVarNLT > 0
         Results.R_out(2,6+NVarMOld*4) = {'Yeo-Johnson transformation parameters'};
 	end   
     Results.R_out(4:(EstimOpt.NVarA+3),6+NVarMOld*4:9+NVarMOld*4) = num2cell(Results.DetailsNLT0);
-for i=1:EstimOpt.NVarNLT
-    Results.R_out(3+EstimOpt.NLTVariables,7+NVarMOld*4) = make_stars(pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end)),1,i);
+    Results.R_out(3+EstimOpt.NLTVariables:7+NVarMOld*4) = star_sig_cell(pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end)));
 end
 
-end
 if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA + 4,1) = {'Covariates of Scale'};
     Results.R_out(EstimOpt.NVarA + 5,1:5) = {'var.' , 'coef.', 'sign.','st.err.' , 'p-value'};
-    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA+EstimOpt.NVarS+5,1:2) = [EstimOpt.NamesS, num2cell(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))];
-    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA+EstimOpt.NVarS+5,4:5) = num2cell([Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS), pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))]);
-    for i=1:EstimOpt.NVarS
-        Results.R_out(EstimOpt.NVarA + 5+ i,3) = make_stars(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS)),1,i);
-    end
+    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA + EstimOpt.NVarS+5,1:2) = [EstimOpt.NamesS, num2cell(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))];
+    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA + EstimOpt.NVarS+5,4:5) = num2cell([Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS), pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))]);
+    Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA + EstimOpt.NVarS+5,3) = star_sig_cell(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS)));
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};

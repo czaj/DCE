@@ -121,7 +121,7 @@ if nargout == 2 % function value + gradient
                 Xhatlam = Xhatlam';
             end
             g = [g, XXt(y == 1, :) - Xhatlam];
-            if NVarM > 0
+            if EstimOpt.NVarM > 0
                 gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
                 g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
             end
