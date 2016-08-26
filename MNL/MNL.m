@@ -599,7 +599,7 @@ Results.R_out(3,:) = headx;
 Results.R_out(4:3+EstimOpt.NVarA,1:2) = [EstimOpt.NamesA, num2cell(Results.bhat(1:EstimOpt.NVarA))];
 Results.R_out(4:3+EstimOpt.NVarA,4:5) = num2cell([Results.std(1:EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))]);
 for i=1:EstimOpt.NVarA
-   Results.R_out(3+i,3) = make_stars(pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA)),1,i);
+%    Results.R_out(3+i,3) = make_stars(pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA)),1,i);
 end
 
 
