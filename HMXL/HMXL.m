@@ -228,7 +228,6 @@ end
 if isfield(EstimOpt,'CountCut') == 0
     EstimOpt.CountCut = 80; 
 end
-
 if any(EstimOpt.MeaSpecMatrix == 3 | EstimOpt.MeaSpecMatrix == 4 | EstimOpt.MeaSpecMatrix == 5 | EstimOpt.MeaSpecMatrix == 6)
    IndxTmp =  EstimOpt.MeaSpecMatrix == 3 | EstimOpt.MeaSpecMatrix == 4 | EstimOpt.MeaSpecMatrix == 5 | EstimOpt.MeaSpecMatrix == 6;
    XmeaTmp = INPUT.Xmea(:, IndxTmp);
