@@ -61,10 +61,10 @@ EstimOpt.HessEstFix = 1; % 0 = use optimization Hessian, 1 = use jacobian-based 
 
 Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
 
-name = 'MNL'; %name of the file with output
+fullPathAndName = which('MNL_template.xls');
+copyfile(fullPathAndName,'MNL.xls')
+xlswrite('MNL.xls', Results.MNL.R_out);
 
-copyfile('templates\MNL.xls', strcat('destination', name, '.xls')); %fill in only destination
-xlswrite(strcat('destination', name, '.xls'), Results.MNL.R_out); %fill in only destination
 
 %% ****************************     MXL     ****************************
 
