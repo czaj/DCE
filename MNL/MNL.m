@@ -502,7 +502,7 @@ if isfield(EstimOpt,'BActive')
 end
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL) + 2*EstimOpt.Params*(EstimOpt.Params+1)/(EstimOpt.NObs-EstimOpt.Params-1))/EstimOpt.NObs; EstimOpt.NObs; EstimOpt.Params];
+    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.Params; EstimOpt.NP];
 end
 
 if EstimOpt.WTP_space == 0
@@ -523,6 +523,7 @@ if NVarMOld > 0 && EstimOpt.WTP_space == 0 && EstimOpt.NVarNLT == 0
 end
 if EstimOpt.Display ~= 0
     disp(' ');
+    cprintf('*Black','MNL \n')
     disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
     disp([char(EstimOpt.NamesA), blanks(EstimOpt.NVarA)', num2str(Results.R(1:EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.R(1:EstimOpt.NVarA,3)), num2str(Results.R(1:EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
     disp(' ')
@@ -556,14 +557,16 @@ if EstimOpt.Display ~= 0
         disp(' ')
     end
     
-    cprintf('*Black', 'Model characteristics \n')
-    disp(['LL at convergence: ', num2str(Results.LL,'%8.4f')])
-    disp(['LL0:               ', num2str(Results_old.MNL0.LL)])
-    disp(['McFadden R2:       ', num2str(1-Results.LL/Results_old.MNL0.LL)])
-    disp(['Ben-Akiva R2:      ', num2str(R2)])
-    disp(['AIC/n:             ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs)])
-    disp(['n:                 ', num2str(EstimOpt.NObs)])
-    disp(['k:                 ', num2str(EstimOpt.Params)])
+    cprintf('*Black', 'Model characteristics: \n')
+    disp(['LL at convergence:            ', num2str(Results.LL,'%8.4f')])
+    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL)])
+    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL)])
+    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2)])
+    disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs)])
+    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs)])
+    disp(['n (observations):             ', num2str(EstimOpt.NObs)])
+    disp(['k (parameters):               ', num2str(EstimOpt.Params)])
+    disp(['r (respondents):              ', num2str(EstimOpt.NP)])
     disp(' ')
     disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
     disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
@@ -579,7 +582,7 @@ if NVarMOld > 0
     %     Results.R = [Results.R, Results.DetailsM];
 end
 
-Results.R_out = cell(16 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 5 + (NVarMOld + (EstimOpt.NVarNLT>0))*4);
+Results.R_out = cell(18 + EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2, 5 + (NVarMOld + (EstimOpt.NVarNLT>0))*4);
 
 Results.R_out(1,1) = {'MNL'};
 
@@ -602,7 +605,7 @@ Results.R_out(4:3+EstimOpt.NVarA,4:5) = num2cell([Results.std(1:EstimOpt.NVarA),
 if NVarMOld > 0
     Results.R_out(2,6:4:(2+NVarMOld*4)) = EstimOpt.NamesM;
     Results.R_out(4:3+EstimOpt.NVarA,6:5+NVarMOld*4) = num2cell(Results.DetailsM);
-    Results.R_out(4:3+EstimOpt.NVarA,[7:4:5+NVarMOld*4]) = star_sig_cell(Results.DetailsM(:,4:4:end));
+    Results.R_out(4:3+EstimOpt.NVarA,7:4:5+NVarMOld*4) = star_sig_cell(Results.DetailsM(:,4:4:end));
 end
 
 
@@ -648,29 +651,29 @@ if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA + 6:EstimOpt.NVarA + EstimOpt.NVarS+5,3) = star_sig_cell(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS)));
 end
 
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k';'Estimation method';'Optimization method';'Gradient';'Hessian';};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics:'};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178)) ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'k (parameters)';'r (respondents)';'Estimation method';'Optimization method';'Gradient';'Hessian';};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 12,2) = num2cell(Results.stats);
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = num2cell(Results.stats);
 end
 
 if any(INPUT.W ~= 1)
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'weighted'};
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {'weighted'};
 else
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 13,2) = {'maximum likelihood'};
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {'maximum likelihood'};
 end
 
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = {OptimOpt.Algorithm;};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {OptimOpt.Algorithm;};
 
 if strcmp(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {'user-supplied, analytical'};
+        Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {'user-supplied, analytical'};
     else
-        Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {['user-supplied, numerical',num2str(OptimOpt.FinDiffType)]};
+        Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {['user-supplied, numerical',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {['built-in',num2str(OptimOpt.FinDiffType)]};
+    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {['built-in',num2str(OptimOpt.FinDiffType)]};
     
 end
 
@@ -713,7 +716,7 @@ else
     end
 end
 
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {outHessian};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18,2) = {outHessian};
 
 % save(EstimOpt.fnameout, 'Results')
 
