@@ -16,6 +16,9 @@ Results.stats = [];
 
 %% Check data and inputs
 
+if isfield(EstimOpt, 'ProjectName') == 0
+    EstimOpt.ProjectName = '';
+end
 
 if nargin < 3
     error('Too few input arguments for MNL(INPUT,EstimOpt,OptimOpt)')
@@ -502,7 +505,7 @@ if isfield(EstimOpt,'BActive')
 end
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.Params; EstimOpt.NP];
+    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.Params];
 end
 
 if EstimOpt.WTP_space == 0
@@ -565,8 +568,8 @@ if EstimOpt.Display ~= 0
     disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs)])
     disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs)])
     disp(['n (observations):             ', num2str(EstimOpt.NObs)])
-    disp(['k (parameters):               ', num2str(EstimOpt.Params)])
     disp(['r (respondents):              ', num2str(EstimOpt.NP)])
+    disp(['k (parameters):               ', num2str(EstimOpt.Params)])
     disp(' ')
     disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
     disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
@@ -652,7 +655,7 @@ if EstimOpt.NVarS > 0
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics:'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178)) ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'k (parameters)';'r (respondents)';'Estimation method';'Optimization method';'Gradient';'Hessian';};
+Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178)) ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Optimization method';'Gradient';'Hessian';};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = num2cell(Results.stats);
@@ -717,6 +720,22 @@ else
 end
 
 Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18,2) = {outHessian};
+
+fullPathAndName = which('MNL_template.xls');   
+
+if isfield (EstimOpt, 'ProjectName')
+    fullSaveName = strcat('MNL_results_',EstimOpt.ProjectName,'.xls');
+else    
+    fullSaveName = 'MNL_results.xls';
+end
+
+try copyfile(fullPathAndName,fullSaveName)
+catch 
+    xlswrite(fullSaveName, Results.R_out);
+end    
+    xlswrite(fullSaveName, Results.R_out);
+
+
 
 % save(EstimOpt.fnameout, 'Results')
 

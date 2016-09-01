@@ -31,7 +31,7 @@ EstimOpt.NamesA = {'SQ';'GOS'; 'CEN'; 'VIS1'; 'VIS2';'FEE' }; % Specyfy names of
 EstimOpt.NCT = 12; % Number of choice tasks per person 
 EstimOpt.NAlt = 3; % Number of alternatives
 EstimOpt.NP = length(INPUT.Y)/EstimOpt.NCT/EstimOpt.NAlt; % 789; % Number of respondents
-
+%EstimOpt.ProjectName = 'makro'; %nameofproject
 
 %% **************************** estimation and optimization options ****************************
 
@@ -40,31 +40,26 @@ EstimOpt.NP = length(INPUT.Y)/EstimOpt.NCT/EstimOpt.NAlt; % 789; % Number of res
 [INPUT, Results, EstimOpt, OptimOpt] = DataCleanDCE(INPUT,EstimOpt);
 
 % EstimOpt.NRep = 1e3; % number of draws for numerical simulation
-% OptimOpt.MaxIter = 100; % maximum number of iterations
+% OptimOpt.MaxIter = 1e3; % maximum number of iterations
 % OptimOpt.Algorithm = 'trust-region'; % 'quasi-newton'
 % EstimOpt.NumGrad = 1; % 0
 % OptimOpt.GradObj = 'on'; % 'off'
 % OptimOpt.FinDiffType = 'central'; % 'forward'
 % OptimOpt.Hessian = 'off'; % 'off'
 EstimOpt.HessEstFix = 1; % 0 = use optimization Hessian, 1 = use jacobian-based (BHHH) Hessian, 2 - use high-precision jacobian-based (BHHH) Hessian 3 - use numerical Hessian
-
+ 
 
 %% ****************************     MNL     ****************************
- 
-% INPUT.Xs = [DATA.Income_1, DATA.Sex, DATA.Edu_dummy(:, 2:4), DATA.Hhadult, DATA.Age_dummy(:,2:4)];  % Covariates of scale
-% INPUT.Xs = INPUT.Xs;
-% EstimOpt.NamesS = {'Income'; 'Sex'; 'Edu2'; 'Edu3'; 'Edu4'; 'HHadult'; 'Age2'; 'Age3';'Age4'};
-% 
+
+INPUT.Xs = [DATA.Income_1, DATA.Sex, DATA.Edu_dummy(:, 2:4), DATA.Hhadult, DATA.Age_dummy(:,2:4)];  % Covariates of scale
+INPUT.Xs = INPUT.Xs;
+EstimOpt.NamesS = {'Income'; 'Sex'; 'Edu2'; 'Edu3'; 'Edu4'; 'HHadult'; 'Age2'; 'Age3';'Age4'};
+
 % EstimOpt.WTP_space = 1; % number of cost parameters for WTP-space estimation (need to come last in Xa)
 
 % Results.MNL.b0 = [0.159957022105421;0.486589496218975;0.609086367407496;0.0682084933928573;0.188272959734389;0.0142472931131374];
 
 Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
-
-fullPathAndName = which('MNL_template.xls');
-copyfile(fullPathAndName,'MNL.xls')
-xlswrite('MNL.xls', Results.MNL.R_out);
-
 
 %% ****************************     MXL     ****************************
 
