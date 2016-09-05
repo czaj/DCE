@@ -16,10 +16,6 @@ Results.stats = [];
 
 %% Check data and inputs
 
-if isfield(EstimOpt, 'ProjectName') == 0
-    EstimOpt.ProjectName = '';
-end
-
 if nargin < 3
     error('Too few input arguments for MNL(INPUT,EstimOpt,OptimOpt)')
 end
@@ -562,11 +558,11 @@ if EstimOpt.Display ~= 0
     
     cprintf('*Black', 'Model characteristics: \n')
     disp(['LL at convergence:            ', num2str(Results.LL,'%8.4f')])
-    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL)])
-    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL)])
-    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2)])
-    disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs)])
-    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs)])
+    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL,'%8.4f')])
+    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL,'%8.4f')])
+    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2,'%8.4f')])
+    disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs,'%8.4f')])
+    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs,'%8.4f')])
     disp(['n (observations):             ', num2str(EstimOpt.NObs)])
     disp(['r (respondents):              ', num2str(EstimOpt.NP)])
     disp(['k (parameters):               ', num2str(EstimOpt.Params)])
@@ -723,20 +719,18 @@ Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18:EstimO
 
 fullPathAndName = which('MNL_template.xls');   
 
-if isfield (EstimOpt, 'ProjectName')
+if isfield(EstimOpt,'ProjectName')
     fullSaveName = strcat('MNL_results_',EstimOpt.ProjectName,'.xls');
-else    
+else
     fullSaveName = 'MNL_results.xls';
 end
 
-try copyfile(fullPathAndName,fullSaveName)
+try 
+    copyfile(fullPathAndName,fullSaveName)
+    xlswrite(fullSaveName, Results.R_out);
 catch 
     xlswrite(fullSaveName, Results.R_out);
-end    
-    xlswrite(fullSaveName, Results.R_out);
+end
 
-
-
-% save(EstimOpt.fnameout, 'Results')
 
 end
