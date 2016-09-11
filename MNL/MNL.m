@@ -639,8 +639,9 @@ if EstimOpt.NVarNLT > 0
         Results.R_out(2,6+NVarMOld*4) = {'Yeo-Johnson transformation parameters'};
     end
     Results.R_out(4:(EstimOpt.NVarA+3),6+NVarMOld*4:9+NVarMOld*4) = num2cell(Results.DetailsNLT0);
-    Results.R_out(3+EstimOpt.NLTVariables:7+NVarMOld*4) = star_sig_cell(pv(Results.bhat(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end),Results.std(EstimOpt.NVarA+EstimOpt.NVarS+EstimOpt.NVarA*NVarMOld+1:end)));
-    
+    for i = 1:EstimOptS.NVarNLT
+        Results.R_out(3+EstimOpt.NLTVariables(i),7+NVarMOld*4) = star_sig_cell(Results.DetailsNLT(i,4));
+    end
 end
 if EstimOpt.NVarS > 0
     Results.R_out(EstimOpt.NVarA + 4,1) = {'Covariates of Scale'};
