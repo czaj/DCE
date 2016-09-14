@@ -1,4 +1,3 @@
-
 function Results = MNL(INPUT,Results_old,EstimOpt,OptimOpt)
 
 
