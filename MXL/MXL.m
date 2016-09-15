@@ -911,24 +911,25 @@ Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
+Results.Dist = transpose(EstimOpt.Dist(:,2:end));
 
 disp(' ');
 cprintf('*Black','MXL \n')
 disp('Means');
-disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsA(:,1),'%8.4f') star_sig(Results.DetailsA(:,4)) num2str(Results.DetailsA(:,3:4),'%8.4f %8.4f')])
+disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
+disp([char(EstimOpt.NamesA), repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4]) num2str(Results.DetailsA(:,1),'%8.4f') star_sig(Results.DetailsA(:,4)) num2str(Results.DetailsA(:,3:4),'%8.4f %8.4f')])
 
 disp(' ');
 disp('Standard deviations');
-disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-disp([char(EstimOpt.NamesA) ,blanks(EstimOpt.NVarA)', num2str(Results.DetailsV(:,1),'%8.4f') star_sig(Results.DetailsV(:,4)) num2str(Results.DetailsV(:,3:4),'%8.4f %8.4f')])
+disp(['var.',  blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
+disp([char(EstimOpt.NamesA) repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4]) num2str(Results.DetailsV(:,1),'%8.4f') star_sig(Results.DetailsV(:,4)) num2str(Results.DetailsV(:,3:4),'%8.4f %8.4f')])
 
 if EstimOpt.NVarM > 0
     for i = 1:EstimOpt.NVarM
         disp(' ');
         disp(['Explanatory variable of random parameters'' means - ', char(EstimOpt.NamesM(i))]);
-        disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.DetailsM(:,i*4-3),'%8.4f'), star_sig(Results.DetailsM(:,i*4)), num2str(Results.DetailsM(:,i*4-1:i*4),'%8.4f %8.4f')])
+        disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
+        disp([char(EstimOpt.NamesA), repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4])  num2str(Results.DetailsM(:,i*4-3),'%8.4f'), star_sig(Results.DetailsM(:,i*4)), num2str(Results.DetailsM(:,i*4-1:i*4),'%8.4f %8.4f')])
     end
     %     headM = 'var.  coef.     st.err.  p-value';
     %     formM = '%1.0f %8.4f %8.4f %8.4f';
@@ -948,20 +949,20 @@ if EstimOpt.NVarNLT > 0
     elseif EstimOpt.NLTType == 2
         disp('Yeo-Johnson transformation parameters')
     end
-    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,3)) num2str(Results.DetailsNLT(:,3:4),'%8.4f %8.4f')])
+    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'dist.  coef.       st.err.  p-value'])
+    disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), repmat(' ',[EstimOpt.NVarNLT 2]) char(dist(Results.Dist(EstimOpt.NLTVariables))) repmat(' ',[EstimOpt.NVarNLT 4]) num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,3)) num2str(Results.DetailsNLT(:,3:4),'%8.4f %8.4f')])
     disp(' ')
 end
 
 if EstimOpt.Johnson > 0
     disp(' ');
     disp('Johnson location parameters');
-    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJL(:,1),'%8.4f') star_sig(Results.DetailsJL(:,4)) num2str(Results.DetailsJL(:,3:4),'%8.4f %8.4f')])
+    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'dist.  coef.       st.err.  p-value'])
+    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), repmat(' ',[EstimOpt.Johnson 2]) char(dist(Results.Dist(EstimOpt.Dist(2:end)>= 5))) repmat(' ',[EstimOpt.Johnson 4]), num2str(Results.DetailsJL(:,1),'%8.4f') star_sig(Results.DetailsJL(:,4)) num2str(Results.DetailsJL(:,3:4),'%8.4f %8.4f')])
     disp(' ');
     disp('Johnson scale parameters');
-    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), blanks(EstimOpt.Johnson)', num2str(Results.DetailsJS(:,1),'%8.4f') star_sig(Results.DetailsJS(:,4)) num2str(Results.DetailsJS(:,3:4),'%8.4f %8.4f')])
+    disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'dist.  coef.       st.err.  p-value'])
+    disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), repmat(' ',[EstimOpt.Johnson 2]) char(dist(Results.Dist(EstimOpt.Dist(2:end)>= 5))) repmat(' ',[EstimOpt.Johnson 4]), num2str(Results.DetailsJS(:,1),'%8.4f') star_sig(Results.DetailsJS(:,4)) num2str(Results.DetailsJS(:,3:4),'%8.4f %8.4f')])
 end
 
 if EstimOpt.NVarS > 0
@@ -984,8 +985,78 @@ disp(' ')
     disp(['r (respondents):              ', num2str(EstimOpt.NP)])
     disp(['k (parameters):               ', num2str(EstimOpt.params)])
     disp(' ')
-
     
+    if any(INPUT.W ~= 1)
+        cprintf('Estimation method:   weighted \n');
+    else
+        cprintf('Estimation method:   maximum likelihood \n');
+    end
+
+    switch EstimOpt.Draws
+        case 1
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','pseudo-random draws \n']);
+        case 2
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws \n']);
+        case  3
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
+        case 4 
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
+        case 5
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
+        case 6
+        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);    
+    end
+    
+    cprintf('Optimization method: '); cprintf([OptimOpt.Algorithm '\n'])
+    
+    if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            cprintf('Gradient:            '); cprintf('user-supplied, analytical \n')
+        else
+            cprintf('Gradient:            '); cprintf(['user-supplied, numerical, ' OptimOpt.FinDiffType, '\n'])
+        end
+    else
+        cprintf('Gradient:            '); cprintf(['built-in, ' OptimOpt.FinDiffType '\n'])
+    end
+    
+    if isequal(OptimOpt.Algorithm,'quasi-newton')
+        cprintf('Hessian:          '); cprintf('off, ')
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    else
+        if strcmp(OptimOpt.Hessian,'user-supplied')
+            if EstimOpt.ApproxHess == 1
+                cprintf('Hessian:             '); cprintf('user-supplied, BHHH, ')
+            else
+                cprintf('Hessian:             '); cprintf('user-supplied, analytical, ')
+            end
+        else
+            cprintf('Hessian:             '); cprintf(['built-in, ' OptimOpt.HessUpdate ', '])
+        end
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    end
+    disp(' ')
  
 clocknote = clock;
 tocnote = toc;
@@ -1015,7 +1086,7 @@ end
 Results.R_out(2,[3,7]) = {'Means', 'Standard Deviations'};
 Results.R_out(3,:) = headx;
 
-Results.Dist = transpose(EstimOpt.Dist(:,2:end));
+
 Results.R_out(4:(EstimOpt.NVarA+3),1) = EstimOpt.NamesA;
 Results.R_out(4:(EstimOpt.NVarA+3),2) = dist(Results.Dist);
 

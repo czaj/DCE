@@ -567,9 +567,68 @@ if EstimOpt.Display ~= 0
     disp(['r (respondents):              ', num2str(EstimOpt.NP)])
     disp(['k (parameters):               ', num2str(EstimOpt.Params)])
     disp(' ')
+    
+    if any(INPUT.W ~= 1)
+        cprintf('Estimation method:   weighted \n');
+    else
+        cprintf('Estimation method:   maximum likelihood \n');
+    end
+
+    cprintf('Optimization method: '); cprintf([OptimOpt.Algorithm '\n'])
+    
+    if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            cprintf('Gradient:            '); cprintf('user-supplied, analytical \n')
+        else
+            cprintf('Gradient:            '); cprintf(['user-supplied, numerical, ' OptimOpt.FinDiffType, '\n'])
+        end
+    else
+        cprintf('Gradient:            '); cprintf(['built-in, ' OptimOpt.FinDiffType '\n'])
+    end
+    
+    if isequal(OptimOpt.Algorithm,'quasi-newton')
+        cprintf('Hessian:             '); cprintf('off, ')
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    else
+        if strcmp(OptimOpt.Hessian,'user-supplied')
+            if EstimOpt.ApproxHess == 1
+                cprintf('Hessian:             '); cprintf('user-supplied, BHHH, ')
+            else
+                cprintf('Hessian:             '); cprintf('user-supplied, analytical, ')
+            end
+        else
+            cprintf('Hessian:             '); cprintf(['built-in, ' OptimOpt.HessUpdate ', '])
+        end
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    end
+    disp(' ')
     disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
     disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
-    disp(' ');    
+    disp(' ');   
+    
+    
 end
 
 if NVarMOld > 0
@@ -639,7 +698,7 @@ if EstimOpt.NVarNLT > 0
         Results.R_out(2,6+NVarMOld*4) = {'Yeo-Johnson transformation parameters'};
     end
     Results.R_out(4:(EstimOpt.NVarA+3),6+NVarMOld*4:9+NVarMOld*4) = num2cell(Results.DetailsNLT0);
-    for i = 1:EstimOptS.NVarNLT
+    for i = 1:EstimOpt.NVarNLT
         Results.R_out(3+EstimOpt.NLTVariables(i),7+NVarMOld*4) = star_sig_cell(Results.DetailsNLT(i,4));
     end
 end
