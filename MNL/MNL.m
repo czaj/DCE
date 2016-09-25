@@ -520,116 +520,6 @@ tocnote = toc;
 if NVarMOld > 0 && EstimOpt.WTP_space == 0 && EstimOpt.NVarNLT == 0
     EstimOpt.NVarA = EstimOpt.NVarA/(1+NVarMOld);
 end
-if EstimOpt.Display ~= 0
-    disp(' ');
-    cprintf('*Black','MNL \n')
-    disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesA), blanks(EstimOpt.NVarA)', num2str(Results.R(1:EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.R(1:EstimOpt.NVarA,3)), num2str(Results.R(1:EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
-    disp(' ')
-    
-    if NVarMOld > 0
-        for i = 1:NVarMOld
-            disp(' ');
-            disp(['Interactions with choice attributes - ', char(EstimOpt.NamesM(i))]);
-            disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'coef.      st.err.  p-value'])
-            disp([char(EstimOpt.NamesA),blanks(EstimOpt.NVarA)', num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),1),'%8.4f'), star_sig(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),3)), num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),2:3),'%8.4f %8.4f')])
-            disp(' ')
-        end
-    end
-    
-    if EstimOpt.NVarNLT > 0
-        if EstimOpt.NLTType == 1
-            disp('Box-Cox transformation parameters')
-        elseif EstimOpt.NLTType == 2
-            disp('Yeo-Johnson transformation parameters')
-        end
-        disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), blanks(EstimOpt.NVarNLT)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
-        disp(' ')
-    end
-    
-    if EstimOpt.NVarS > 0
-        disp('Covariates of scale')
-        disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
-        disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))) ...
-            num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))],'%8.4f %8.4f')])
-        disp(' ')
-    end
-    
-    cprintf('*Black', 'Model characteristics: \n')
-    disp(['LL at convergence:            ', num2str(Results.LL,'%8.4f')])
-    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL,'%8.4f')])
-    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL,'%8.4f')])
-    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2,'%8.4f')])
-    disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs,'%8.4f')])
-    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs,'%8.4f')])
-    disp(['n (observations):             ', num2str(EstimOpt.NObs)])
-    disp(['r (respondents):              ', num2str(EstimOpt.NP)])
-    disp(['k (parameters):               ', num2str(EstimOpt.Params)])
-    disp(' ')
-    
-    if any(INPUT.W ~= 1)
-        cprintf('Estimation method:   weighted \n');
-    else
-        cprintf('Estimation method:   maximum likelihood \n');
-    end
-
-    cprintf('Optimization method: '); cprintf([OptimOpt.Algorithm '\n'])
-    
-    if strcmp(OptimOpt.GradObj,'on')
-        if EstimOpt.NumGrad == 0
-            cprintf('Gradient:            '); cprintf('user-supplied, analytical \n')
-        else
-            cprintf('Gradient:            '); cprintf(['user-supplied, numerical, ' OptimOpt.FinDiffType, '\n'])
-        end
-    else
-        cprintf('Gradient:            '); cprintf(['built-in, ' OptimOpt.FinDiffType '\n'])
-    end
-    
-    if isequal(OptimOpt.Algorithm,'quasi-newton')
-        cprintf('Hessian:             '); cprintf('off, ')
-        switch EstimOpt.HessEstFix
-            case 0
-                cprintf('retained from optimization \n')
-            case 1
-                cprintf('ex-post calculated using BHHH \n')
-            case 2
-                cprintf('ex-post calculated using high-precision BHHH \n')
-            case 3
-                cprintf('ex-post calculated numerically \n')
-            case 4
-                cprintf('ex-post calculated analytically \n')
-        end
-    else
-        if strcmp(OptimOpt.Hessian,'user-supplied')
-            if EstimOpt.ApproxHess == 1
-                cprintf('Hessian:             '); cprintf('user-supplied, BHHH, ')
-            else
-                cprintf('Hessian:             '); cprintf('user-supplied, analytical, ')
-            end
-        else
-            cprintf('Hessian:             '); cprintf(['built-in, ' OptimOpt.HessUpdate ', '])
-        end
-        switch EstimOpt.HessEstFix
-            case 0
-                cprintf('retained from optimization \n')
-            case 1
-                cprintf('ex-post calculated using BHHH \n')
-            case 2
-                cprintf('ex-post calculated using high-precision BHHH \n')
-            case 3
-                cprintf('ex-post calculated numerically \n')
-            case 4
-                cprintf('ex-post calculated analytically \n')
-        end
-    end
-    disp(' ')
-    disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
-    disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
-    disp(' ');   
-    
-    
-end
 
 if NVarMOld > 0
     Results.DetailsM = [];
@@ -792,5 +682,131 @@ catch
     xlswrite(fullSaveName, Results.R_out);
 end
 
+if EstimOpt.Display ~= 0
+    [~,mCW1] = CellColumnWidth(Results.R_out(4:3+EstimOpt.NVarA,:));
+    spacing = 2;
+    precision = 4;
 
+    disp(' ');
+    cprintf('*Black','MNL \n')
+%     disp(['var.', blanks(size(char(EstimOpt.NamesA),2)) ,'coef.    st.err.  p-value'])
+%     disp([char(EstimOpt.NamesA), reshape(blanks(2*EstimOpt.NVarA),EstimOpt.NVarA,2), num2str(Results.R(1:EstimOpt.NVarA,1),'%8.4f'), star_sig(Results.R(1:EstimOpt.NVarA,3)), num2str(Results.R(1:EstimOpt.NVarA,2:3),'%8.4f %8.4f')])
+%     disp(' ')
+    fprintf('%-*s%*s %*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, mCW1(2)+spacing+precision+1,Results.R_out{3,2}, mCW1(4)+spacing+precision+4,Results.R_out{3,4}, mCW1(5)+spacing+precision+2,Results.R_out{3,5})
+    for i=4:3+EstimOpt.NVarA
+        fprintf('%-*s%*.*f%3s %*.*f%*.*f\n',mCW1(1)+spacing,Results.R_out{i,1}, mCW1(2)+spacing+precision+1,precision,Results.R_out{i,2}, Results.R_out{i,3},mCW1(4)+spacing+precision+1,precision,Results.R_out{i,4}, mCW1(5)+spacing+precision+2,precision,Results.R_out{i,5})
+    end
+        
+    if NVarMOld > 0
+        for i = 1:NVarMOld
+            disp(' ');
+            disp(['Interactions with choice attributes - ', char(EstimOpt.NamesM(i))]);
+            fprintf('%-*s%*s%3s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, mCW1(2)+spacing+precision+1,Results.R_out{3,2},Results.R_out{1,4}, mCW1(4)+spacing+precision+1,Results.R_out{3,4}, mCW1(5)+spacing+precision+2,Results.R_out{3,5})
+            for c=4:3+EstimOpt.NVarA
+                 fprintf('%-*s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{c,1}, mCW1(2)+spacing+precision+1,precision,Results.R_out{c,2+4*i}, Results.R_out{c,3+4*i}, mCW1(4)+spacing+precision+1,precision,Results.R_out{c,4+4*i}, mCW1(5)+spacing+precision+2,precision,Results.R_out{c,5+4*i})
+            end
+%             disp(['var.', blanks(size(char(EstimOpt.NamesA),2)) ,'coef.    st.err.  p-value'])
+%             disp([char(EstimOpt.NamesA), reshape(blanks(2*EstimOpt.NVarA),EstimOpt.NVarA,2), num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),1),'%8.4f'), star_sig(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),3)), num2str(Results.R(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1),2:3),'%8.4f %8.4f')])
+        end
+    end
+    
+    if EstimOpt.NVarNLT > 0
+          disp(' ')
+        if EstimOpt.NLTType == 1
+            disp('Box-Cox transformation parameters')
+        elseif EstimOpt.NLTType == 2
+            disp('Yeo-Johnson transformation parameters')
+        end
+        fprintf('%-*s%*s%3s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, mCW1(2)+spacing+precision+1,Results.R_out{3,2},Results.R_out{1,4}, mCW1(4)+spacing+precision+1,Results.R_out{3,4}, mCW1(5)+spacing+precision+2,Results.R_out{3,5})
+        for i = 1:EstimOpt.NVarNLT
+            fprintf('%-*s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{3+EstimOpt.NLTVariables(i),1}, mCW1(2)+spacing+precision+1,precision,Results.R_out{3+EstimOpt.NLTVariables(i),6+NVarMOld*4}, Results.R_out{3+EstimOpt.NLTVariables(i),7+NVarMOld*4}, mCW1(4)+spacing+precision+1,precision,Results.R_out{3+EstimOpt.NLTVariables(i),8+NVarMOld*4}, mCW1(5)+spacing+precision+2,precision,Results.R_out{3+EstimOpt.NLTVariables(i),9+NVarMOld*4})
+        end
+%         disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)) ,'coef.    st.err.  p-value'])
+%         disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), reshape(blanks(2*EstimOpt.NVarNLT),EstimOpt.NVarNLT,2), num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))) num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS+1:end))],'%8.4f %8.4f')])
+    end
+    
+    if EstimOpt.NVarS > 0
+        [~,mCW1] = CellColumnWidth(Results.R_out(6+EstimOpt.NVarA:5+EstimOpt.NVarA+EstimOpt.NVarS,:));
+        disp(' ')
+        disp('Covariates of scale')
+        fprintf('%-*s%*s%3s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, mCW1(2)+spacing+precision+1,Results.R_out{3,2},Results.R_out{1,4}, mCW1(4)+spacing+precision+1,Results.R_out{3,4}, mCW1(5)+spacing+precision+2,Results.R_out{3,5})
+        for c=6+EstimOpt.NVarA:5+EstimOpt.NVarA+EstimOpt.NVarS
+                 fprintf('%-*s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{c,1}, mCW1(2)+spacing+precision+1,precision,Results.R_out{c,2}, Results.R_out{c,3}, mCW1(4)+spacing+precision+1,precision,Results.R_out{c,4}, mCW1(5)+spacing+precision+2,precision,Results.R_out{c,5})
+        end
+%         disp(['var.',blanks(size(char(EstimOpt.NamesS),2)) ,'coef.      st.err.  p-value'])
+%         disp([char(EstimOpt.NamesS) ,reshape(blanks(2*EstimOpt.NVarS),EstimOpt.NVarS,2), num2str(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),'%8.4f') star_sig(pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))) ...
+%         num2str([Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS) , Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))],'%8.4f %8.4f')])
+    end
+    
+    cprintf('*Black', 'Model characteristics: \n')
+    disp(['LL at convergence:            ', num2str(Results.LL,'%8.4f')])
+    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL,'%8.4f')])
+    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL,'%8.4f')])
+    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2,'%8.4f')])
+    disp(['AIC/n:                        ', num2str((2*EstimOpt.Params-2*Results.LL)/EstimOpt.NObs,'%8.4f')])
+    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs,'%8.4f')])
+    disp(['n (observations):             ', num2str(EstimOpt.NObs)])
+    disp(['r (respondents):              ', num2str(EstimOpt.NP)])
+    disp(['k (parameters):               ', num2str(EstimOpt.Params)])
+    disp(' ')
+    
+    if any(INPUT.W ~= 1)
+        cprintf('Estimation method:   weighted \n');
+    else
+        cprintf('Estimation method:   maximum likelihood \n');
+    end
+
+    cprintf('Optimization method: '); cprintf([OptimOpt.Algorithm '\n'])
+    
+    if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            cprintf('Gradient:            '); cprintf('user-supplied, analytical \n')
+        else
+            cprintf('Gradient:            '); cprintf(['user-supplied, numerical, ' OptimOpt.FinDiffType, '\n'])
+        end
+    else
+        cprintf('Gradient:            '); cprintf(['built-in, ' OptimOpt.FinDiffType '\n'])
+    end
+    
+    if isequal(OptimOpt.Algorithm,'quasi-newton')
+        cprintf('Hessian:             '); cprintf('off, ')
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    else
+        if strcmp(OptimOpt.Hessian,'user-supplied')
+            if EstimOpt.ApproxHess == 1
+                cprintf('Hessian:             '); cprintf('user-supplied, BHHH, ')
+            else
+                cprintf('Hessian:             '); cprintf('user-supplied, analytical, ')
+            end
+        else
+            cprintf('Hessian:             '); cprintf(['built-in, ' OptimOpt.HessUpdate ', '])
+        end
+        switch EstimOpt.HessEstFix
+            case 0
+                cprintf('retained from optimization \n')
+            case 1
+                cprintf('ex-post calculated using BHHH \n')
+            case 2
+                cprintf('ex-post calculated using high-precision BHHH \n')
+            case 3
+                cprintf('ex-post calculated numerically \n')
+            case 4
+                cprintf('ex-post calculated analytically \n')
+        end
+    end
+    disp(' ')
+    disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
+    disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
+end
 end
