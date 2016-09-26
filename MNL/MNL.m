@@ -682,6 +682,8 @@ catch
     xlswrite(fullSaveName, Results.R_out);
 end
 
+Results.R_out = cellfun(@full,Results.R_out,'UniformOutput',0);
+
 if EstimOpt.Display ~= 0
     [~,mCW1] = CellColumnWidth(Results.R_out(4:3+EstimOpt.NVarA,:));
     spacing = 2;
