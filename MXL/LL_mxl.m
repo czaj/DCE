@@ -137,9 +137,9 @@ if NVarNLT > 0
     end
     XXa(:, NLTVariables,:) = Xt;
 else
-    if EstimOpt.NumGrad == 0 % 
+%     if EstimOpt.NumGrad == 0 
         XXt = zeros(0,0,NP);
-    end
+%     end
 end
 
 % b0n = b0a(:,ones(NP,1)) + b0m*XXm;

@@ -414,6 +414,7 @@ end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'on';
 end
 
@@ -650,9 +651,10 @@ end
 Results.LL = -LL;
 Results.b0_old = b0;
 
-LLfun2 =  @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+
 if EstimOpt.HessEstFix == 0
-    [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+	[Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
@@ -791,7 +793,7 @@ if EstimOpt.FullCov == 0
         DetailsS0 = NaN(EstimOpt.NVarS,4);
         DetailsS0(1:EstimOpt.NVarS,1:4) = Results.DetailsS;
         if EstimOpt.NVarS <= EstimOpt.NVarA % will not work if NVarS > NVarA
-            Results.R = [Results.R, DetailsS0]; 
+            Results.R = [Results.R; [DetailsS0,NaN(size(DetailsS0,1),size(Results.R,2)-size(DetailsS0,2))]]; 
         end
      end
     
