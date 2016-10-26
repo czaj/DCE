@@ -414,6 +414,7 @@ end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'on';
 end
 
@@ -650,7 +651,7 @@ end
 Results.LL = -LL;
 Results.b0_old = b0;
 
-LLfun2 =  @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 if EstimOpt.HessEstFix == 0
     [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
 elseif EstimOpt.HessEstFix == 1
@@ -735,8 +736,9 @@ if EstimOpt.FullCov == 0
         for i = 1:sum(EstimOpt.Dist(2:end) == 3)
             stdx(i) = sqrt(g(i,:)*Results.ihess([indx(i), indx(i)+EstimOpt.NVarA], [indx(i), indx(i)+EstimOpt.NVarA])*g(i,:)');
         end
-        Results.DetailsV(EstimOpt.Dist(2:end) == 4,1) = exp(btmp(EstimOpt.Dist(2:end) == 4));
-        Results.DetailsV(EstimOpt.Dist(2:end) == 4,3:4) = [stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
+        %tutaj nie powinno byc? ==3 (byo?=o ==4)vvvv
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,1) = exp(btmp(EstimOpt.Dist(2:end) == 4));
+        Results.DetailsV(EstimOpt.Dist(2:end) == 3,3:4) = [stdx(EstimOpt.Dist(2:end) == 4), pv(exp(btmp(EstimOpt.Dist(2:end) == 4)), stdx(EstimOpt.Dist(2:end) == 4)) ];
     end
     if sum(EstimOpt.Dist(2:end) == 4) > 0
         Results.DetailsA(EstimOpt.Dist(2:end) == 4,1) = exp(Results.bhat(EstimOpt.Dist(2:end) == 4));
@@ -767,7 +769,7 @@ if EstimOpt.FullCov == 0
         Results.R = [Results.R, Results.DetailsNLT0];
     end
     if EstimOpt.Johnson > 0
-        ResultsJ = NaN(EstimOpt.NVarA, 8);
+        Results.ResultsJ = NaN(EstimOpt.NVarA, 8);
         % Location parameters
         Results.DetailsJL(:,1) = Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
         Results.DetailsJL(:,3) = Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
@@ -778,9 +780,9 @@ if EstimOpt.FullCov == 0
         Results.DetailsJS(:,3) = exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end);
         Results.DetailsJS(:,4) = pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end));
         
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
-        Results.R = [Results.R, ResultsJ];
+        Results.ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
+        Results.ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
+        Results.R = [Results.R, Results.ResultsJ];
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
@@ -788,10 +790,11 @@ if EstimOpt.FullCov == 0
            Results.DetailsS(i,1) = Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i);
            Results.DetailsS(i,3:4) = [Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i))];
         end
-        DetailsS0 = NaN(EstimOpt.NVarS,4);
+        DetailsS0 = NaN(EstimOpt.NVarA,4);
         DetailsS0(1:EstimOpt.NVarS,1:4) = Results.DetailsS;
+
         if EstimOpt.NVarS <= EstimOpt.NVarA % will not work if NVarS > NVarA
-            Results.R = [Results.R, DetailsS0]; 
+            esults.R = [Results.R; [DetailsS0,NaN(size(DetailsS0,1),size(Results.R,2)-size(DetailsS0,2))]]; 
         end
      end
     
@@ -857,7 +860,7 @@ elseif EstimOpt.FullCov == 1
         Results.R = [Results.R, Results.DetailsNLT0];
     end
     if EstimOpt.Johnson > 0
-        ResultsJ = NaN(EstimOpt.NVarA, 8);
+        Results.ResultsJ = NaN(EstimOpt.NVarA, 8);
         % Location parameters
         Results.DetailsJL(:,1) = Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
         Results.DetailsJL(:,3) = Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
@@ -866,9 +869,9 @@ elseif EstimOpt.FullCov == 1
         Results.DetailsJS(:,1) = exp(Results.bhat((end - EstimOpt.Johnson+1):end));
         Results.DetailsJS(:,3) = exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end);
         Results.DetailsJS(:,4) = pv(exp(Results.bhat((end - EstimOpt.Johnson+1):end)),exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end));
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
-        ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
-        Results.R = [Results.R, ResultsJ];
+        Results.ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,1:4) =   Results.DetailsJL;
+        Results.ResultsJ(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7,5:8) =   Results.DetailsJS;
+        Results.R = [Results.R, Results.ResultsJ];
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
@@ -910,356 +913,205 @@ Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist(:,2:end));
-
-head = {'var.' , 'coef.','sign.' ,'st.err.' , 'p-value'};
-headx = ['var.' ,'dist.' ,'coef.','sign.' ,'st.err.' , 'p-value', repmat(head(1,2:5),1,1+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2)];
-
-Results.R_out = cell(3+EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16, 2 + 4*(2+EstimOpt.NVarM+(EstimOpt.NVarNLT>0)+(EstimOpt.Johnson>0)*2));
-
-if EstimOpt.FullCov == 0
-    Results.R_out(1,1) = {'MXL_d'};
-else
-    Results.R_out(1,1) = {'MXL'};
-end
-
-if EstimOpt.Display ~= 0
-    if EstimOpt.WTP_space > 0
-        Results.R_out(1,2) = {'in WTP-space'};
-    else
-         Results.R_out(1,2) = {'in preference-space'};
-    end
-end
-
-Results.R_out(2,[3,7]) = {'Means', 'Standard Deviations'};
-Results.R_out(3,:) = headx;
-
-
-Results.R_out(4:(EstimOpt.NVarA+3),1) = EstimOpt.NamesA;
-Results.R_out(4:(EstimOpt.NVarA+3),2) = dist(Results.Dist);
-
-Results.R_out(4:(EstimOpt.NVarA+3),3:10) = [num2cell(Results.DetailsA), num2cell(Results.DetailsV)];
-Results.R_out(4:(EstimOpt.NVarA+3),4) = star_sig_cell(Results.DetailsA(:,4));
-Results.R_out(4:(EstimOpt.NVarA+3),8) = star_sig_cell(Results.DetailsV(:,4));
-
+EstimOpt.JSNVariables = find(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7);
+%% Tworzebnie templatek do printu
+Template1 = {'DetailsA', 'DetailsV'};
+Template2 = {'DetailsA', 'DetailsV'};
+Names.DetailsA = EstimOpt.NamesA;
+Heads.DetailsA = {'Means'};
+Heads.DetailsV = {'Standard Deviations'};
 if EstimOpt.NVarM > 0
-    Results.R_out(4:(EstimOpt.NVarA+3),11:10+EstimOpt.NVarM*4) = num2cell(Results.DetailsM);
-    Results.R_out(2,11:4:(2+(EstimOpt.NVarM+2)*4)) = EstimOpt.NamesM;
-    for i = 1:EstimOpt.NVarM
-        Results.R_out(4:(EstimOpt.NVarA+3),8+i*4) = star_sig_cell(Results.DetailsM(:,4*i));
-    end
+    Template1 = [Template1, 'DetailsM'];
+    Temp = cell(1, size(Template2,2));
+    Temp(1,1) = {'DetailsM'};
+    Template2 = [Template2; Temp];
+    Heads.DetailsM = EstimOpt.NamesM;
 end
 
 if EstimOpt.NVarNLT > 0
+    Template1 = [Template1, 'DetailsNLT0'];
+    Temp = cell(1, size(Template2,2));
+    Temp(1,1) = {'DetailsNLT0'};
+    Template2 = [Template2; Temp];
     if EstimOpt.NLTType == 1
-        Results.R_out(2,11+EstimOpt.NVarM*4) = {'Box-Cox transformation parameters'};
+        Heads.DetailsNLT0 = {'Box-Cox transformation parameters'};
     elseif EstimOpt.NLTType == 2
-        Results.R_out(2,11+EstimOpt.NVarM*4) = {'Yeo-Johnson transformation parameters'};
-    end
-    Results.R_out(4:(EstimOpt.NVarA+3),11+EstimOpt.NVarM*4:14+EstimOpt.NVarM*4) = num2cell(Results.DetailsNLT0);
-    for i = 1:EstimOpt.NVarNLT
-        Results.R_out(3+EstimOpt.NLTVariables(i),12+EstimOpt.NVarM*4) = star_sig_cell(Results.DetailsNLT(i,4));
+        Heads.DetailsNLT0 = {'Yeo-Johnson transformation parameters'};
     end
 end
 
 if EstimOpt.Johnson > 0
-    Results.R_out(2,11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4:4:15+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4) = {'Johnson location parameters','Johnson scale parameters'};
-    Results.R_out(4:(EstimOpt.NVarA+3),11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4:18+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4) = num2cell(ResultsJ);
-    EstimOpt.JSNVariables = find(EstimOpt.Dist(2:end) > 4 & EstimOpt.Dist(2:end) <= 7);
-    for i = 1:length(EstimOpt.JSNVariables)
-        Results.R_out(3 + EstimOpt.JSNVariables(i),12+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4) = star_sig_cell(ResultsJ(EstimOpt.JSNVariables(i),4));
-        Results.R_out(3 + EstimOpt.JSNVariables(i),16+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4) = star_sig_cell(ResultsJ(EstimOpt.JSNVariables(i),8));
-    end
+    Heads.ResultsJ = {'Johnson location parameters';'Johnson scale parameters'}; %heads need to be written vertically
+    Template1 = [Template1, 'ResultsJ'];
+    Temp = cell(1, size(Template2,2));
+    Temp(1,1) = {'ResultsJ'};
+    Template2 = [Template2; Temp];
 end
 
 if EstimOpt.NVarS > 0
-    Results.R_out(EstimOpt.NVarA+4,1) = {'Covariates of Scale'};
-    Results.R_out(EstimOpt.NVarA+5,1:6) =  {'var.' ,'', 'coef.','sign.' ,'st.err.' , 'p-value'};
-    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,1) = EstimOpt.NamesS;
-    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,3:6) = num2cell(Results.DetailsS);
-    Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA + EstimOpt.NVarS + 5,4) = star_sig_cell(Results.DetailsS(:,4));
+   Temp = cell(1, size(Template1,2));
+   Temp(1,1) = {'DetailsS'};
+   Template1 = [Template1; Temp];
+   Temp = cell(1, size(Template2,2));
+   Temp(1,1) = {'DetailsS'};
+   Template2 = [Template2; Temp];
+   Names.DetailsS = EstimOpt.NamesS;
+   Heads.DetailsS = {'Covariates of Scale'};
 end
 
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 5,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:end,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178)) ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian';};
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 6:EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 14,2) = num2cell(Results.stats);
-if any(INPUT.W ~= 1)
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {'weighted'};
+%% Tworzenie naglowka
+Head = cell(1,2);
+if EstimOpt.FullCov == 0
+    Head(1,1) = {'MXL_d'};
 else
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 15,2) = {'maximum simulated likelihood'};
+    Head(1,1) = {'MXL'};
 end
- 
+
+if EstimOpt.WTP_space > 0
+    Head(1,2) = {'in WTP-space'};
+else
+    Head(1,2) = {'in preference-space'};
+end
+%% Tworzenie stopki
+Tail = cell(15,2);
+Tail(1,1) = {'Model characteristics'};
+Tail(2:15,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
+
+if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
+    Tail(2:10,2) = num2cell(Results.stats);
+end
+
+if any(INPUT.W ~= 1)
+    Tail(11,2) = {'weighted'};
+else
+    Tail(11,2) = {'maximum likelihood'};
+end
+
 switch EstimOpt.Draws
      case 1
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
      case 2
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
      case  3
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 4 
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 5
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 6
-     Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 16,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
+     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
 end
- 
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 17,2) = {OptimOpt.Algorithm;};
- 
+
+Tail(13,2) = {OptimOpt.Algorithm;};
+
 if strcmp(OptimOpt.GradObj,'on')
-        if EstimOpt.NumGrad == 0
-            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18,2) = {'user-supplied, analytical'};
-        else
-            Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18,2) = {['user-supplied, numerical',num2str(OptimOpt.FinDiffType)]};
-        end
+    if EstimOpt.NumGrad == 0
+        Tail(14,2) = {'user-supplied, analytical'};
+    else
+        Tail(14,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+    end
 else
-    Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 18,2) = {['built-in',num2str(OptimOpt.FinDiffType)]}; 
-        
+    Tail(14,2) = {['built-in',num2str(OptimOpt.FinDiffType)]};
+    
 end
- 
+
 outHessian = [];
 if isequal(OptimOpt.Algorithm,'quasi-newton')
-        outHessian='off, ';    
-        switch EstimOpt.HessEstFix
-            case 0
-                outHessian = [outHessian, 'retained from optimization'];
-            case 1
-                outHessian = [outHessian, 'ex-post calculated using BHHH'];
-            case 2
-                outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
-            case 3
-                outHessian = [outHessian, 'ex-post calculated numerically'];
-            case 4
-                outHessian = [outHessian, 'ex-post calculated analytically'];
+    outHessian='off, ';
+    switch EstimOpt.HessEstFix
+        case 0
+            outHessian = [outHessian, 'retained from optimization'];
+        case 1
+            outHessian = [outHessian, 'ex-post calculated using BHHH'];
+        case 2
+            outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
+        case 3
+            outHessian = [outHessian, 'ex-post calculated numerically'];
+        case 4
+            outHessian = [outHessian, 'ex-post calculated analytically'];
+    end
+else
+    if strcmp(OptimOpt.Hessian,'user-supplied')
+        if EstimOpt.ApproxHess == 1
+            outHessian = 'user-supplied, BHHH, ';
+        else
+            outHessian = 'user-supplied, analytical, ';
         end
     else
-        if strcmp(OptimOpt.Hessian,'user-supplied')
-            if EstimOpt.ApproxHess == 1
-                outHessian = 'user-supplied, BHHH, ';
-            else
-                outHessian = 'user-supplied, analytical, ';
-            end
-        else
-            outHessian(1:3) = ['built-in, ', num2str(OptimOpt.HessUpdate), ', '];
-        end
-        switch EstimOpt.HessEstFix
-            case 0
-                outHessian = [outHessian, 'retained from optimization'];
-            case 1
-                outHessian = [outHessian, 'ex-post calculated using BHHH'];
-            case 2
-                outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
-            case 3
-                outHessian = [outHessian, 'ex-post calculated numerically'];
-            case 4
-                outHessian = [outHessian, 'ex-post calculated analytically'];
-        end
+        outHessian = ['built-in, ', num2str(OptimOpt.HessUpdate), ', '];
+    end
+    switch EstimOpt.HessEstFix
+        case 0
+            outHessian = [outHessian, 'retained from optimization'];
+        case 1
+            outHessian = [outHessian, 'ex-post calculated using BHHH'];
+        case 2
+            outHessian = [outHessian, 'ex-post calculated using high-precision BHHH'];
+        case 3
+            outHessian = [outHessian, 'ex-post calculated numerically'];
+        case 4
+            outHessian = [outHessian, 'ex-post calculated analytically'];
+    end
 end
-    
-Results.R_out(EstimOpt.NVarA + EstimOpt.NVarS + (EstimOpt.NVarS>0)*2 + 19,2) = {outHessian}; 
- 
-fullPathAndName = which('MXL_template.xls');   
 
+Tail(15,2) = {outHessian};
+%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+if EstimOpt.Display~=0
+
+    Results.R_out = genOutput2(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    fullOrgTemplate = which('template.xls');   
+    currFld = pwd;
+    
 if EstimOpt.FullCov == 0
     if isfield(EstimOpt,'ProjectName')
-        fullSaveName = strcat('MXL_d_results_',EstimOpt.ProjectName,'.xls');
+        fullSaveName = strcat(currFld,'\MXL_d_results_',EstimOpt.ProjectName,'.xls');
     else
-        fullSaveName = 'MXL_d_results.xls';
+        fullSaveName = strcat(currFld,'\MXL_d_results.xls');
     end
 else
     if isfield(EstimOpt,'ProjectName')
-        fullSaveName = strcat('MXL_results_',EstimOpt.ProjectName,'.xls');
+        fullSaveName = strcat(currFld,'\MXL_results_',EstimOpt.ProjectName,'.xls');
     else
-        fullSaveName = 'MXL_results.xls';
+        fullSaveName = strcat(currFld,'\MXL_results.xls');
     end
 end
-
-try 
-    copyfile(fullPathAndName,fullSaveName)
-    xlswrite(fullSaveName, Results.R_out);
-catch 
-    xlswrite(fullSaveName, Results.R_out);
-end
-
-%Display 
-[~,mCW1] = CellColumnWidth(Results.R_out(4:3+EstimOpt.NVarA,:)); % width and max width of each column
-spacing = 2;
-precision = 4;
-spacing2=2;
-
-disp(' ');
-cprintf('*Black','MXL \n')
-% disp('Means');
-% disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
-% disp([char(EstimOpt.NamesA), repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4]) num2str(Results.DetailsA(:,1),'%8.4f') star_sig(Results.DetailsA(:,4)) num2str(Results.DetailsA(:,3:4),'%8.4f %8.4f')])
-% disp(' ');
-% disp('Standard deviations');
-% disp(['var.',  blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
-% disp([char(EstimOpt.NamesA) repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4]) num2str(Results.DetailsV(:,1),'%8.4f') star_sig(Results.DetailsV(:,4)) num2str(Results.DetailsV(:,3:4),'%8.4f %8.4f')])
-fprintf('%*s%-*s%*s%-*s\n',mCW1(1)+spacing+5+ 1 +mCW1(3),'',sum(mCW1(5:6))+ (spacing+precision+4)*2, Results.R_out{2,3}, spacing2+5+ mCW1(7) , '', sum(mCW1(9:10))+mCW1(7)+ (spacing+precision)*3+7, Results.R_out{2,7})
-
-fprintf('%-*s%-5s%*s%*s%*s%s%*s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, Results.R_out{3,2}, mCW1(3)+spacing+precision, Results.R_out{3,3}, mCW1(5)+spacing+precision+4,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6},...
-blanks(spacing2),...
-mCW1(7)+spacing+precision+1,Results.R_out{3,7}, mCW1(9)+spacing+precision+4,Results.R_out{3,9}, mCW1(10)+spacing+precision+2,Results.R_out{3,10})
-for i=4:3+EstimOpt.NVarA
-    fprintf('%-*s%-5s%*.*f%-3s%*.*f%*.*f%s%*.*f%-3s%*.*f%*.*f\n',mCW1(1)+spacing,Results.R_out{i,1},Results.R_out{i,2},mCW1(3)+spacing+precision,precision,Results.R_out{i,3}, Results.R_out{i,4}, mCW1(5)+spacing+precision+1,precision,Results.R_out{i,5}, mCW1(6)+spacing+precision+2,precision,Results.R_out{i,6},...
-    blanks(spacing2),...
-    mCW1(7)+spacing+precision+1,precision,Results.R_out{i,7}, Results.R_out{i,8}, mCW1(9)+spacing+precision+1,precision,Results.R_out{i,9}, mCW1(10)+spacing+precision+2,precision,Results.R_out{i,9})
-end
     
-if EstimOpt.NVarM > 0
-    for i = 1:EstimOpt.NVarM
-        disp(' ');
-        disp(['Explanatory variable of random parameters'' means - ', char(EstimOpt.NamesM(i))]);
-        fprintf('%-*s%-5s%*s %*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, Results.R_out{3,2},mCW1(3)+spacing+precision+1,Results.R_out{3,3}, mCW1(5)+spacing+precision+3,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6})
-        for c=4:3+EstimOpt.NVarA
-            fprintf('%-*s%-5s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{c,1}, Results.R_out{c,2}, mCW1(3)+spacing+precision+1,precision,Results.R_out{c,3+4*i}, Results.R_out{c,4+4*i}, mCW1(5)+spacing+precision+1,precision,Results.R_out{c,5+4*i}, mCW1(6)+spacing+precision+2,precision,Results.R_out{c,6+4*i})
+    copyfile(fullOrgTemplate, 'templateTMP.xls')
+    fullTMPTemplate = which('templateTMP.xls');
+
+    excel = actxserver('Excel.Application');
+    excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
+    excel.Visible = 1;
+    excelSheets = excel.ActiveWorkbook.Sheets;
+    excelSheet1 = excelSheets.get('Item',1);
+    excelSheet1.Activate;
+    column = size(Results.R_out,2);
+    columnName = [];    
+        while column > 0
+            modulo = mod(column - 1,26);
+            columnName = [char(65 + modulo) , columnName];
+            column = floor(((column - modulo) / 26));
         end
-        %disp(['var.', blanks(size(char(EstimOpt.NamesA),2)-2) ,'dist.  coef.       st.err.  p-value'])
-        %disp([char(EstimOpt.NamesA), repmat(' ',[EstimOpt.NVarA 2]) char(dist(Results.Dist)) repmat(' ',[EstimOpt.NVarA 4])  num2str(Results.DetailsM(:,i*4-3),'%8.4f'), star_sig(Results.DetailsM(:,i*4)), num2str(Results.DetailsM(:,i*4-1:i*4),'%8.4f %8.4f')])
-    end
-end
 
-if EstimOpt.NVarNLT > 0
-    disp(' ');
-    if EstimOpt.NLTType == 1
-        disp('Box-Cox transformation parameters')
-    elseif EstimOpt.NLTType == 2
-        disp('Yeo-Johnson transformation parameters')
-    end
-    fprintf('%-*s%-5s%*s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, Results.R_out{3,2}, mCW1(3)+spacing+precision+1,Results.R_out{3,3}, mCW1(5)+spacing+precision+4,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6})
-    for i = 1:EstimOpt.NVarNLT
-        fprintf('%-*s%-5s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{3+EstimOpt.NLTVariables(i),1}, Results.R_out{3+EstimOpt.NLTVariables(i),2}, mCW1(3)+spacing+precision+1,precision,Results.R_out{3+EstimOpt.NLTVariables(i),11+EstimOpt.NVarM*4}, Results.R_out{3+EstimOpt.NLTVariables(i),12+EstimOpt.NVarM*4}, mCW1(5)+spacing+precision+1,precision,Results.R_out{3+EstimOpt.NLTVariables(i),13+EstimOpt.NVarM*4}, mCW1(6)+spacing+precision+2,precision,Results.R_out{3+EstimOpt.NLTVariables(i),14+EstimOpt.NVarM*4})
-    end
-%     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.NLTVariables)),2)-2) ,'dist.  coef.       st.err.  p-value'])
-%     disp([char(EstimOpt.NamesA(EstimOpt.NLTVariables)), repmat(' ',[EstimOpt.NVarNLT 2]) char(dist(Results.Dist(EstimOpt.NLTVariables))) repmat(' ',[EstimOpt.NVarNLT 4]) num2str(Results.DetailsNLT(:,1),'%8.4f') star_sig(Results.DetailsNLT(:,3)) num2str(Results.DetailsNLT(:,3:4),'%8.4f %8.4f')])
-end
-
-if EstimOpt.Johnson > 0
-    disp(' ');
-    disp('Johnson location parameters');
-    fprintf('%-*s%-5s%*s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, Results.R_out{3,2},mCW1(3)+spacing+precision+1,Results.R_out{3,3},mCW1(5)+spacing+precision+4,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6})
-    for i = 1:length(EstimOpt.JSNVariables)
-        fprintf('%-*s%-5s%*.*f%3s %*.*f%*.*f\n',mCW1(1)+spacing,Results.R_out{3 + EstimOpt.JSNVariables(i),1},Results.R_out{3 + EstimOpt.JSNVariables(i),2}, mCW1(3)+spacing+precision+1,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),11+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4}, Results.R_out{3 + EstimOpt.JSNVariables(i),12+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4},mCW1(5)+spacing+precision,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),13+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4}, mCW1(6)+spacing+precision+2,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),14+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4})
-    end
-%     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'dist.  coef.       st.err.  p-value'])
-%     disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), repmat(' ',[EstimOpt.Johnson 2]) char(dist(Results.Dist(EstimOpt.Dist(2:end)>= 5))) repmat(' ',[EstimOpt.Johnson 4]), num2str(Results.DetailsJL(:,1),'%8.4f') star_sig(Results.DetailsJL(:,4)) num2str(Results.DetailsJL(:,3:4),'%8.4f %8.4f')])
-    disp(' ');
-    disp('Johnson scale parameters');
-    fprintf('%-*s%-5s%*s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, Results.R_out{3,2},mCW1(3)+spacing+precision+1,Results.R_out{3,3}, mCW1(5)+spacing+precision+4,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6})
-    for i = 1:length(EstimOpt.JSNVariables)
-        fprintf('%-*s%-5s%*.*f%3s %*.*f%*.*f\n',mCW1(1)+spacing,Results.R_out{3 + EstimOpt.JSNVariables(i),1},Results.R_out{3 + EstimOpt.JSNVariables(i),2}, mCW1(3)+spacing+precision+1,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),15+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4}, Results.R_out{3 + EstimOpt.JSNVariables(i),16+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4},mCW1(5)+spacing+precision,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),17+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4}, mCW1(6)+spacing+precision+2,precision,Results.R_out{3 + EstimOpt.JSNVariables(i),18+EstimOpt.NVarM*4+(EstimOpt.NVarNLT>0)*4})
-    end
-%     disp(['var.', blanks(size(char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)),2)-2) ,'dist.  coef.       st.err.  p-value'])
-%     disp([char(EstimOpt.NamesA(EstimOpt.Dist(2:end)>= 5)), repmat(' ',[EstimOpt.Johnson 2]) char(dist(Results.Dist(EstimOpt.Dist(2:end)>= 5))) repmat(' ',[EstimOpt.Johnson 4]), num2str(Results.DetailsJS(:,1),'%8.4f') star_sig(Results.DetailsJS(:,4)) num2str(Results.DetailsJS(:,3:4),'%8.4f %8.4f')])
-end
-
-if EstimOpt.NVarS > 0
-    [~,mCW1] = CellColumnWidth(Results.R_out(6+EstimOpt.NVarA:5+EstimOpt.NVarA+EstimOpt.NVarS,:));
-    disp(' ');
-    disp('Covariates of scale');
-    fprintf('%-*s%*s%*s%*s\n',mCW1(1)+spacing,Results.R_out{3,1}, mCW1(3)+spacing+precision+1,Results.R_out{3,3}, mCW1(5)+spacing+precision+4,Results.R_out{3,5}, mCW1(6)+spacing+precision+2,Results.R_out{3,6})
-    for c=6+EstimOpt.NVarA:5+EstimOpt.NVarA+EstimOpt.NVarS
-        fprintf('%-*s% *.*f%-3s% *.*f% *.*f\n',mCW1(1)+spacing,Results.R_out{c,1}, mCW1(3)+spacing+precision+1,precision,Results.R_out{c,3}, Results.R_out{c,4}, mCW1(5)+spacing+precision+1,precision,Results.R_out{c,5}, mCW1(6)+spacing+precision+2,precision,Results.R_out{c,6})
-    end
-%     disp(['var.',blanks(size(char(EstimOpt.NamesS),2)-2) ,'coef.      st.err.  p-value'])
-%     disp([char(EstimOpt.NamesS) ,blanks(EstimOpt.NVarS)', num2str(Results.DetailsS(:,1),'%8.4f') star_sig(Results.DetailsS(:,4)) num2str(Results.DetailsS(:,3:4),'%8.4f %8.4f')])
-end
-disp(' ')
- 
-    cprintf('*Black', 'Model characteristics: \n')
-    disp(['LL at convergence:            ', num2str(Results.LL,'%8.4f')])
-    disp(['LL at constant(s) only:       ', num2str(Results_old.MNL0.LL,'%8.4f')])
-    disp(['McFadden''s pseudo-R',char(178),':         ', num2str(1-Results.LL/Results_old.MNL0.LL,'%8.4f')])
-    disp(['Ben-Akiva-Lerman''s pseudo-R',char(178),': ', num2str(R2,'%8.4f')])
-    disp(['AIC/n:                        ', num2str((2*EstimOpt.params-2*Results.LL)/EstimOpt.NObs,'%8.4f')])
-    disp(['BIC/n:                        ', num2str(((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs,'%8.4f')])
-    disp(['n (observations):             ', num2str(EstimOpt.NObs)])
-    disp(['r (respondents):              ', num2str(EstimOpt.NP)])
-    disp(['k (parameters):               ', num2str(EstimOpt.params)])
-    disp(' ')
-    
-    if any(INPUT.W ~= 1)
-        cprintf('Estimation method:   weighted \n');
-    else
-        cprintf('Estimation method:   maximum likelihood \n');
-    end
-
-    switch EstimOpt.Draws
-        case 1
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','pseudo-random draws \n']);
-        case 2
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws \n']);
-        case  3
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
-        case 4 
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
-        case 5
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);
-        case 6
-        cprintf(['Simulation with:     ', num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),') \n']);    
-    end
-    
-    cprintf('Optimization method: '); cprintf([OptimOpt.Algorithm '\n'])
-    
-    if strcmp(OptimOpt.GradObj,'on')
-        if EstimOpt.NumGrad == 0
-            cprintf('Gradient:            '); cprintf('user-supplied, analytical \n')
+    rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
+    excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
+    excelActivesheetRange.Value = Results.R_out;
+    i = 1;
+    while exist(fullSaveName, 'file') == 2
+        if isempty(strfind(fullSaveName, '('))
+            pos = strfind(fullSaveName, '.xls');
+            fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
         else
-            cprintf('Gradient:            '); cprintf(['user-supplied, numerical, ' OptimOpt.FinDiffType, '\n'])
+            pos = strfind(fullSaveName, '(');
+            fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
         end
-    else
-        cprintf('Gradient:            '); cprintf(['built-in, ' OptimOpt.FinDiffType '\n'])
+        i = i+1;
     end
-    
-    if isequal(OptimOpt.Algorithm,'quasi-newton')
-        cprintf('Hessian:             '); cprintf('off, ')
-        switch EstimOpt.HessEstFix
-            case 0
-                cprintf('retained from optimization \n')
-            case 1
-                cprintf('ex-post calculated using BHHH \n')
-            case 2
-                cprintf('ex-post calculated using high-precision BHHH \n')
-            case 3
-                cprintf('ex-post calculated numerically \n')
-            case 4
-                cprintf('ex-post calculated analytically \n')
-        end
-    else
-        if strcmp(OptimOpt.Hessian,'user-supplied')
-            if EstimOpt.ApproxHess == 1
-                cprintf('Hessian:             '); cprintf('user-supplied, BHHH, ')
-            else
-                cprintf('Hessian:             '); cprintf('user-supplied, analytical, ')
-            end
-        else
-            cprintf('Hessian:             '); cprintf(['built-in, ' OptimOpt.HessUpdate ', '])
-        end
-        switch EstimOpt.HessEstFix
-            case 0
-                cprintf('retained from optimization \n')
-            case 1
-                cprintf('ex-post calculated using BHHH \n')
-            case 2
-                cprintf('ex-post calculated using high-precision BHHH \n')
-            case 3
-                cprintf('ex-post calculated numerically \n')
-            case 4
-                cprintf('ex-post calculated analytically \n')
-        end
-    end
-    disp(' ')
- 
-clocknote = clock;
-tocnote = toc;
-[~,DayName] = weekday(now,'long');
-
-disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
-disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
-disp(' ');
-
-Results.clocknote = clocknote;
-Results.tocnote = clocknote;
+    SaveAs(excelWorkbook,fullSaveName);
+    excel.DisplayAlerts = 0;
+    excelWorkbook.Saved = 1;
+    Close(excelWorkbook)
+    Quit(excel)
+    delete(excel)
 end
- 
- 
+end
