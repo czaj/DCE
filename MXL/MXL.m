@@ -274,7 +274,7 @@ else % EstimOpt.FullCov == 1
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA),1); Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
-                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0_old(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
+                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
             if sum(EstimOpt.Dist(2:end) == 3) > 0 % Triangular
                 b0(EstimOpt.Dist(2:end) == 3) = log(b0(EstimOpt.Dist(2:end) == 3)- EstimOpt.Triang');
