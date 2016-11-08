@@ -274,7 +274,7 @@ else % EstimOpt.FullCov == 1
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA),1); Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
-                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0_old(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
+                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
             if sum(EstimOpt.Dist(2:end) == 3) > 0 % Triangular
                 b0(EstimOpt.Dist(2:end) == 3) = log(b0(EstimOpt.Dist(2:end) == 3)- EstimOpt.Triang');
@@ -488,6 +488,7 @@ if  any(EstimOpt.Dist(2:end)>= 3 & EstimOpt.Dist(2:end) <= 5) && EstimOpt.NVarM 
     error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
 end
 
+fprintf('\n')
 cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
 
 if strcmp(OptimOpt.GradObj,'on')
@@ -537,6 +538,7 @@ else
             cprintf('*Black','ex-post calculated analytically \n')
     end
 end
+fprintf('\n')
 
 
 %% Rescructure data
@@ -974,7 +976,7 @@ else
 end
 %% Tworzenie stopki
 Tail = cell(15,2);
-Tail(1,1) = {'Model characteristics'};
+Tail(1,1) = {'Model diagnostics'};
 Tail(2:15,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
@@ -1011,7 +1013,7 @@ if strcmp(OptimOpt.GradObj,'on')
         Tail(14,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(14,2) = {['built-in',num2str(OptimOpt.FinDiffType)]};
+    Tail(14,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     
 end
 

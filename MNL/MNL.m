@@ -278,9 +278,8 @@ if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) &&
 end
 
 if EstimOpt.Display ~= 0
-    
+    fprintf('\n')
     cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
-    
     if strcmp(OptimOpt.GradObj,'on')
         if EstimOpt.NumGrad == 0
             cprintf('Gradient: '); cprintf('*Black','user-supplied, analytical \n')
@@ -328,7 +327,7 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated analytically \n')
         end
     end
-    
+    fprintf('\n')
 end
 
 
@@ -524,7 +523,7 @@ end
 
 Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
 Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
-    
+
 if NVarMOld > 0
     Results.DetailsM = [];
     for i = 1:NVarMOld
@@ -569,12 +568,12 @@ if EstimOpt.NVarNLT > 0
 end
 
 if EstimOpt.NVarS > 0
-   Temp = cell(1, size(Template1,2));
-   Temp(1,1) = {'DetailsS'};
-   Template1 = [Template1; Temp];
-   Template2 = [Template2; 'DetailsS'];
-   Names.DetailsS = EstimOpt.NamesS;
-   Heads.DetailsS = {'Covariates of Scale'};
+    Temp = cell(1, size(Template1,2));
+    Temp(1,1) = {'DetailsS'};
+    Template1 = [Template1; Temp];
+    Template2 = [Template2; 'DetailsS'];
+    Names.DetailsS = EstimOpt.NamesS;
+    Heads.DetailsS = {'Covariates of Scale'};
 end
 
 %% Tworzenie naglowka
@@ -587,7 +586,7 @@ else
 end
 %% Tworzenie stopki
 Tail = cell(14,2);
-Tail(1,1) = {'Model characteristics'};
+Tail(1,1) = {'Model diagnostics'};
 Tail(2:14,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
@@ -609,7 +608,7 @@ if strcmp(OptimOpt.GradObj,'on')
         Tail(13,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(13,2) = {['built-in',num2str(OptimOpt.FinDiffType)]};
+    Tail(13,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     
 end
 
@@ -658,14 +657,14 @@ EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
 if EstimOpt.Display~=0
     Results.Dist = transpose(EstimOpt.Dist(:,2:end));
     Results.R_out = genOutput2(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
-    fullOrgTemplate = which('template.xls');   
+    fullOrgTemplate = which('template.xls');
     currFld = pwd;
     if isfield(EstimOpt,'ProjectName')
         fullSaveName = strcat(currFld,'\MNL_results_',EstimOpt.ProjectName,'.xls');
     else
         fullSaveName = strcat(currFld,'\MNL_results.xls');
     end
-
+    
     copyfile(fullOrgTemplate, 'templateTMP.xls')
     fullTMPTemplate = which('templateTMP.xls');
     excel = actxserver('Excel.Application');
@@ -675,12 +674,12 @@ if EstimOpt.Display~=0
     excelSheet1 = excelSheets.get('Item',1);
     excelSheet1.Activate;
     column = size(Results.R_out,2);
-    columnName = [];    
-        while column > 0
-            modulo = mod(column - 1,26);
-            columnName = [char(65 + modulo) , columnName];
-            column = floor(((column - modulo) / 26));
-        end
+    columnName = [];
+    while column > 0
+        modulo = mod(column - 1,26);
+        columnName = [char(65 + modulo) , columnName];
+        column = floor(((column - modulo) / 26));
+    end
     rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
     excelActivesheetRange.Value = Results.R_out;
