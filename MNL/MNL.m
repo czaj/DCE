@@ -500,7 +500,7 @@ if isfield(EstimOpt,'BActive')
 end
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.Params];
+    Results.stats = [Results.LL; Results_old.MNL0.LL;  1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.Params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.Params];
 end
 
 if EstimOpt.WTP_space == 0
@@ -585,30 +585,30 @@ else
     Head(1,2) = {'in preference-space'};
 end
 %% Tworzenie stopki
-Tail = cell(14,2);
-Tail(1,1) = {'Model diagnostics'};
-Tail(2:14,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Optimization method';'Gradient';'Hessian'};
+Tail = cell(15,2);
+Tail(2,1) = {'Model diagnostics'};
+Tail(3:15,1) = { 'LL at convergence' ; 'LL at constant(s) only'; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Tail(2:10,2) = num2cell(Results.stats);
+    Tail(3:11,2) = num2cell(Results.stats);
 end
 
 if any(INPUT.W ~= 1)
-    Tail(11,2) = {'weighted'};
+    Tail(12,2) = {'weighted'};
 else
-    Tail(11,2) = {'maximum likelihood'};
+    Tail(12,2) = {'maximum likelihood'};
 end
 
-Tail(12,2) = {OptimOpt.Algorithm;};
+Tail(13,2) = {OptimOpt.Algorithm;};
 
 if strcmp(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        Tail(13,2) = {'user-supplied, analytical'};
+        Tail(14,2) = {'user-supplied, analytical'};
     else
-        Tail(13,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+        Tail(14,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(13,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
+    Tail(14,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     
 end
 
@@ -651,12 +651,12 @@ else
     end
 end
 
-Tail(14,2) = {outHessian};
+Tail(15,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
 if EstimOpt.Display~=0
     Results.Dist = transpose(EstimOpt.Dist(:,2:end));
-    Results.R_out = genOutput2(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
     fullOrgTemplate = which('template.xls');
     currFld = pwd;
     if isfield(EstimOpt,'ProjectName')

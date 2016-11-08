@@ -909,7 +909,7 @@ EstimOpt.params = length(b0);
 % end
 EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 
-Results.stats = [Results_old.MNL0.LL; Results.LL; 1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.params];
+Results.stats = [Results.LL; Results_old.MNL0.LL;  1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.params];
 %File Output
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
@@ -975,9 +975,9 @@ else
     Head(1,2) = {'in preference-space'};
 end
 %% Tworzenie stopki
-Tail = cell(15,2);
+Tail = cell(16,2);
 Tail(1,1) = {'Model diagnostics'};
-Tail(2:15,1) = {'LL at constant(s) only'; 'LL at convergence' ; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
+Tail(2:15,1) = {'LL at convergence' ;'LL at constant(s) only';  strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
     Tail(2:10,2) = num2cell(Results.stats);
@@ -1060,7 +1060,7 @@ Tail(15,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
 
-    Results.R_out = genOutput2(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
     fullOrgTemplate = which('template.xls');   
     currFld = pwd;
     
