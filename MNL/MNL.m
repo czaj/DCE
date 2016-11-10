@@ -668,8 +668,14 @@ if EstimOpt.Display~=0
     copyfile(fullOrgTemplate, 'templateTMP.xls')
     fullTMPTemplate = which('templateTMP.xls');
     excel = actxserver('Excel.Application');
+%     try WbookCheck = excel.Workbooks('fullTMPTemplate');
+%         Close(WbookCheck)
+%         catch
+%              excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
+%     end
     excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
     excel.Visible = 1;
+    excel.DisplayAlerts = 0;
     excelSheets = excel.ActiveWorkbook.Sheets;
     excelSheet1 = excelSheets.get('Item',1);
     excelSheet1.Activate;
@@ -684,16 +690,19 @@ if EstimOpt.Display~=0
     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
     excelActivesheetRange.Value = Results.R_out;
     i = 1;
-    while exist(fullSaveName, 'file') == 2
-        if isempty(strfind(fullSaveName, '('))
-            pos = strfind(fullSaveName, '.xls');
-            fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
-        else
-            pos = strfind(fullSaveName, '(');
-            fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
+    if EstimOpt.xlsOverwrite == 0
+        while exist(fullSaveName, 'file') == 2
+            if isempty(strfind(fullSaveName, '('))
+                pos = strfind(fullSaveName, '.xls');
+                fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
+            else
+                pos = strfind(fullSaveName, '(');
+                fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
+            end
+            i = i+1;
         end
-        i = i+1;
     end
+    excelWorkbook.ConflictResolution = 2;
     SaveAs(excelWorkbook,fullSaveName);
     excel.DisplayAlerts = 0;
     excelWorkbook.Saved = 1;
