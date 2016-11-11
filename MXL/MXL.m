@@ -1099,7 +1099,7 @@ end
     rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
     excelActivesheetRange.Value = Results.R_out;
-    if EstimOpt.xlsOverwrite == 0
+    if isfield(EstimOpt,'xlsOverwrite') && EstimOpt.xlsOverwrite == 0
         i = 1;
         while exist(fullSaveName, 'file') == 2
             if isempty(strfind(fullSaveName, '('))

@@ -690,7 +690,7 @@ if EstimOpt.Display~=0
     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
     excelActivesheetRange.Value = Results.R_out;
     i = 1;
-    if EstimOpt.xlsOverwrite == 0
+    if isfield(EstimOpt,'xlsOverwrite') && EstimOpt.xlsOverwrite == 0
         while exist(fullSaveName, 'file') == 2
             if isempty(strfind(fullSaveName, '('))
                 pos = strfind(fullSaveName, '.xls');
