@@ -223,7 +223,11 @@ if EstimOpt.FullCov == 0
             %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,sqrt(abs(Results_old.MNL.bhat(1:EstimOpt.NVarA))));0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);max(1,abs(Results_old.MNL.bhat(1:EstimOpt.NVarA)));Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
-                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
+                if any(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) < 0)
+                    cprintf(rgb('DarkOrange'), 'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
+                    b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1 & b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) < 0) = 1.01;
+                end
+                b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));                
             end
             if sum(EstimOpt.Dist(2:end) == 3) > 0 % Triangular
                 indx = find( EstimOpt.Dist(2:end) == 3);
@@ -274,6 +278,10 @@ else % EstimOpt.FullCov == 1
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA),1); Results_old.MNL.bhat(EstimOpt.NVarA+1:end)];
             if sum(EstimOpt.Dist(2:end)==1) > 0
+                if any(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) < 0)
+                    cprintf(rgb('DarkOrange'), 'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
+                    b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1 & b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) < 0) = 1.01;
+                end
                 b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));
             end
             if sum(EstimOpt.Dist(2:end) == 3) > 0 % Triangular
