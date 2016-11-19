@@ -983,45 +983,45 @@ else
     Head(1,2) = {'in preference-space'};
 end
 %% Tworzenie stopki
-Tail = cell(16,2);
-Tail(1,1) = {'Model diagnostics'};
-Tail(2:15,1) = {'LL at convergence' ;'LL at constant(s) only';  strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
+Tail = cell(17,2);
+Tail(2,1) = {'Model diagnostics'};
+Tail(3:17,1) = {'LL at convergence' ;'LL at constant(s) only';  strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';' ';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Tail(2:10,2) = num2cell(Results.stats);
+    Tail(3:11,2) = num2cell(Results.stats);
 end
 
 if any(INPUT.W ~= 1)
-    Tail(11,2) = {'weighted'};
+    Tail(13,2) = {'weighted'};
 else
-    Tail(11,2) = {'maximum likelihood'};
+    Tail(13,2) = {'maximum likelihood'};
 end
 
 switch EstimOpt.Draws
      case 1
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
      case 2
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
      case  3
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 4 
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 5
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
      case 6
-     Tail(12,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
+     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
 end
 
-Tail(13,2) = {OptimOpt.Algorithm;};
+Tail(15,2) = {OptimOpt.Algorithm;};
 
 if strcmp(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        Tail(14,2) = {'user-supplied, analytical'};
+        Tail(16,2) = {'user-supplied, analytical'};
     else
-        Tail(14,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+        Tail(16,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(14,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
+    Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     
 end
 
@@ -1064,7 +1064,7 @@ else
     end
 end
 
-Tail(15,2) = {outHessian};
+Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
 
@@ -1127,5 +1127,6 @@ end
     Close(excelWorkbook)
     Quit(excel)
     delete(excel)
+    delete(fullTMPTemplate)
 end
 end
