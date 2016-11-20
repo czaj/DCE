@@ -585,30 +585,30 @@ else
     Head(1,2) = {'in preference-space'};
 end
 %% Tworzenie stopki
-Tail = cell(15,2);
+Tail = cell(16,2);
 Tail(2,1) = {'Model diagnostics'};
-Tail(3:15,1) = { 'LL at convergence' ; 'LL at constant(s) only'; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';'Estimation method';'Optimization method';'Gradient';'Hessian'};
+Tail(3:16,1) = { 'LL at convergence' ; 'LL at constant(s) only'; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';' ';'Estimation method';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
     Tail(3:11,2) = num2cell(Results.stats);
 end
 
 if any(INPUT.W ~= 1)
-    Tail(12,2) = {'weighted'};
+    Tail(13,2) = {'weighted'};
 else
-    Tail(12,2) = {'maximum likelihood'};
+    Tail(13,2) = {'maximum likelihood'};
 end
 
-Tail(13,2) = {OptimOpt.Algorithm;};
+Tail(14,2) = {OptimOpt.Algorithm;};
 
 if strcmp(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        Tail(14,2) = {'user-supplied, analytical'};
+        Tail(15,2) = {'user-supplied, analytical'};
     else
-        Tail(14,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+        Tail(15,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(14,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
+    Tail(15,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     
 end
 
@@ -651,7 +651,7 @@ else
     end
 end
 
-Tail(15,2) = {outHessian};
+Tail(16,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
 if EstimOpt.Display~=0
