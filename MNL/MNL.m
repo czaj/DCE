@@ -550,6 +550,7 @@ Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
 Heads.DetailsA = {'Means'};
+ST = {};
 
 if NVarMOld > 0
     Template1 = [Template1, 'DetailsM'];
@@ -574,6 +575,7 @@ if EstimOpt.NVarS > 0
     Template2 = [Template2; 'DetailsS'];
     Names.DetailsS = EstimOpt.NamesS;
     Heads.DetailsS = {'Covariates of Scale'};
+    ST = {'DetailsS'};
 end
 
 %% Tworzenie naglowka
@@ -656,7 +658,7 @@ Tail(16,2) = {outHessian};
 EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
 if EstimOpt.Display~=0
     Results.Dist = transpose(EstimOpt.Dist(:,2:end));
-    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');
     currFld = pwd;
     if isfield(EstimOpt,'ProjectName')

@@ -935,6 +935,7 @@ Template2 = {'DetailsA', 'DetailsV'};
 Names.DetailsA = EstimOpt.NamesA;
 Heads.DetailsA = {'Means'};
 Heads.DetailsV = {'Standard Deviations'};
+ST = {};
 if EstimOpt.NVarM > 0
     Template1 = [Template1, 'DetailsM'];
     Temp = cell(1, size(Template2,2));
@@ -972,6 +973,7 @@ if EstimOpt.NVarS > 0
    Template2 = [Template2; Temp];
    Names.DetailsS = EstimOpt.NamesS;
    Heads.DetailsS = {'Covariates of Scale'};
+   ST = {'DetailsS'};
 end
 
 %% Tworzenie naglowka
@@ -1073,7 +1075,7 @@ Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
 
-    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');   
     currFld = pwd;
     
