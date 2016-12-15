@@ -1,4 +1,4 @@
-function Results = HMNL(INPUT,Results_old,EstimOpt,OptimOpt)
+function Results = HMNL_zrobiony(INPUT,Results_old,EstimOpt,OptimOpt)
 
 
 global B_backup;
@@ -853,9 +853,10 @@ if EstimOpt.NVarStr > 0
     Results.DetailsS(1:(EstimOpt.NVarStr)*EstimOpt.NLatent,3:4) = [Results.std(EstimOpt.NVarA*(1+EstimOpt.NLatent+EstimOpt.NVarM)+EstimOpt.NVarS+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS), pv(Results.bhat(EstimOpt.NVarA*(1+EstimOpt.NLatent+EstimOpt.NVarM)+EstimOpt.NVarS+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS), Results.std(EstimOpt.NVarA*(1+EstimOpt.NLatent+EstimOpt.NVarM)+EstimOpt.NVarS+1:(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS))];
 end
 
-Results.DetailsM(1:sum(EstimOpt.CutMatrix),1) = Results.bhat((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end);
-Results.DetailsM(1:sum(EstimOpt.CutMatrix),3:4) = [Results.std((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end), pv(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end), Results.std((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end))];
-
+if sum(EstimOpt.CutMatrix) > 0
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),1) = Results.bhat((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end);
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),3:4) = [Results.std((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end), pv(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end), Results.std((EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent+EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS+1:end))];
+end
 
 
 
@@ -888,7 +889,7 @@ Names.DetailsA = EstimOpt.NamesA;
 Heads.DetailsA = {'MNL'};
 
 
-
+ST = [];
 LVlist = {'LV 1' , 'LV 2' , 'LV 3' , 'LV 4' , 'LV 5' , 'LV 6' , 'LV 7' , 'LV 8' ,'LV 9' ,'LV 10'};
 LVlist2 = {'LV1' , 'LV2' , 'LV3' , 'LV4' , 'LV5' , 'LV6' , 'LV7' , 'LV8' ,'LV9' ,'LV10'};
 %if EstimOpt.NLatent<=10
@@ -917,6 +918,7 @@ if EstimOpt.NVarS >0
     Template2 = [Template2; Temp2];
     Names.DetailsScale = EstimOpt.NamesS;
     Heads.DetailsScale = {'Covariates of Scale'};
+    ST = {'DetailsScale'};
     
 %     Results.R_out(EstimOpt.NVarA+4,1) = {'Covariates of scale'};
 %     Results.R_out(EstimOpt.NVarA+5,1:4) = head;
@@ -924,31 +926,29 @@ if EstimOpt.NVarS >0
 %     Results.R_out(EstimOpt.NVarA+6:EstimOpt.NVarA+5+EstimOpt.NVarS,2:4) = num2cell(Results.DetailsScale);
 end
 
-
-
-
-
 %Results.R_out(EstimOpt.NVarA+5+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0),2:3:(2+(EstimOpt.NLatent-1)*3)) = LVlist(1,1:EstimOpt.NLatent);
 % Results.R_out(EstimOpt.NVarA+6+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0),1:end-3) = headx(1:end-3);
 % Results.R_out(EstimOpt.NVarA+7+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0):EstimOpt.NVarA+6+EstimOpt.NVarStr+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0),1) = EstimOpt.NamesStr;
 
 for i = 1: EstimOpt.NLatent 
     if EstimOpt.NVarStr > 0
-        Results.Latent(1:EstimOpt.NVarStr,4*i-3:4*i) = Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:);
-        Heads.Latent{i,1} = 'Structural equations';
-        Heads.Latent(i,2) = LVlist(i);
+        Results.SE(1:EstimOpt.NVarStr,4*i-3:4*i) = Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:);
+        Heads.SE{i,1} = 'Structural equations';
+        Heads.SE(i,2) = LVlist(i);
     end
 
 %Results.R_out(EstimOpt.NVarA+7+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0):EstimOpt.NVarA+6+EstimOpt.NVarStr+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0),2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:));
 end
-    if isfield(Results, 'Latent')
+
+if isfield(Results, 'SE')
         Temp1 = cell(1, size(Template1,2));
-        Temp1(1,1) = {'Latent'};
+        Temp1(1,1) = {'SE'};
         Template1 = [Template1; Temp1];
         Temp2 = cell(1, size(Template2,2));
-        Temp2(1,1) = {'Latent'};
+        Temp2(1,1) = {'SE'};
         Template2 = [Template2; Temp2];
-        Names.Latent = EstimOpt.NamesStr;
+        Names.SE = EstimOpt.NamesStr;
+        ST = [ST, {'SE'}];
     end
 %l = EstimOpt.NVarA+3+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0); % this is for indexing in R_out
  k = 0;
@@ -973,6 +973,7 @@ for i = 1:size(INPUT.Xmea,2)
     Temp2 = cell(1, size(Template2,2));
     Temp2(1,1) = {strcat('Xmea',num2str(i))};
     Template2 = [Template2; Temp2];
+    ST = [ST, {strcat('Xmea',num2str(i))}];
 end
 
 
@@ -1071,7 +1072,7 @@ Tail(17,2) = {outHessian};
 if EstimOpt.Display~=0
     EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
     Results.Dist = transpose(EstimOpt.Dist(:,2:end));
-    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');   
     currFld = pwd;
     
