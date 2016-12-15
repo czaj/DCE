@@ -662,8 +662,13 @@ Results.LL = -LL;
 Results.b0_old = b0;
 
 LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
+% save tmp1
 if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available! 
-    [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+    try
+        [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+    catch theErrorInfo
+        
+    end        
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);

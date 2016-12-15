@@ -124,7 +124,7 @@ elseif nargout == 2
     end
 end
 if ScaleLV == 1
-    ScaleLVX =exp(bsLV*LV);
+    ScaleLVX = exp(bsLV*LV);
     b_mtx = bsxfun(@times,ScaleLVX, b_mtx); 
     ScaleLVX = permute(reshape(ScaleLVX, 1,NRep, NP), [1 3 2]);
 else
