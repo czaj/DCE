@@ -274,6 +274,14 @@ for i = 1:size(INPUT.Xmea,2)
         end
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Sigma'}];
     elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+        % rescale Xmea MNL so that the minimum value is 1
+        if min(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) <= 0
+            INPUT.Xmea(INPUT.MissingInd==0,i) = INPUT.Xmea(INPUT.MissingInd==0,i) - min(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) + 1;
+        end
+        % test if only integer valus
+        if ~all(ceil(INPUT.Xmea(INPUT.MissingInd==0,i)) == floor(INPUT.Xmea(INPUT.MissingInd==0,i)))
+            error(num2str(i,'Measurement variable %1.0f is modelled using MNL - all values must be integer'));
+        end   
         EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1)*(1+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1;
         EstimOpt.Names = [EstimOpt.Names, 'MNL '];

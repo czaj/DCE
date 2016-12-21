@@ -137,9 +137,9 @@ if NVarNLT > 0
     end
     XXa(:, NLTVariables,:) = Xt;
 else
-    if EstimOpt.NumGrad == 0 % 
+%     if EstimOpt.NumGrad == 0 
         XXt = zeros(0,0,NP);
-    end
+%     end
 end
 
 % b0n = b0a(:,ones(NP,1)) + b0m*XXm;
@@ -192,9 +192,11 @@ end
 
 %sum(isnan(b_mtx),2)
 if WTP_space > 0
-    if EstimOpt.NumGrad == 0
-       b_mtx_grad = reshape(b_mtx,NVarA,NRep,NP); % needed for gradient calculation in WTP_space
-    end
+%     if EstimOpt.NumGrad == 0
+       b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
+%     else
+%         b_mtx_grad = zeros(0,0,NP);
+%     end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:); 
 else
     b_mtx_grad = zeros(0,0,NP);

@@ -37,14 +37,14 @@ if any(INPUT.W ~= 1)
 else
     disp('Estimating GMXL model ...')
 end
-if isfield(EstimOpt,'FullCov') == 0;
+if isfield(EstimOpt,'FullCov') == 0
 %     disp('Assuming non-correlated random parameters')
     EstimOpt.FullCov = 0;
 end
 if isfield(EstimOpt, 'WTP_space') == 0
     EstimOpt.WTP_space = 0;
     EstimOpt.WTP_matrix = [];
-elseif EstimOpt.WTP_space == 0;
+elseif EstimOpt.WTP_space == 0
 	EstimOpt.WTP_matrix = [];
 end
 

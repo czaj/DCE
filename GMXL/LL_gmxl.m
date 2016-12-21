@@ -93,7 +93,7 @@ end
 
 sigma = reshape(sigma', 1, NRep*NP);
 
-if sum(Dist(2:end) > 0) == 0;  % Normal
+if sum(Dist(2:end) > 0) == 0  % Normal
     if gamma0 == 0
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + VC*err(2:end,:));  % NVarA x NRep*NP
     elseif gamma0 == 1
@@ -104,7 +104,7 @@ if sum(Dist(2:end) > 0) == 0;  % Normal
     if nargout == 2
         b_mtx_grad = zeros(NVarA,0, NP);
     end
-elseif sum(Dist(2:end)==1) > 0;  % Log - normal
+elseif sum(Dist(2:end)==1) > 0  % Log - normal
     if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
@@ -121,7 +121,7 @@ elseif sum(Dist(2:end)==1) > 0;  % Log - normal
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
         b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
     end    
-elseif sum(Dist(2:end)==2) > 0;  % Spike       
+elseif sum(Dist(2:end)==2) > 0  % Spike       
     if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
         b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
@@ -136,7 +136,7 @@ elseif sum(Dist(2:end)==2) > 0;  % Spike
     if nargout == 2
         b_mtx_grad = zeros(NVarA,0, NP);
     end
-elseif sum(Dist(2:end)==5) > 0; 
+elseif sum(Dist(2:end)==5) > 0
     if sum(sum(VC.*(1-eye(size(b0n,1)))~=0))~=0; error ('Weibull distribution can only be used with non-correlated parameters'); end;     
     if gma ~= 0
         error ('Weibull distributed attriute parameters possible only with G-MNL Type II'); 
@@ -153,7 +153,7 @@ elseif sum(Dist(2:end)==5) > 0;
     end
 end; 
 
-if WTP_space > 0 % to jest Ÿle!!! 
+if WTP_space > 0 % this is wrong !!! 
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:); 
 end
 
