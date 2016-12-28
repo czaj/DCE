@@ -909,6 +909,14 @@ Template2 = cell(2,size(Temp,2));
 Template2(1,1) = {'DetailsA'};
 Template2(end,:) = Temp;
 
+if EstimOpt.NVarM > 0
+    Template1 = [Template1, 'DetailsCM'];
+	Temp2 = cell(1, size(Template2,2));
+    Temp2(1,1) = {'DetailsCM'};
+    Template2 = [Template2; Temp2];
+	Heads.DetailsCM = EstimOpt.NamesM;
+end
+
 if EstimOpt.NVarS >0
     Temp1 = cell(1, size(Template1,2));
     Temp1(1,1) = {'DetailsScale'};
@@ -1070,8 +1078,7 @@ end
 Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
-    EstimOpt.Dist = -ones(1,EstimOpt.NVarA+1);
-    Results.Dist = transpose(EstimOpt.Dist(:,2:end));
+    Results.Dist = EstimOpt.MNLDist;
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');
     currFld = pwd;
@@ -1252,4 +1259,3 @@ end
 % disp(['Estimation took ' num2str(Results.tocnote) ' seconds ('  num2str(floor(Results.tocnote/(60*60))) ' hours ' num2str(floor(rem(Results.tocnote,60*60)/60)) ' minutes ' num2str(rem(Results.tocnote,60)) ' seconds).']);
 % disp(' ');
 end
-
