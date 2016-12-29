@@ -22,7 +22,8 @@ NLTType = EstimOpt.NLTType;
 Johnson = EstimOpt.Johnson; 
 NCTMiss = EstimOpt.NCTMiss; 
 NAltMiss = EstimOpt.NAltMiss; 
-
+NAltMissInd = EstimOpt.NAltMissInd; 
+NAltMissIndExp = EstimOpt.NAltMissIndExp;
 % if nargout == 3
 %    XXX = permute(mmx('square',permute(XXa,[2,4,1,3]),[]),[3,1,2,4]);
 % %    VCx = EstimOpt.VCx;
@@ -244,12 +245,44 @@ if nargout == 1 % function value only
             YnanInd = ~isnan(YY(:,n));
 %             U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,:,n),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
             XXa_n = XXa(:,:,n);
-            U = reshape(XXa_n(YnanInd,:,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
-            U_max = max(U);
-%             U = exp(U - U_max(ones(NAlt,1),:,:)); 
-            U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
-            U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
-%             U_selected = reshape(U(YY(YnanInd,n*ones(NRep,1))==1),NCTMiss(n),NRep);
+            NAltMissIndExp_n = NAltMissIndExp(:,n);
+            NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
+            if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant
+                U = reshape(XXa_n(YnanInd,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
+                U_max = max(U);
+                U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
+                U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
+            else
+                NAltMissInd_n = NAltMissInd(:,n);
+                U = XXa_n(YnanInd,:)*b_mtx(:,:,n);
+                Uniq = unique(NAltMissIndExp_n);
+                U_sum = zeros(NCTMiss(n),NRep);
+                if length(Uniq) == 2
+                    U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
+                    U_tmp = reshape(U_tmp, Uniq(1), size(U_tmp,1)/Uniq(1), NRep);
+                    U_max_tmp = max(U_tmp);
+                   
+                    U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(1),1),:,:));
+                    U_sum(NAltMissInd_n == Uniq(1),:) = reshape(sum(U_tmp,1),size(U_tmp,2),NRep);
+                    U(NAltMissIndExp_n == Uniq(1),:)= reshape(U_tmp,size(U_tmp,2)*Uniq(1), NRep);
+                    
+                    U_tmp = U(NAltMissIndExp_n == Uniq(2),:);
+                    U_tmp = reshape(U_tmp, Uniq(2), size(U_tmp,1)/Uniq(2), NRep);
+                    U_max_tmp = max(U_tmp);
+                    U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(2),1),:,:));
+                    U_sum(NAltMissInd_n == Uniq(2),:) = reshape(sum(U_tmp,1),size(U_tmp,2),NRep);
+                    U(NAltMissIndExp_n == Uniq(2),:)= reshape(U_tmp,size(U_tmp,2)*Uniq(2), NRep);
+                else
+                    for i = 1:length(Uniq)
+                        U_tmp = U(NAltMissIndExp_n == Uniq(i),:);
+                        U_tmp = reshape(U_tmp, Uniq(i), size(U_tmp,1)/Uniq(i), NRep);
+                        U_max_tmp = max(U_tmp);
+                        U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(i),1),:,:));
+                        U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),size(U_tmp,2),NRep);
+                        U(NAltMissIndExp_n == Uniq(i),:)= reshape(U_tmp,size(U_tmp,2)*Uniq(i), NRep);
+                    end
+                end
+            end
             YYy_n = YY(:,n)==1;
             U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep);
             p0(n) = mean(prod(U_selected ./ U_sum,1));
