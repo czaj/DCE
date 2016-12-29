@@ -420,6 +420,11 @@ if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
 end
 
 
+if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0
+    EstimOpt.NumGrad = 1;
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when no. of alternatives differ for the same individual  \n')
+end
+
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     EstimOpt.NumGrad = 1;
