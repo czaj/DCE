@@ -215,8 +215,7 @@ b_mtx = reshape(b_mtx,NVarA,NRep,NP);
 p0 = zeros(NP,1);
 
 if nargout == 1 % function value only
-    
-    
+        
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = YY==1;
         parfor n = 1:NP
@@ -242,14 +241,14 @@ if nargout == 1 % function value only
         %         p0 = mean(prod(1 ./ U_sum,2),3);
         %         p0 = p0(:);
         
-    else  % this works only if NAlt is constant for each respondent
+    else
         parfor n = 1:NP
             YnanInd = ~isnan(YY(:,n));
             %             U = reshape(XXa_n(~isnan(YY(:,n)),:,n)*b_mtx(:,:,n),NAlt,NCT-sum(isnan(YY(1:NAlt:end,n))),NRep); % this would be faster if there are no ALT missing
             XXa_n = XXa(:,:,n);
             NAltMissIndExp_n = NAltMissIndExp(:,n);
             NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
-            if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant
+            if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
                 U = reshape(XXa_n(YnanInd,:)*b_mtx(:,:,n),NAltMiss(n),NCTMiss(n),NRep);
                 U_max = max(U);
                 U = exp(U - U_max(ones(NAltMiss(n),1),:,:));
@@ -280,7 +279,7 @@ if nargout == 1 % function value only
                         U_tmp = reshape(U_tmp, Uniq(i), size(U_tmp,1)/Uniq(i), NRep);
                         U_max_tmp = max(U_tmp);
                         U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(i),1),:,:));
-                        U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),size(U_tmp,2),NRep);
+                        U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
                         U(NAltMissIndExp_n == Uniq(i),:)= reshape(U_tmp,size(U_tmp,2)*Uniq(i), NRep);
                     end
                 end
@@ -312,8 +311,7 @@ if nargout == 1 % function value only
     % U_selected = reshape(U(YY3(:,ones(NRep,1),:) == 1),NCT,NRep,NP);
     % U_sum = reshape((sum(reshape(U,NAlt,NCT,NRep,NP),1)),NCT,NRep,NP);
     % p0 = reshape(mean(prod(U_selected ./ U_sum),2),NP,1); toc
-    
-    
+        
 elseif nargout == 2 %  function value + gradient
     
     if NVarS > 0
