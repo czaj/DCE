@@ -3,8 +3,9 @@ function [f,g] = LL_mnl(y,Xa,Xm,Xs,EstimOpt,b0)
 % save LL_mnl
 % return
 
-B = b0(1:EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS);
+RealMin = EstimOpt.RealMin;
 
+B = b0(1:EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS);
 
 if EstimOpt.NVarNLT > 0
     bt = b0(EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + 1:end);
@@ -102,110 +103,119 @@ sum_evdiff = nansum(evdiff,1); %1 by N
 P = evdiff./sum_evdiff(ones(EstimOpt.NAlt,1),:); % NAlt x N
 probs = P(y == 1);
 
-% logprobs = log(max(probs,realmin)); %1 *N
-logprobs = log(probs); %1 *N
-% f = logprobs'.*EstimOpt.WT(1:end,:);
+if RealMin == 1
+    logprobs = log(max(probs,realmin));
+else
+    logprobs = log(probs);    
+    % f = logprobs'.*EstimOpt.WT(1:end,:);
+end
+
 f = logprobs;
+
 
 if nargout == 2 % function value + gradient
     
-     if any(isnan(Xa(:))) == 0 
-         if EstimOpt.WTP_space == 0
+    if any(isnan(Xa(:))) == 0
+        if EstimOpt.WTP_space == 0
             XXa = reshape(Xa, EstimOpt.NAlt, N, EstimOpt.NVarA);
             %         Xhat = squeeze(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1))'; % N x NVarA
             Xhat = reshape(sum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1),[N,EstimOpt.NVarA]); % N x NVarA
             g = Xa(y == 1, :) - Xhat;
-        
+            
             if EstimOpt.NVarNLT > 0
-                    XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
-                    Xhatlam = squeeze(sum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                    if EstimOpt.NVarNLT == 1
-                        Xhatlam = Xhatlam';
-                    end
-                    g = [g, XXt(y == 1, :) - Xhatlam];
-                     if NVarM > 0
-                        gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
-                        g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
-                     end
+                XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
+                Xhatlam = squeeze(sum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
+                if EstimOpt.NVarNLT == 1
+                    Xhatlam = Xhatlam';
+                end
+                g = [g, XXt(y == 1, :) - Xhatlam];
+                if NVarM > 0
+                    gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
+                    g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
+                end
             end
-    else
-                 % non - cost variables
+            
+        else
+            
+            % non - cost variables
             if EstimOpt.NVarM == 0
                 alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*(B(EstimOpt.WTP_matrix,ones(EstimOpt.NAlt*N,1))');
             else
-            alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*ba_grad(EstimOpt.WTP_matrix,EstimOpt.XmIndx2)';
+                alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*ba_grad(EstimOpt.WTP_matrix,EstimOpt.XmIndx2)';
             end
             
-        alphaXX = reshape(alphaX, EstimOpt.NAlt, N, EstimOpt.NVarA - EstimOpt.WTP_space);
-        Xhat1 = squeeze(sum(P(:,:,ones(EstimOpt.NVarA- EstimOpt.WTP_space,1)).*alphaXX,1));
-        g1 = alphaX(y == 1, :) - Xhat1;
-        % cost variables
-        
+            alphaXX = reshape(alphaX, EstimOpt.NAlt, N, EstimOpt.NVarA - EstimOpt.WTP_space);
+            Xhat1 = squeeze(sum(P(:,:,ones(EstimOpt.NVarA- EstimOpt.WTP_space,1)).*alphaXX,1));
+            g1 = alphaX(y == 1, :) - Xhat1;
+            % cost variables
+            
             if EstimOpt.WTP_space == 1
                 if EstimOpt.NVarM == 0
                     pX = Xa(:, EstimOpt.NVarA) + Xa(:, 1:EstimOpt.NVarA-1)*b0(1:EstimOpt.NVarA-1);
                 else
                     pX = Xa(:, EstimOpt.NVarA) + sum(Xa(:, 1:EstimOpt.NVarA-1).*ba_grad(1:EstimOpt.NVarA-1,EstimOpt.XmIndx2)',2);
                 end
-
+                
                 pXX = reshape(pX, EstimOpt.NAlt, N);
                 Xhat2 = squeeze(sum(P.*pXX,1))'; % N x 1
                 g2 = pX(y == 1, :) - Xhat2;
-
+                
             else
                 
-            pX = zeros(EstimOpt.NAlt*N, EstimOpt.WTP_space);
-            
+                pX = zeros(EstimOpt.NAlt*N, EstimOpt.WTP_space);
+                
                 for i = 1:EstimOpt.WTP_space
                     if EstimOpt.NVarM == 0
-                       pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
+                        pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
                     else
-                       pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + sum(Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i).*ba_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i,EstimOpt.XmIndx2)',2);
+                        pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + sum(Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i).*ba_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i,EstimOpt.XmIndx2)',2);
                     end
                 end
                 
-                    pXX = reshape(pX, EstimOpt.NAlt, N, EstimOpt.WTP_space);
-                    Xhat2 = squeeze(sum(P(:,:, ones(EstimOpt.WTP_space,1)).*pXX,1)); % N x WTP_space
-                    g2 = pX(y == 1, :) - Xhat2;
-            end 
-            
-        g =[g1,g2];
-        
-        if EstimOpt.NVarNLT > 0
-            XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
-            Xhatlam = squeeze(sum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-            if EstimOpt.NVarNLT == 1
-                Xhatlam = Xhatlam';
+                pXX = reshape(pX, EstimOpt.NAlt, N, EstimOpt.WTP_space);
+                Xhat2 = squeeze(sum(P(:,:, ones(EstimOpt.WTP_space,1)).*pXX,1)); % N x WTP_space
+                g2 = pX(y == 1, :) - Xhat2;
             end
-            g = [g,  XXt(y == 1, :) - Xhatlam];
-        end
+            
+            g =[g1,g2];
+            
+            if EstimOpt.NVarNLT > 0
+                XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
+                Xhatlam = squeeze(sum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
+                if EstimOpt.NVarNLT == 1
+                    Xhatlam = Xhatlam';
+                end
+                g = [g,  XXt(y == 1, :) - Xhatlam];
+            end
             if EstimOpt.NVarM > 0
                 gm = g(:,repmat(1:EstimOpt.NVarA, 1, EstimOpt.NVarM)).*(Xm(EstimOpt.XmIndx ,kron(1:EstimOpt.NVarM, ones(1,EstimOpt.NVarA))));
                 g = [g(:,1:EstimOpt.NVarA),gm, g(:,EstimOpt.NVarA+1:end)];
             end
-         end
-     else
-    
-        if EstimOpt.WTP_space == 0
-        XXa = reshape(Xa,EstimOpt.NAlt, N, EstimOpt.NVarA);
-        Xhat = reshape(nansum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1),[N,EstimOpt.NVarA]); % N x NVarA
-        g = Xa(y==1,:) - Xhat;
+        end
         
-        if EstimOpt.NVarNLT > 0
+    else
+        
+        if EstimOpt.WTP_space == 0
+            XXa = reshape(Xa,EstimOpt.NAlt, N, EstimOpt.NVarA);
+            Xhat = reshape(nansum(P(:,:,ones(EstimOpt.NVarA,1)).*XXa,1),[N,EstimOpt.NVarA]); % N x NVarA
+            g = Xa(y==1,:) - Xhat;
+            
+            if EstimOpt.NVarNLT > 0
                 XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
                 Xhatlam = squeeze(nansum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                    if EstimOpt.NVarNLT == 1
-                        Xhatlam = Xhatlam';
-                    end
-                    
-                    g = [g, XXt(y == 1, :) - Xhatlam];
-                     if NVarM > 0
-                        gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
-                        g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
-                     end    
-        end
+                if EstimOpt.NVarNLT == 1
+                    Xhatlam = Xhatlam';
+                end
+                
+                g = [g, XXt(y == 1, :) - Xhatlam];
+                if NVarM > 0
+                    gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(EstimOpt.XmIndx,kron(1:NVarM, ones(1,NVarA))));
+                    g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
+                end
+            end
+            
         else
-        
+            
             if EstimOpt.NVarM == 0
                 alphaX = Xa(:, 1:(EstimOpt.NVarA - EstimOpt.WTP_space)).*(B(EstimOpt.WTP_matrix,ones(EstimOpt.NAlt*N,1))');
             else
@@ -214,51 +224,52 @@ if nargout == 2 % function value + gradient
             
             alphaXX = reshape(alphaX, EstimOpt.NAlt, N, EstimOpt.NVarA - EstimOpt.WTP_space);
             Xhat1 = squeeze(nansum(P(:,:,ones(EstimOpt.NVarA- EstimOpt.WTP_space,1)).*alphaXX,1));
-            g1 = alphaX(y == 1, :) - Xhat1; 
+            g1 = alphaX(y == 1, :) - Xhat1;
             
-             if EstimOpt.WTP_space == 1
+            if EstimOpt.WTP_space == 1
                 
                 if EstimOpt.NVarM == 0
                     pX = Xa(:, EstimOpt.NVarA) + Xa(:, 1:EstimOpt.NVarA-1)*b0(1:EstimOpt.NVarA-1);
                 else
                     pX = Xa(:, EstimOpt.NVarA) + nansum(Xa(:, 1:EstimOpt.NVarA-1).*ba_grad(1:EstimOpt.NVarA-1,EstimOpt.XmIndx2)',2);
                 end
-
+                
                 pXX = reshape(pX, EstimOpt.NAlt, N);
                 Xhat2 = squeeze(nansum(P.*pXX,1))'; % N x 1
                 g2 = pX(y == 1, :) - Xhat2;
-
-                else 
-                     pX = zeros(EstimOpt.NAlt*N, EstimOpt.WTP_space);
-
+                
+            else
+                
+                pX = zeros(EstimOpt.NAlt*N, EstimOpt.WTP_space);
+                
                 for i = 1:EstimOpt.WTP_space
                     if EstimOpt.NVarM == 0
-                       pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
+                        pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i)*b0(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i);
                     else
-                       pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + nansum(Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i).*ba_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i,EstimOpt.XmIndx2)',2);
+                        pX(:,i) = Xa(:, EstimOpt.NVarA - EstimOpt.WTP_space + i) + nansum(Xa(:, EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i).*ba_grad(EstimOpt.WTP_matrix == EstimOpt.NVarA - EstimOpt.WTP_space + i,EstimOpt.XmIndx2)',2);
                     end
                 end
                 
                 pXX = reshape(pX, EstimOpt.NAlt, N, EstimOpt.WTP_space);
-                    Xhat2 = squeeze(nansum(P(:,:, ones(EstimOpt.WTP_space,1)).*pXX,1)); % N x WTP_space
-                    g2 = pX(y == 1, :) - Xhat2;
-            end       
+                Xhat2 = squeeze(nansum(P(:,:, ones(EstimOpt.WTP_space,1)).*pXX,1)); % N x WTP_space
+                g2 = pX(y == 1, :) - Xhat2;
+            end
             
             g =[g1,g2];
-        
-        if EstimOpt.NVarNLT > 0
+            
+            if EstimOpt.NVarNLT > 0
                 XXtt = reshape(XXt, EstimOpt.NAlt, N, EstimOpt.NVarNLT);
                 Xhatlam = squeeze(nansum(P(:,:,ones(EstimOpt.NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                    if EstimOpt.NVarNLT == 1
-                        Xhatlam = Xhatlam';
-                    end
+                if EstimOpt.NVarNLT == 1
+                    Xhatlam = Xhatlam';
+                end
                 g = [g,  XXt(y == 1, :) - Xhatlam];
-        end
-        
+            end
+            
             if EstimOpt.NVarM > 0
                 gm = g(:,repmat(1:EstimOpt.NVarA, 1, EstimOpt.NVarM)).*(Xm(EstimOpt.XmIndx ,kron(1:EstimOpt.NVarM, ones(1,EstimOpt.NVarA))));
                 g = [g(:,1:EstimOpt.NVarA),gm, g(:,EstimOpt.NVarA+1:end)];
             end
         end
-     end
+    end
 end

@@ -422,7 +422,8 @@ end
 
 if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
-    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when no. of alternatives differ for the same individual  \n')
+    OptimOpt.GradObj = 'off';
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when the nunber of alternatives differs for the same individual  \n')
 end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
