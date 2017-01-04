@@ -24,6 +24,8 @@ NCTMiss = EstimOpt.NCTMiss;
 NAltMiss = EstimOpt.NAltMiss;
 NAltMissInd = EstimOpt.NAltMissInd;
 NAltMissIndExp = EstimOpt.NAltMissIndExp;
+%NCTMissIndExp = EstimOpt.NCTMissIndExp;
+MissingCT = EstimOpt.MissingCT;
 RealMin = EstimOpt.RealMin;
 
 % if nargout == 3
@@ -255,6 +257,8 @@ if nargout == 1 % function value only
                 U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
             else
                 NAltMissInd_n = NAltMissInd(:,n);
+                NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
+                
                 U = XXa_n(YnanInd,:)*b_mtx(:,:,n);
                 Uniq = unique(NAltMissIndExp_n);
                 U_sum = zeros(NCTMiss(n),NRep);
@@ -262,7 +266,6 @@ if nargout == 1 % function value only
                     U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
                     U_tmp = reshape(U_tmp, Uniq(1), size(U_tmp,1)/Uniq(1), NRep);
                     U_max_tmp = max(U_tmp);
-                    
                     U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(1),1),:,:));
                     U_sum(NAltMissInd_n == Uniq(1),:) = reshape(sum(U_tmp,1),size(U_tmp,2),NRep);
                     U(NAltMissIndExp_n == Uniq(1),:)= reshape(U_tmp,size(U_tmp,2)*Uniq(1), NRep);
@@ -465,35 +468,116 @@ elseif nargout == 2 %  function value + gradient
     else
         %         save tmp1
         parfor n = 1:NP
+            YYy_n = YY(:,n)==1;
             YnanInd = ~isnan(YY(:,n));
             b_mtx_n = b_mtx(:,:,n);
             XXa_n = XXa(:,:,n);
-            U = reshape(XXa_n(YnanInd,:)*b_mtx_n,[NAltMiss(n),NCTMiss(n),NRep]);
-            U_max = max(U);
-            %             U = exp(U - U_max(ones(NAltMiss(n),1),:,:));  % rescale utility to avoid exploding
-            U = exp(bsxfun(@minus,U,U_max));
-            U_sum = reshape(sum(U,1),1,NCTMiss(n),NRep);
-            U_prob = U./U_sum(ones(NAltMiss(n),1,1),:,:);  % NAlt x NCT x NRep
-            %             U_prod = prod(reshape(U_prob(YY(YnanInd ,n*ones(NRep,1))==1),NCTMiss(n),NRep),1);  % 1 x NRep
-            YYy_n = YY(:,n)==1;
-            U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep),1);  % 1 x NRep
+            
+            NAltMissIndExp_n = NAltMissIndExp(:,n);
+            NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
+            if WTP_space > 0
+                b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep);
+                Xalpha = bsxfun(@times, XXa_n(YnanInd,1:end-WTP_space), b_mtx_wtp(:,WTP_matrix,:));
+                b_mtx_grad_n = b_mtx_grad(:,:,n);
+            end
+            if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
+                U = reshape(XXa_n(YnanInd,:)*b_mtx_n,[NAltMiss(n),NCTMiss(n),NRep]);
+                U_max = max(U);
+                U = exp(bsxfun(@minus,U,U_max));
+                U_sum = reshape(sum(U,1),1,NCTMiss(n),NRep);
+                U_prob = U./U_sum(ones(NAltMiss(n),1,1),:,:);  % NAlt x NCT x NRep
+                U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep),1);  % 1 x NRep
+                U_prob = reshape(U_prob, NAltMiss(n)*NCTMiss(n),1, NRep);  % NAlt*NCT x NVarA x NRep
+                
+                if WTP_space == 0
+                    X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n(YnanInd,:)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
+                    X_hat = reshape(X_hat,[NCTMiss(n),NVarA,NRep]);
+                else
+                    X_hat1 = sum(reshape(bsxfun(@times,U_prob,Xalpha), NAltMiss(n), NCTMiss(n), NVarA-WTP_space, NRep),1);
+                    X_hat1 = reshape(X_hat1,[NCTMiss(n),NVarA-WTP_space,NRep])
+                    if WTP_space == 1
+                        pX = bsxfun(@plus,XXa_n(YnanInd,NVarA),XXa_n(YnanInd,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:));
+                        X_hat2 = sum(reshape(squeeze(U_prob).*pX, NAltMiss(n), NCTMiss(n), WTP_space, NRep),1);
+                        X_hat2 = reshape(X_hat2,[NCTMiss(n),NRep]);
+                    end
+                end
+            else
+                NAltMissInd_n = NAltMissInd(:,n);
+                NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
+                U = XXa_n(YnanInd,:)*b_mtx_n;
+                Uniq = unique(NAltMissIndExp_n);
+                U_prob = zeros(size(U,1),1, NRep);
+                XXa_tmp = XXa_n(YnanInd,:);
+                if WTP_space == 0
+                    X_hat = zeros(NCTMiss(n),NVarA, NRep);
+                else
+                    X_hat1 = zeros(NCTMiss(n),NVarA-WTP_space, NRep);
+                    X_hat2 = zeros(NCTMiss(n), NRep);
+                    pX = bsxfun(@plus,XXa_tmp(:,NVarA),XXa_tmp(:,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:));
+                end
+                if length(Uniq) == 2
+                    U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
+                    U_tmp = reshape(U_tmp, Uniq(1), size(U_tmp,1)/Uniq(1), NRep);
+                    U_max_tmp = max(U_tmp);
+                    U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(1),1),:,:));
+                    U_sum = reshape(sum(U_tmp,1),1,size(U_tmp,2),NRep);
+                    U_tmp = U_tmp./U_sum(ones(Uniq(1),1),:,:);
+                    U_prob(NAltMissIndExp_n == Uniq(1),:,:)= reshape(U_tmp,size(U_tmp,2)*Uniq(1),1, NRep);
+                    if WTP_space == 0
+                        X_hat_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(1),:,:),XXa_tmp(NAltMissIndExp_n == Uniq(1),:)),Uniq(1), size(U_tmp,2),NVarA, NRep),1);
+                        X_hat(NAltMissInd_n == Uniq(1),:,:) = reshape(X_hat_tmp,size(U_tmp,2) ,NVarA, NRep);
+                    else
+                        X_hat1_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(1),:,:),Xalpha(NAltMissIndExp_n == Uniq(1),:,:)),Uniq(1), size(U_tmp,2),NVarA-WTP_space, NRep),1);
+                        X_hat1(NAltMissInd_n == Uniq(1),:,:) = reshape(X_hat1_tmp,size(U_tmp,2) ,NVarA-WTP_space, NRep);
+                        X_hat2_tmp = sum(reshape(bsxfun(@times,squeeze(U_prob(NAltMissIndExp_n == Uniq(1),:,:)),pX(NAltMissIndExp_n == Uniq(1),:)),Uniq(1), size(U_tmp,2), NRep),1);
+                        X_hat2(NAltMissInd_n == Uniq(1),:,:) = reshape(X_hat2_tmp,size(U_tmp,2), NRep);
+                    end
+                    
+                    U_tmp = U(NAltMissIndExp_n == Uniq(2),:);
+                    U_tmp = reshape(U_tmp, Uniq(2), size(U_tmp,1)/Uniq(2), NRep);
+                    U_max_tmp = max(U_tmp);
+                    U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(2),1),:,:));
+                    U_sum = reshape(sum(U_tmp,1),1,size(U_tmp,2),NRep);
+                    U_tmp = U_tmp./U_sum(ones(Uniq(2),1),:,:);
+                    U_prob(NAltMissIndExp_n == Uniq(2),:,:)= reshape(U_tmp,size(U_tmp,2)*Uniq(2),1, NRep);
+                    if WTP_space == 0
+                        X_hat_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(2),:,:),XXa_tmp(NAltMissIndExp_n == Uniq(2),:)),Uniq(2), size(U_tmp,2),NVarA, NRep),1);
+                        X_hat(NAltMissInd_n == Uniq(2),:,:) = reshape(X_hat_tmp,size(U_tmp,2) ,NVarA, NRep);
+                    else
+                        X_hat1_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(2),:,:),Xalpha(NAltMissIndExp_n == Uniq(2),:,:)),Uniq(2), size(U_tmp,2),NVarA-WTP_space, NRep),1);
+                        X_hat1(NAltMissInd_n == Uniq(2),:,:) = reshape(X_hat1_tmp,size(U_tmp,2) ,NVarA-WTP_space, NRep);
+                        X_hat2_tmp = sum(reshape(bsxfun(@times,squeeze(U_prob(NAltMissIndExp_n == Uniq(2),:,:)),pX(NAltMissIndExp_n == Uniq(2),:)),Uniq(2), size(U_tmp,2), NRep),1);
+                        X_hat2(NAltMissInd_n == Uniq(2),:,:) = reshape(X_hat2_tmp,size(U_tmp,2), NRep);
+                    end
+                else
+                    for i = 1:length(Uniq)
+                        U_tmp = U(NAltMissIndExp_n == Uniq(i),:);
+                        U_tmp = reshape(U_tmp, Uniq(i), size(U_tmp,1)/Uniq(i), NRep);
+                        U_max_tmp = max(U_tmp);
+                        U_tmp = exp(U_tmp-U_max_tmp(ones(Uniq(i),1),:,:));
+                        U_sum = reshape(sum(U_tmp,1),1,size(U_tmp,2),NRep);
+                        U_tmp = U_tmp./U_sum(ones(Uniq(i),1),:,:);
+                        U_prob(NAltMissIndExp_n == Uniq(i),:,:)= reshape(U_tmp,size(U_tmp,2)*Uniq(i),1, NRep);
+                       if WTP_space == 0
+                            X_hat_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(i),:,:),XXa_tmp(NAltMissIndExp_n == Uniq(i),:)),Uniq(i), size(U_tmp,2),NVarA, NRep),1);
+                            X_hat(NAltMissInd_n == Uniq(i),:,:) = reshape(X_hat_tmp,size(U_tmp,2) ,NVarA, NRep);
+                        else
+                            X_hat1_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(i),:,:),Xalpha(NAltMissIndExp_n == Uniq(i),:,:)),Uniq(i), size(U_tmp,2),NVarA-WTP_space, NRep),1);
+                            X_hat1(NAltMissInd_n == Uniq(i),:,:) = reshape(X_hat1_tmp,size(U_tmp,2) ,NVarA-WTP_space, NRep);
+                            X_hat2_tmp = sum(reshape(bsxfun(@times,squeeze(U_prob(NAltMissIndExp_n == Uniq(i),:,:)),pX(NAltMissIndExp_n == Uniq(i),:)),Uniq(i), size(U_tmp,2), NRep),1);
+                            X_hat2(NAltMissInd_n == Uniq(i),:,:) = reshape(X_hat2_tmp,size(U_tmp,2), NRep);
+                        end
+                    end
+                end
+                U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep),1);  % 1 x NRep
+            end
             p0(n) = mean(U_prod);
             %             p0(n) = max(mean(U_prod),realmin);
             
             % calculations for gradient
-            
-            U_prob = reshape(U_prob, NAltMiss(n)*NCTMiss(n),1, NRep);  % NAlt*NCT x NVarA x NRep
             if WTP_space == 0
-                %                 X_hat = sum(reshape(U_prob(:,ones(1,NVarA),:).* XXa(YnanInd ,:, n*ones(NRep,1)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
-                %                 X_hat = sum(reshape(bsxfun(@times,U_prob,XXa(YnanInd,:,n)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
-                X_hat = sum(reshape(bsxfun(@times,U_prob,XXa_n(YnanInd,:)), NAltMiss(n), NCTMiss(n), NVarA, NRep),1);
-                
-                %                 F = XXa(YY(:,n) == 1,:,n*ones(NRep,1)) - squeeze(X_hat);  %NCT x NVarA x NRep
-                %                 F = bsxfun(@minus,XXa(YY(:,n) == 1,:,n),squeeze(X_hat));  %NCT x NVarA x NRep
-                %                 F = bsxfun(@minus,XXa_n(YYy_n,:),squeeze(X_hat));  %NCT x NVarA x NRep
-                F = bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep]));  %NCT x NVarA x NRep
+                F = bsxfun(@minus,XXa_n(YYy_n,:), X_hat);  %NCT x NVarA x NRep
                 sumFsqueezed = squeeze(sum(F,1));  %NVarA x NRep
-                %sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
                 if sum(Dist==1) > 0
                     sumFsqueezed2 = sumFsqueezed;
                     sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_n(Dist==1,:);
@@ -501,21 +585,10 @@ elseif nargout == 2 %  function value + gradient
                     sumFsqueezed2 = sumFsqueezed;
                 end
             else
-                b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep);
-                %                 tic; Xalpha = XXa(YnanInd,1:end-WTP_space,n*ones(NRep,1)).*b_mtx_wtp(ones(NAltMiss(n)*NCTMiss(n),1),WTP_matrix,:);toc
-                Xalpha = bsxfun(@times, XXa_n(YnanInd,1:end-WTP_space), b_mtx_wtp(:,WTP_matrix,:));
-                % for non-cost variables
-                %                 tic; X_hat1 = sum(reshape(U_prob(:,ones(1,NVarA-WTP_space),:).* Xalpha, NAltMiss(n), NCTMiss(n), NVarA-WTP_space, NRep),1);toc
-                X_hat1 = sum(reshape(bsxfun(@times,U_prob,Xalpha), NAltMiss(n), NCTMiss(n), NVarA-WTP_space, NRep),1);
-                %                 F1 = Xalpha(YY(YnanInd ,n) == 1,:,:) - squeeze(X_hat1);  %NCT x NVarA-WTP_space x NRep
-                F1 = Xalpha(YYy_n(YnanInd) == 1,:,:) - reshape(X_hat1,[NCTMiss(n),NVarA-WTP_space,NRep]);  %NCT x NVarA-WTP_space x NRep
+                F1 = Xalpha(YYy_n(YnanInd) == 1,:,:) - X_hat1;  %NCT x NVarA-WTP_space x NRep
                 % for cost variables
-                b_mtx_grad_n = b_mtx_grad(:,:,n);
                 if WTP_space == 1 % without starting the loop
-                    %                     tic; pX = squeeze(XXa(YnanInd ,NVarA, n*ones(NRep,1))) + XXa(YnanInd,1:end-WTP_space,n)*b_mtx_grad(1:end-WTP_space,:,n); toc
-                    pX = bsxfun(@plus,XXa_n(YnanInd,NVarA),XXa_n(YnanInd,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:));
-                    X_hat2 = sum(reshape(squeeze(U_prob).*pX, NAltMiss(n), NCTMiss(n), WTP_space, NRep),1);
-                    F2 = pX(YYy_n(YnanInd)==1,:,:) - reshape(X_hat2,[NCTMiss(n),NRep]);
+                    F2 = pX(YYy_n(YnanInd)==1,:,:) - X_hat2;
                 else
                     pX = zeros(NCTMiss(n)*NAltMiss(n), WTP_space, NRep);
                     for i = 1:WTP_space
