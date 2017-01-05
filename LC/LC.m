@@ -319,7 +319,7 @@ INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 
 INPUT.YY = reshape(INPUT.Y,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP);...
 INPUT.YY = INPUT.YY(:,[1:size(INPUT.YY,2)]'*ones(1,EstimOpt.NClass)); %NAlt x NCT*NP*NClass
-
+INPUT.YY(isnan(INPUT.YY)) = 0;
 INPUT.MissingInd = INPUT.MissingInd([1:size(INPUT.MissingInd,1)]' * ones(1,EstimOpt.NClass),:);...
 INPUT.MissingInd = reshape(INPUT.MissingInd,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass); %NAlt x NCT*NP*NClass
 

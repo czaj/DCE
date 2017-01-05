@@ -18,15 +18,22 @@ end
 if EstimOpt.NVarS > 0
    bs = reshape(B(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*(EstimOpt.NVarA+EstimOpt.NVarS)), EstimOpt.NVarS, EstimOpt.NClass);
    Scale = exp(Xs*bs);
-   U = exp(reshape((Xa * Bclass).*Scale,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass)); ...% NAlt x NCT*NP*NClass
+   U = reshape((Xa * Bclass).*Scale,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass); ...% NAlt x NCT*NP*NClass
 else
-    U = exp(reshape(Xa * Bclass,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass)); ...% NAlt x NCT*NP*NClass
+    U = reshape(Xa * Bclass,EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass); ...% NAlt x NCT*NP*NClass
 end
 
 U(MissingInd==1) = 0;... % do not include alternatives which were not available
+U_max = max(U);
+U = exp(U - U_max(ones(EstimOpt.NAlt,1),:));
+U(MissingInd==1) = 0;... % do not include alternatives which were not available
+    
 U_sum = sum(U,1);... 
+
 U_probs =  U ./ U_sum(ones(EstimOpt.NAlt,1),:); % NAlt x NCT*NP*NClass
+
 P = reshape(sum(YY .*U_probs,1),EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass);... % NCT x NP*NClass
+%P = reshape(U_probs(YY == 1),EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass);... % NCT x NP*NClass
 P(reshape(MissingInd(1:EstimOpt.NAlt:end),EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass)==1) = 1;... % do not include choice tasks which were not completed
 probs = prod(P,1); ...
 probs = reshape(probs,EstimOpt.NP,EstimOpt.NClass); ...
@@ -162,4 +169,3 @@ if nargout == 2 % function value + gradient
 end
 
 f = -log(f);
-
