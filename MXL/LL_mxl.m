@@ -27,6 +27,7 @@ NAltMissIndExp = EstimOpt.NAltMissIndExp;
 %NCTMissIndExp = EstimOpt.NCTMissIndExp;
 MissingCT = EstimOpt.MissingCT;
 RealMin = EstimOpt.RealMin;
+ExpB = EstimOpt.ExpB;
 
 % if nargout == 3
 %    XXX = permute(mmx('square',permute(XXa,[2,4,1,3]),[]),[3,1,2,4]);
@@ -38,6 +39,10 @@ if FullCov == 1 && nargout > 1
 else
     indx1 = [];
     indx2 = [];
+end
+
+if ~isempty(ExpB)
+    b0(ExpB) = exp(b0(ExpB));
 end
 
 b0a = b0(1:NVarA);
@@ -217,7 +222,7 @@ b_mtx = reshape(b_mtx,NVarA,NRep,NP);
 p0 = zeros(NP,1);
 
 if nargout == 1 % function value only
-        
+    
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = YY==1;
         parfor n = 1:NP
@@ -314,7 +319,7 @@ if nargout == 1 % function value only
     % U_selected = reshape(U(YY3(:,ones(NRep,1),:) == 1),NCT,NRep,NP);
     % U_sum = reshape((sum(reshape(U,NAlt,NCT,NRep,NP),1)),NCT,NRep,NP);
     % p0 = reshape(mean(prod(U_selected ./ U_sum),2),NP,1); toc
-        
+    
 elseif nargout == 2 %  function value + gradient
     
     if NVarS > 0
@@ -349,8 +354,12 @@ elseif nargout == 2 %  function value + gradient
             YYy_n = YYy(:,n);
             %             U_prod = prod(reshape(U_prob(YY(:,n*ones(NRep,1))==1),NCT,NRep),1);  % 1 x NRep
             U_prod = prod(reshape(U_prob(YYy_n(:,ones(NRep,1))),NCT,NRep),1);  % 1 x NRep
-            p0(n) = mean(U_prod);
-            %             p0(n) = max(mean(U_prod),realmin);
+            
+            if RealMin == 1
+                p0(n) = max(mean(U_prod),realmin);
+            else
+                p0(n) = mean(U_prod);
+            end
             
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*NCT,1,NRep);  % NAlt*NCT x NVarA x NRep
@@ -558,7 +567,7 @@ elseif nargout == 2 %  function value + gradient
                         U_sum = reshape(sum(U_tmp,1),1,size(U_tmp,2),NRep);
                         U_tmp = U_tmp./U_sum(ones(Uniq(i),1),:,:);
                         U_prob(NAltMissIndExp_n == Uniq(i),:,:)= reshape(U_tmp,size(U_tmp,2)*Uniq(i),1, NRep);
-                       if WTP_space == 0
+                        if WTP_space == 0
                             X_hat_tmp = sum(reshape(bsxfun(@times,U_prob(NAltMissIndExp_n == Uniq(i),:,:),XXa_tmp(NAltMissIndExp_n == Uniq(i),:)),Uniq(i), size(U_tmp,2),NVarA, NRep),1);
                             X_hat(NAltMissInd_n == Uniq(i),:,:) = reshape(X_hat_tmp,size(U_tmp,2) ,NVarA, NRep);
                         else
@@ -571,8 +580,16 @@ elseif nargout == 2 %  function value + gradient
                 end
                 U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep),1);  % 1 x NRep
             end
-            p0(n) = mean(U_prod);
+            %             p0(n) = mean(U_prod);
             %             p0(n) = max(mean(U_prod),realmin);
+            
+            if RealMin == 1
+                p0(n) = max(mean(U_prod),realmin);
+            else
+                p0(n) = mean(U_prod);
+            end
+            
+            
             
             % calculations for gradient
             if WTP_space == 0
@@ -689,8 +706,15 @@ elseif nargout == 3 % function value + gradient + hessian
             %             U_prob = U./U_sum(ones(NAlt,1,1),:,:);  % NAlt x NCT x NRep
             U_prob = bsxfun(@rdivide,U,sum(U,1)); % NAlt x NCT x NRep
             U_prod = prod(reshape(U_prob(YYy_n(:,ones(NRep,1))),NCT,NRep),1);  % 1 x NRep
-            p0(n) = mean(U_prod);
+            
+            %             p0(n) = mean(U_prod);
             %             p0(n) = max(mean(U_prod),realmin);
+            if RealMin == 1
+                p0(n) = max(mean(U_prod),realmin);
+            else
+                p0(n) = mean(U_prod);
+            end
+            
             
             % calculations for gradient
             U_prob = reshape(U_prob, NAlt*NCT,1, NRep);  % NAlt*NCT x 1 x NRep
@@ -813,7 +837,3 @@ if RealMin == 1
 else
     f = -log(p0);
 end
-
-
-
-
