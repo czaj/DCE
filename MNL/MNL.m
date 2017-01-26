@@ -236,6 +236,15 @@ if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
+if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
+    EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    if EstimOpt.Display ~= 0
+        %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
+    end
+end
+
 if EstimOpt.ConstVarActive == 1
     if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
         error ('Are there any constraints on model parameters (EstimOpt.ConstVarActive)? Constraints not provided (EstimOpt.BActive).')
@@ -269,15 +278,6 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     end
     OptimOpt.GradObj = 'on';
-end
-
-if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
-    EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-    if EstimOpt.Display ~= 0
-        %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
-    end
 end
 
 % if EstimOpt.NVarNLT > 0 && EstimOpt.NLTType == 2 && EstimOpt.NumGrad == 0
