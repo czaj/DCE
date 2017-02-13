@@ -550,17 +550,19 @@ Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
 Heads.DetailsA = {'Means'};
-ST = {};
+ST = {'DetailsA'};
 
 if NVarMOld > 0
     Template1 = [Template1, 'DetailsM'];
     Template2 = [Template2; 'DetailsM'];
     Heads.DetailsM = EstimOpt.NamesM;
+    ST = [ST, 'DetailsM'];
 end
 
 if EstimOpt.NVarNLT > 0
     Template1 = [Template1, 'DetailsNLT0'];
     Template2 = [Template2; 'DetailsNLT0'];
+    ST = [ST, 'DetailsNLT0'];
     if EstimOpt.NLTType == 1
         Heads.DetailsNLT0 = {'Box-Cox transformation parameters'};
     elseif EstimOpt.NLTType == 2
@@ -575,7 +577,7 @@ if EstimOpt.NVarS > 0
     Template2 = [Template2; 'DetailsS'];
     Names.DetailsS = EstimOpt.NamesS;
     Heads.DetailsS = {'Covariates of Scale'};
-    ST = {'DetailsS'};
+    ST = [ST, 'DetailsS'];
 end
 
 %% Tworzenie naglowka
