@@ -49,7 +49,7 @@ elseif EstimOpt.WTP_space == 0
 end
 
 if EstimOpt.WTP_space > 0
-   error('WTP-space does not work in GMXL') 
+%    error('WTP-space does not work in GMXL') 
 end
 if EstimOpt.FullCov == 0
     disp('with non-correlated random parameters ...')
@@ -431,20 +431,24 @@ end
 
 if EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 0
     EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - WTP-space not supported by analytical gradient \n')
 end
 if EstimOpt.gamma0 ~= 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist(2:end) > 0)
     EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Non-normal random parameters not supported by analytical gradient for GMXL and GMXL of type I \n')
 end
 
 if EstimOpt.gamma0 == 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist(2:end) > 1)
     EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Non-normal or log-normal random parameters not supported by analytical gradient for GMXL of type II \n')
 end
 
 if EstimOpt.NumGrad == 0 && EstimOpt.Dist(1) > 1
     EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Weibull Scale not supported by analytical gradient \n')
 end
 

@@ -198,6 +198,23 @@ if EstimOpt.NVarS > 0
     end
 end
 
+NVar = (~EstimOpt.FullCov)*(EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)+...
+    EstimOpt.FullCov*(EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson);
+if ~isfield(EstimOpt,'ExpB')
+    EstimOpt.ExpB = [];
+elseif ~isempty(EstimOpt.ExpB)
+    EstimOpt.ExpB = EstimOpt.ExpB(:);
+    if size(EstimOpt.ExpB,1) == 1
+        EstimOpt.ExpB = EstimOpt.ExpB.*ones(NVar,1);
+    elseif size(EstimOpt.ExpB,1) ~= NVar
+        error('Dimensions of ExpB not correct - provide ExpB indicator for each parameter in B')
+    elseif any((EstimOpt.ExpB ~= 0) & (EstimOpt.ExpB ~= 1))
+        error('ExpB must only include logical (0 or 1) values')
+    end
+    EstimOpt.ExpB = (1:NVar)' .* EstimOpt.ExpB;
+    EstimOpt.ExpB(EstimOpt.ExpB == 0) = [];
+end
+
 
 %% Starting values
 
@@ -230,8 +247,8 @@ if EstimOpt.FullCov == 0
                 b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1) = log(b0(EstimOpt.Dist(2:EstimOpt.NVarA+1) == 1));                
             end
             if sum(EstimOpt.Dist(2:end) == 3) > 0 % Triangular
-                indx = find( EstimOpt.Dist(2:end) == 3);
-                b0([indx; indx+EstimOpt.NVarA]) = [log(b0(indx)- EstimOpt.Triang'); log(b0(indx)- EstimOpt.Triang')];
+                indx = find(EstimOpt.Dist(2:end) == 3);
+                b0([indx;indx + EstimOpt.NVarA]) = [log(b0(indx) - EstimOpt.Triang'); log(b0(indx) - EstimOpt.Triang')];
             end
             if sum(EstimOpt.Dist(2:end) == 4) > 0 % Weibull
                 indx = find( EstimOpt.Dist(2:end) == 4);
@@ -323,6 +340,14 @@ if sum(EstimOpt.Dist == -1) > 0
         Vt(EstimOpt.Dist(2:end)==-1,:) = 0;
         %         EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA)) = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA)) .* (Vt(find(tril(ones(size(Vt)))))');
         EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA)) = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA)) .* (Vt(tril(ones(size(Vt)))~=0)');
+    end
+end
+
+if ~isempty(EstimOpt.ExpB) && EstimOpt.NumGrad == 0
+    EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    if EstimOpt.Display ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - ExpB not supported by analytical gradient \n')
     end
 end
 
@@ -419,6 +444,12 @@ if any(EstimOpt.Dist(2:EstimOpt.NVarA+1) > 1) && EstimOpt.NumGrad == 0
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient available for normally or lognormally distributed parameters only \n')
 end
 
+
+if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
+    EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when the number of alternatives differs for the same individual  \n')
+end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -667,7 +698,9 @@ if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
     try
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
     catch theErrorInfo
-        
+        Results.LLdetailed = LLfun2(Results.bhat);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
+        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));        
     end        
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
@@ -679,7 +712,6 @@ elseif EstimOpt.HessEstFix == 1
         Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
     end
 elseif EstimOpt.HessEstFix == 2
-    Results.LLdetailed = LLfun2(Results.bhat);
     Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.LLdetailed = LLfun2(Results.bhat);
@@ -688,8 +720,9 @@ elseif EstimOpt.HessEstFix == 4
     [Results.LLdetailed,~,Results.hess] = LLfun2(Results.bhat);
     % no weighting?
 end
-
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
+
+
 
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0

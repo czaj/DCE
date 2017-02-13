@@ -153,7 +153,7 @@ elseif sum(Dist(2:end)==5) > 0
     end
 end; 
 
-if WTP_space > 0 % this is wrong !!! 
+if WTP_space > 0 % this is wrong !? 
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:); 
 end
 

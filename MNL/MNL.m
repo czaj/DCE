@@ -53,12 +53,12 @@ if EstimOpt.Display ~= 0
     else
         disp('in preference-space ...')
     end
-    if isfield(EstimOpt, 'NLTVariables') && ~isempty(EstimOpt.NLTVariables)
+    if isfield(EstimOpt,'NLTVariables') && ~isempty(EstimOpt.NLTVariables)
         disp('with non-linear transformation(s) ... ')
     end
 end
 
-if isfield(EstimOpt, 'NLTVariables')
+if isfield(EstimOpt,'NLTVariables')
     EstimOpt.NLTVariables = EstimOpt.NLTVariables(:);
     EstimOpt.NVarNLT = length(unique(EstimOpt.NLTVariables));
     if ~ismember(unique(EstimOpt.NLTVariables),1:EstimOpt.NVarA)
@@ -103,7 +103,6 @@ if isfield(INPUT, 'Xm') == 0 || size(INPUT.Xm,1) ~= size(INPUT.Xa,1)
 end
 EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
 
-
 if EstimOpt.WTP_space > 0
     if isfield(EstimOpt, 'WTP_matrix') == 0
         WTP_att = (EstimOpt.NVarA-EstimOpt.WTP_space)/EstimOpt.WTP_space;
@@ -146,6 +145,21 @@ if EstimOpt.NVarS > 0
     end
 end
 
+if ~isfield(EstimOpt,'ExpB')
+    EstimOpt.ExpB = [];
+elseif ~isempty(EstimOpt.ExpB)
+    EstimOpt.ExpB = EstimOpt.ExpB(:);
+    if size(EstimOpt.ExpB,1) == 1
+        EstimOpt.ExpB = EstimOpt.ExpB.*ones(size(EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT,1));
+    elseif size(EstimOpt.ExpB,1) ~= EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
+        error('Dimensions of ExpB not correct - provide ExpB indicator for each parameter in B')
+    elseif any((EstimOpt.ExpB ~= 0) & (EstimOpt.ExpB ~= 1))
+        error('ExpB must only include logical (0 or 1) values')
+    end
+    EstimOpt.ExpB = (1:EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT)' .* EstimOpt.ExpB;
+    EstimOpt.ExpB(EstimOpt.ExpB == 0) = [];
+end
+
 
 %% Starting values
 
@@ -168,7 +182,7 @@ elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') && (length(Re
         b0 = Results_old.MNL.b0_old(:);
     end
 end
-if  ~exist('b0','var')
+if ~exist('b0','var')
     if EstimOpt.Display ~= 0
         disp('Using linear regression estimates as starting values')
     end
@@ -200,6 +214,9 @@ if  ~exist('b0','var')
         %             b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) = b0(1:EstimOpt.NVarA-EstimOpt.WTP_space) .* b0(EstimOpt.WTP_matrix,:);
         %         end
     end
+    if ~isempty(EstimOpt.ExpB)
+        b0(EstimOpt.ExpB) = max(log(b0(EstimOpt.ExpB)),1);
+    end
 end
 
 
@@ -217,6 +234,15 @@ end
 
 if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
+end
+
+if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
+    EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    if EstimOpt.Display ~= 0
+        %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
+    end
 end
 
 if EstimOpt.ConstVarActive == 1
@@ -254,21 +280,20 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
-    % 	EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-    if EstimOpt.Display ~= 0
-        %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
-    end
-end
-
 % if EstimOpt.NVarNLT > 0 && EstimOpt.NLTType == 2 && EstimOpt.NumGrad == 0
 % 	EstimOpt.NumGrad = 1;
 % 	if EstimOpt.Display ~= 0
 %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Yeo-Johnston transformation not supported by analytical gradient \n')
 % 	end
 % end
+
+if ~isempty(EstimOpt.ExpB) && EstimOpt.NumGrad == 0
+    EstimOpt.NumGrad = 1;
+    OptimOpt.GradObj = 'off';
+    if EstimOpt.Display ~= 0
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - ExpB not supported by analytical gradient \n')
+    end
+end
 
 if (isfield(EstimOpt, 'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
     if EstimOpt.Display ~= 0
@@ -487,6 +512,7 @@ if EstimOpt.RobustStd == 1
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
 end
 Results.std = sqrt(diag(Results.ihess));
+
 if sum(EstimOpt.BActive == 0) > 0
     Results.std(EstimOpt.BActive == 0) = NaN;
 end
@@ -545,7 +571,10 @@ if EstimOpt.NVarS > 0
     Results.DetailsS(:,3:4) = [Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS), pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))];
 end
 
+
 %% Tworzebnie templatek do printu
+
+
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
@@ -672,11 +701,11 @@ if EstimOpt.Display~=0
     copyfile(fullOrgTemplate, 'templateTMP.xls')
     fullTMPTemplate = which('templateTMP.xls');
     excel = actxserver('Excel.Application');
-%     try WbookCheck = excel.Workbooks('fullTMPTemplate');
-%         Close(WbookCheck)
-%         catch
-%              excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
-%     end
+    %     try WbookCheck = excel.Workbooks('fullTMPTemplate');
+    %         Close(WbookCheck)
+    %         catch
+    %              excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
+    %     end
     excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
     excel.Visible = 1;
     excel.DisplayAlerts = 0;
