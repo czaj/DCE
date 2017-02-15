@@ -1165,7 +1165,7 @@ end
 for i = 1: EstimOpt.NLatent 
     if EstimOpt.NVarStr > 0
         Results.SE(1:EstimOpt.NVarStr,4*i-3:4*i) = Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:);
-        Heads.SE{i,1} = 'Structural equations';
+        Heads.SE{1,1} = 'Structural equations';
         Heads.SE(i,2) = LVlist(i);
     end
 
