@@ -14,7 +14,7 @@ WTP_space = EstimOpt.WTP_space;
 WTP_matrix = EstimOpt.WTP_matrix;
 NCTMiss = EstimOpt.NCTMiss;
 NAltMiss = EstimOpt.NAltMiss;
-MNLDist = EstimOpt.MNLDist;
+Dist = EstimOpt.Dist;
 NLatent = EstimOpt.NLatent;
 NVarStr = EstimOpt.NVarStr;
 % NVarMea = EstimOpt.NVarMea;
@@ -54,11 +54,11 @@ else
 end
 b_mtx = ba + bl*LV;  % NVarA x NRep*NP
 
-if any(MNLDist ~= 0)
-    %     if sum(MNLDist == 1) > 0; % Log - normal
-    b_mtx(MNLDist == 1,:) = exp(b_mtx(MNLDist == 1,:));
-    %     elseif sum(MNLDist == 2) > 0; % Spike
-    b_mtx(MNLDist == 2,:) = max(b_mtx(MNLDist == 2,:),0);
+if any(Dist ~= 0)
+    %     if sum(Dist == 1) > 0; % Log - normal
+    b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+    %     elseif sum(Dist == 2) > 0; % Spike
+    b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
     %     end
 end
 
@@ -69,7 +69,7 @@ if WTP_space > 0
     end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:);
 elseif nargout == 2
-    if ScaleLV == 1 && any(MNLDist == 1)
+    if ScaleLV == 1 && any(Dist == 1)
         b_mtx_grad = reshape(b_mtx,NVarA,NRep,NP);% needed for gradient calculation in WTP_space
     else
         b_mtx_grad = zeros(0,0,NP);
@@ -363,11 +363,11 @@ else % function value + gradient
                     F = bsxfun(@times, ScaleLVX(:,n,:), F);
                 end
                 sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); %NVarA x NRep
-                if ScaleLV == 1 && any(MNLDist == 1)
+                if ScaleLV == 1 && any(Dist == 1)
                     b_mtx_grad_n = b_mtx_grad(:,:,n);
-                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_grad_n(MNLDist==1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_grad_n(Dist==1,:);
                 else
-                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_n(MNLDist==1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_n(Dist==1,:);
                 end
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
@@ -410,7 +410,7 @@ else % function value + gradient
                     F2 = bsxfun(@times, ScaleLVX(:,n,:), reshape(F2, NCT, WTP_space, NRep));
                 end
                 sumFsqueezed = [reshape(sum(F1,1),NVarA - WTP_space, NRep);reshape(sum(F2,1),WTP_space, NRep) ]; %NVarA x NRep
-                sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_grad_n(MNLDist==1,:);
+                sumFsqueezed(Dist ==1, :) = sumFsqueezed(Dist ==1, :).*b_mtx_grad_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end
             
@@ -478,13 +478,13 @@ else % function value + gradient
                     F = bsxfun(@times, ScaleLVX(:,n,:), F);
                 end
                 sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]); %NVarA x NRep
-                if ScaleLV == 1 && any(MNLDist == 1)
+                if ScaleLV == 1 && any(Dist == 1)
                     b_mtx_grad_n = b_mtx_grad(:,:,n);
-                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_grad_n(MNLDist==1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_grad_n(Dist==1,:);
                 else
-                    sumFsqueezed(MNLDist==1,:) = sumFsqueezed(MNLDist==1,:).*b_mtx_n(MNLDist==1,:);
+                    sumFsqueezed(Dist==1,:) = sumFsqueezed(Dist==1,:).*b_mtx_n(Dist==1,:);
                 end
-                %sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_n(MNLDist==1,:);
+                %sumFsqueezed(Dist ==1, :) = sumFsqueezed(Dist ==1, :).*b_mtx_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             else
                 b_mtx_wtp = reshape(b_mtx_n, 1, NVarA, NRep);
@@ -527,7 +527,7 @@ else % function value + gradient
                     F2 = bsxfun(@times, ScaleLVX(:,n,:), reshape(F2, NCTMiss(n), WTP_space, NRep));
                 end
                 sumFsqueezed = [reshape(sum(F1,1),NVarA - WTP_space, NRep);reshape(sum(F2,1),WTP_space, NRep) ]; %NVarA x NRep
-                sumFsqueezed(MNLDist ==1, :) = sumFsqueezed(MNLDist ==1, :).*b_mtx_grad_n(MNLDist==1,:);
+                sumFsqueezed(Dist ==1, :) = sumFsqueezed(Dist ==1, :).*b_mtx_grad_n(Dist==1,:);
                 sumFsqueezed_LV = sumFsqueezed'*bl; % NRep x NLatent
             end
             %             sumFsqueezed = sumFsqueezed'; % NRep x NVarA
