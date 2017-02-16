@@ -176,13 +176,13 @@ if EstimOpt.NVarMeaExp > 0
     end
 end
 
-if isfield(EstimOpt,'MNLDist') && any(EstimOpt.MNLDist ~= 0)
-    EstimOpt.MNLDist = EstimOpt.MNLDist(:);
-    if size(EstimOpt.MNLDist,1) ~= EstimOpt.NVarA
+if isfield(EstimOpt,'Dist')
+    EstimOpt.Dist = EstimOpt.Dist(:);
+    if size(EstimOpt.Dist,1) ~= EstimOpt.NVarA
         error('Incorrect no. of random parameters'' distributions provided')
     end
 else
-    EstimOpt.MNLDist = zeros(EstimOpt.NVarA,1); % no transformations
+    EstimOpt.Dist = zeros(EstimOpt.NVarA,1); % no transformations
 end
 
 if isfield(EstimOpt,'CountCut') == 0
@@ -675,7 +675,7 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if any(EstimOpt.MNLDist == 2) && EstimOpt.NumGrad == 0
+if any(EstimOpt.Dist == 2) && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - spike distribution not supported by analytical gradient \n')
 end
@@ -1084,7 +1084,6 @@ end
 Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
-    Results.Dist = EstimOpt.MNLDist;
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');
     currFld = pwd;

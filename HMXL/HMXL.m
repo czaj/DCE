@@ -550,7 +550,7 @@ if EstimOpt.FullCov == 0
                 disp('Using HMNL results as starting values')
                 Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
                 b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA); max(1,sqrt(abs(Results_old.HMNL.bhat(1:EstimOpt.NVarA)))); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
-                if sum(EstimOpt.Dist == 1) > 0 && ~any(Results_old.HMNL.EstimOpt.MNLDist==1)
+                if sum(EstimOpt.Dist == 1) > 0 && ~any(Results_old.HMNL.EstimOpt.Dist==1)
                     b0(EstimOpt.Dist == 1) = log(abs(b0(EstimOpt.Dist == 1)));
                 end
             end
@@ -846,6 +846,12 @@ if EstimOpt.ConstVarActive == 0
     else
         [Results.bhat, LL, Results.exitf, Results.output, Results.g] = fminunc(LLfun, b0, OptimOpt);
     end
+
+%     options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e3,'TolFun',1e-6,'TolX',1e-6,'OutputFcn',@outputf);
+%     
+%     [Results.beta, LL,Results.exitf,Results.output] = fminsearch(LLfun, b0,options_tmp);
+% 
+%     save tmp1
     
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     
