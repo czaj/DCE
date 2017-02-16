@@ -890,7 +890,13 @@ Heads.DetailsA = {'MNL'};
 
 
 ST = [];
-LVlist = {'LV 1' , 'LV 2' , 'LV 3' , 'LV 4' , 'LV 5' , 'LV 6' , 'LV 7' , 'LV 8' ,'LV 9' ,'LV 10'};
+
+if isfield('LVlist',EstimOpt)
+    LVlist = EstimOpt.LVlist;
+else
+    LVlist = {'LV 1' , 'LV 2' , 'LV 3' , 'LV 4' , 'LV 5' , 'LV 6' , 'LV 7' , 'LV 8' ,'LV 9' ,'LV 10'};
+end
+
 LVlist2 = {'LV1' , 'LV2' , 'LV3' , 'LV4' , 'LV5' , 'LV6' , 'LV7' , 'LV8' ,'LV9' ,'LV10'};
 %if EstimOpt.NLatent<=10
 %   Results.R_out(2,2:3:(2+EstimOpt.NLatent*3)) = [{'MNL'}, LVlist(1,1:EstimOpt.NLatent)];
@@ -941,7 +947,7 @@ end
 for i = 1: EstimOpt.NLatent
     if EstimOpt.NVarStr > 0
         Results.SE(1:EstimOpt.NVarStr,4*i-3:4*i) = Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:);
-        Heads.SE{i,1} = 'Structural equations';
+        Heads.SE{1,1} = 'Structural equations';
         Heads.SE(i,2) = LVlist(i);
     end
     
