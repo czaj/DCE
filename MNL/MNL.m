@@ -578,7 +578,7 @@ end
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'Means'};
+Heads.DetailsA = {''};
 ST = {'DetailsA'};
 
 if NVarMOld > 0
@@ -627,7 +627,7 @@ if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
 end
 
 if any(INPUT.W ~= 1)
-    Tail(13,2) = {'weighted'};
+    Tail(13,2) = {'weighted maximum likelihood'};
 else
     Tail(13,2) = {'maximum likelihood'};
 end
