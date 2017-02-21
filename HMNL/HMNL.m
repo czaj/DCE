@@ -891,8 +891,8 @@ Heads.DetailsA = {'MNL'};
 
 ST = [];
 
-if isfield('LVlist',EstimOpt)
-    LVlist = EstimOpt.LVlist;
+if isfield('NamesLV',EstimOpt)
+    LVlist = EstimOpt.NamesLV;
 else
     LVlist = {'LV 1' , 'LV 2' , 'LV 3' , 'LV 4' , 'LV 5' , 'LV 6' , 'LV 7' , 'LV 8' ,'LV 9' ,'LV 10'};
 end
@@ -1009,7 +1009,7 @@ if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
 end
 
 if any(INPUT.W ~= 1)
-    Tail(13,2) = {'weighted'};
+    Tail(13,2) = {'weighted maximum likelihood'};
 else
     Tail(13,2) = {'maximum likelihood'};
 end
@@ -1084,6 +1084,7 @@ end
 Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
+    Results.Dist = EstimOpt.Dist;
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     fullOrgTemplate = which('template.xls');
     currFld = pwd;

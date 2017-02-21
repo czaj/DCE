@@ -1219,9 +1219,9 @@ if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
 end
 
 if any(INPUT.W ~= 1)
-    Tail(13,2) = {'weighted'};
+    Tail(13,2) = {'weighted simulated maximum likelihood'};
 else
-    Tail(13,2) = {'maximum likelihood'};
+    Tail(13,2) = {'simulated maximum likelihood'};
 end
 
 switch EstimOpt.Draws
