@@ -12,11 +12,15 @@ WTP_matrix = EstimOpt.WTP_matrix;
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
 NCTMiss = EstimOpt.NCTMiss;
-if isfield('XmIndx','EsimOpt')
+if isfield(EstimOpt,'XmIndx')
     XmIndx = EstimOpt.XmIndx;
+% else
+%     XmIndx = [];
 end
-if isfield('XmIndx2','EsimOpt')
+if isfield(EstimOpt,'XmIndx2')
     XmIndx2 = EstimOpt.XmIndx2;
+% else
+%     XmIndx2 = [];
 end
 NVarNLT = EstimOpt.NVarNLT;
 if NVarNLT > 0
