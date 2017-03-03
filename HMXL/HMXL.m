@@ -1307,63 +1307,6 @@ if EstimOpt.Display~=0
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);    
     
     % replace R_out(s.e. = NaN) with 'fixed' ?
-   
-    fullOrgTemplate = which('template.xls');
-    currFld = pwd;
-    
-    if EstimOpt.FullCov == 0
-        if isfield(EstimOpt,'ProjectName')
-            fullSaveName = strcat(currFld,'\HMXL_d_results_',EstimOpt.ProjectName,'.xls');
-        else
-            fullSaveName = strcat(currFld,'\HMXL_d_results.xls');
-        end
-    else
-        if isfield(EstimOpt,'ProjectName')
-            fullSaveName = strcat(currFld,'\HMXL_results_',EstimOpt.ProjectName,'.xls');
-        else
-            fullSaveName = strcat(currFld,'\HMXL_results.xls');
-        end
-    end
-    copyfile(fullOrgTemplate,'templateTMP.xls')
-    fullTMPTemplate = which('templateTMP.xls');
-    
-    excel = actxserver('Excel.Application');
-    excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
-    excel.Visible = 1;
-    excel.DisplayAlerts = 0;
-    excelSheets = excel.ActiveWorkbook.Sheets;
-    excelSheet1 = excelSheets.get('Item',1);
-    excelSheet1.Activate;
-    column = size(Results.R_out,2);
-    columnName = [];
-    while column > 0
-        modulo = mod(column - 1,26);
-        columnName = [char(65 + modulo) , columnName]; %#ok<AGROW>
-        column = floor(((column - modulo) / 26));
-    end
-    
-    rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
-    excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
-    excelActivesheetRange.Value = Results.R_out;
-    if isfield(EstimOpt,'xlsOverwrite') && EstimOpt.xlsOverwrite == 0
-        i = 1;
-        while exist(fullSaveName, 'file') == 2
-            if ~contains(fullSaveName, '(')
-                pos = strfind(fullSaveName, '.xls');
-                fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
-            else
-                pos = strfind(fullSaveName, '(');
-                fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
-            end
-            i = i+1;
-        end
-    end
-    excelWorkbook.ConflictResolution = 2;
-    SaveAs(excelWorkbook,fullSaveName);
-    excel.DisplayAlerts = 0;
-    excelWorkbook.Saved = 1;
-    Close(excelWorkbook)
-    Quit(excel)
-    delete(excel)
-    delete(fullTMPTemplate)
+end
+
 end
