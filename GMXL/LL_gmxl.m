@@ -10,7 +10,8 @@ NVarA = EstimOpt.NVarA;
 NVarM = EstimOpt.NVarM; 
 NVarS = EstimOpt.NVarS; 
 NVarT = EstimOpt.NVarT; 
-Dist = EstimOpt.Dist; 
+Dist = EstimOpt.Dist;
+SDist = EstimOpt.SDist;
 WTP_space = EstimOpt.WTP_space; 
 WTP_matrix = EstimOpt.WTP_matrix; 
 NCTMiss = EstimOpt.NCTMiss; 
@@ -61,12 +62,12 @@ end
 b0n = b0a(:,ones(NP,1)) + b0m*XXm;
 b0n = reshape(b0n([1:size(b0n,1)]'*ones(1,NRep),[1:size(b0n,2)]'),NVarA,NRep*NP);
 if size(XXt,2) == 0
-    if EstimOpt.Dist(1) == 1
+    if SDist == 1
         errx = reshape(err(1,:), NRep, NP)'; % NP x NRep
         sigma_bar = - log(mean(exp(tau*errx),1)); %1 x NRep
         %sigma_bar = -log(mean(exp(tau*(squeeze(err_sliced(1,:,:))')),1));
         sigma = exp(sigma_bar(ones(NP,1),:) + tau* errx); % NP x NRep
-	elseif EstimOpt.Dist(1) == 5
+	elseif SDist == 5
         shape_n = 1./tau; 
         errx = reshape(err(1,:), NRep, NP)';
         sigma_bar = mean(errx.^shape_n,1); %1 x NRep
@@ -74,14 +75,14 @@ if size(XXt,2) == 0
         %sigma_bar = mean(squeeze(err_sliced(1,:,:)).^shape_n(ones(EstimOpt.NRep,1),ones(1,EstimOpt.NP)),2)';
     end    
 else    
-    if EstimOpt.Dist(1) == 1
+    if SDist == 1
         cov_tau = exp(XXt*b0t);  % NP x 1
         cov_tau = cov_tau(:,ones(1,NRep));
         errx = reshape(err(1,:), NRep, NP)';
         sigma_bar = -log(mean(exp(tau*cov_tau.*errx),1)); % 1 x NRep
         %sigma_bar = -log(mean(exp(tau*cov_tau(:,ones(1,EstimOpt.NRep)).*(squeeze(err_sliced(1,:,:))')),1));
         sigma = exp(sigma_bar(ones(NP,1),:) + tau*cov_tau.*errx);
-    elseif EstimOpt.Dist(1) == 5
+    elseif SDist == 5
         shape_n = 1./(tau*exp(XXt*b0t));  % NP x 1
         shape_n = shape_n(:,  ones(1, NRep));
         errx = reshape(err(1,:), NRep, NP)'; 
@@ -93,7 +94,7 @@ end
 
 sigma = reshape(sigma', 1, NRep*NP);
 
-if sum(Dist(2:end) > 0) == 0  % Normal
+if sum(Dist > 0) == 0  % Normal
     if gamma0 == 0
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + VC*err(2:end,:));  % NVarA x NRep*NP
     elseif gamma0 == 1
@@ -104,10 +105,10 @@ if sum(Dist(2:end) > 0) == 0  % Normal
     if nargout == 2
         b_mtx_grad = zeros(NVarA,0, NP);
     end
-elseif sum(Dist(2:end)==1) > 0  % Log - normal
+elseif sum(Dist==1) > 0  % Log - normal
     if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
-        b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
+        b_mtx(Dist==1,:) = exp(b_mtx(Dist==1,:)); 
         if nargout == 2
            b_mtx_grad =  reshape(b_mtx,NVarA, NRep,NP);
         else
@@ -116,36 +117,36 @@ elseif sum(Dist(2:end)==1) > 0  % Log - normal
         b_mtx = sigma(ones(NVarA,1),:).*b_mtx;  % NVarA x NRep*NP
     elseif gamma0 == 1
         b_mtx = sigma(ones(NVarA,1),:).*b0n + VC*err(2:end,:);
-        b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
+        b_mtx(Dist==1,:) = exp(b_mtx(Dist==1,:)); 
     else
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
-        b_mtx(Dist(2:end)==1,:) = exp(b_mtx(Dist(2:end)==1,:)); 
+        b_mtx(Dist==1,:) = exp(b_mtx(Dist==1,:)); 
     end    
-elseif sum(Dist(2:end)==2) > 0  % Spike       
+elseif sum(Dist==2) > 0  % Spike       
     if gamma0 == 0
         b_mtx  = b0n + VC*err(2:end,:); 
-        b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
+        b_mtx(Dist==1,:) = max(b_mtx(Dist==1,:),0); 
         b_mtx = sigma(ones(NVarA,1),:).*b_mtx;  % NVarA x NRep*NP
     elseif gamma0 == 1
         b_mtx = sigma(ones(NVarA,1),:).*b0n + VC*err(2:end,:);
-        b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
+        b_mtx(Dist==1,:) = max(b_mtx(Dist==1,:),0); 
     else
         b_mtx = sigma(ones(NVarA,1),:).*(b0n + (1-gamma)*VC*err(2:end,:)) + gamma*VC*err(2:end,:);
-        b_mtx(Dist(2:end)==1,:) = max(b_mtx(Dist(2:end)==1,:),0); 
+        b_mtx(Dist==1,:) = max(b_mtx(Dist==1,:),0); 
     end
     if nargout == 2
         b_mtx_grad = zeros(NVarA,0, NP);
     end
-elseif sum(Dist(2:end)==5) > 0
+elseif sum(Dist==5) > 0
     if sum(sum(VC.*(1-eye(size(b0n,1)))~=0))~=0; error ('Weibull distribution can only be used with non-correlated parameters'); end;     
     if gma ~= 0
         error ('Weibull distributed attriute parameters possible only with G-MNL Type II'); 
     else
         b_mtx = zeros(NVarA,NP*NRep); 
         err2 = err(2:end,:);
-        b_mtx(Dist(2:end)==0,:) = b0n(Dist(2:end)==0,:) + VC(Dist(2:end)==0,Dist(2:end)==0)*err2(Dist(2:end)==0,:); 
-        Wexp = (1./diag(VC(Dist(2:end)==5,Dist(2:end)==5)));
-        b_mtx(Dist(2:end)==5,:) = b0n(Dist(2:end)==5).*err2(Dist(2:end)==5,:).^Wexp(:,ones(1,NRep)); 
+        b_mtx(Dist==0,:) = b0n(Dist==0,:) + VC(Dist==0,Dist==0)*err2(Dist==0,:); 
+        Wexp = (1./diag(VC(Dist==5,Dist==5)));
+        b_mtx(Dist==5,:) = b0n(Dist==5).*err2(Dist==5,:).^Wexp(:,ones(1,NRep)); 
         b_mtx = b_mtx.*sigma(ones(NVarA,1),:); 
     end
     if nargout == 2
@@ -219,7 +220,7 @@ else
         mSigTmp = mean(exp(tau*errx.*cov_tau),1);
         mSigCov = mSigCov./mSigTmp(ones(NVarT,1),:); % NVarT x NRep
     end
-    Distx = Dist(2:end);
+    %Distx = Dist(2:end);
     if any(isnan(XXa(:))) == 0  % faster version for complete dataset
         YYy = (YY==1);
         
@@ -243,16 +244,16 @@ else
                 sumFsqueezed = reshape(bsxfun(@minus,XXa_n(YYy_n,:,n),squeeze(X_hat)),[NCT,NVarA,NRep]); %NVarA x NRep 
             end   
             b_mtx_grad_n = b_mtx_grad(:,:,n)
-            if gamma0 == 0 && sum(Distx==1) > 0
+            if gamma0 == 0 && sum(Dist==1) > 0
                 sumFsqueezed2 = sumFsqueezed;
-                sumFsqueezed(Distx==1, :) = sumFsqueezed(Distx==1, :).*b_mtx_grad_n(Distx==1,:);
+                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
             else
                 sumFsqueezed2 = sumFsqueezed;
             end
             sigma_n = sigma(:,:,n);
             errx_n = errx(n,:);
             mSig_n = mSig;
-            if gamma0 == 0 && sum(Distx==1)
+            if gamma0 == 0 && sum(Dist==1)
                 DerTau = b_mtx_grad_n;
             else
                 DerTau = bsxfun(@plus,b0n(:,:,n),(1-gamma)*Eta(:,:,n));
@@ -331,16 +332,16 @@ else
 %                 sumFsqueezed = reshape(sum(reshape(bsxfun(@minus,XXa_n(YYy_n,:),reshape(X_hat,[NCTMiss(n),NVarA,NRep])),[NCTMiss(n),NVarA,NRep]),1),[NVarA,NRep]);  %NVarA x NRep
 %             end   
             b_mtx_grad_n = b_mtx_grad(:,:,n);
-            if gamma0 == 0 && sum(Distx==1) > 0
+            if gamma0 == 0 && sum(Dist==1) > 0
                 sumFsqueezed2 = sumFsqueezed;
-                sumFsqueezed(Distx==1, :) = sumFsqueezed(Distx==1, :).*b_mtx_grad_n(Distx==1,:);
+                sumFsqueezed(Dist==1, :) = sumFsqueezed(Dist==1, :).*b_mtx_grad_n(Dist==1,:);
             else
                 sumFsqueezed2 = sumFsqueezed;
             end
             sigma_n = sigma(:,:,n);
             errx_n = errx(n,:);
             mSig_n = mSig;
-            if gamma0 == 0 && sum(Distx==1)
+            if gamma0 == 0 && sum(Dist==1)
                 DerTau = b_mtx_grad_n;
             else
                 DerTau = bsxfun(@plus,b0n(:,:,n),(1-gamma)*Eta(:,:,n));
