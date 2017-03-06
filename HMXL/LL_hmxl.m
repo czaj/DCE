@@ -91,6 +91,7 @@ sLV = std(LV_tmp,0,2);
 mLV = mean(LV_tmp,2);
 %LV = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
+% save('LL_hmxl_out_msLV.mat','mLV','sLV');
 
 if EstimOpt.NVarM > 0
     ba = ba(:,ones(NP,1))+bm*Xm; % NVarA x NP
@@ -152,7 +153,7 @@ if nargout == 1 % function value only
             U_sum = reshape(sum(U,1),NCT,NRep);
             U_selected = reshape(U(Yy_n(:,ones(NRep,1))),NCT,NRep);   
             probs(n,:) = prod(U_selected ./ U_sum,1);
-        end;
+        end
     else 
         parfor n = 1:NP
             YnanInd = ~isnan(Y(:,n));
@@ -167,7 +168,7 @@ if nargout == 1 % function value only
             U_sum = reshape(sum(U,1),NCTMiss(n),NRep);
             U_selected = reshape(U(Yy_n(YnanInd,ones(NRep,1))),NCTMiss(n),NRep);
             probs(n,:) = prod(U_selected ./ U_sum,1);
-        end;
+        end
     end 
 
     L_mea = ones(NP,NRep);
@@ -500,7 +501,7 @@ else % function value + gradient
                 VC2n = VC2(:,:,n);
                 gvar(n,:,:) = sumFsqueezed(:,indx1).*VC2n(indx2,:)';  
             end
-        end;
+        end
     else
         if NVarS > 0 || ScaleLV == 1
            YCT = reshape(sum(reshape(~isnan(Y), NAlt, NCT, NP),1) ~= 0, NCT, NP); 
