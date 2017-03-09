@@ -18,8 +18,8 @@ probs = permute(probs, [3 2 1]); ... %NRep x NClass x NP
 
 bclass = [B(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1));zeros(EstimOpt.NVarC + EstimOpt.NLatent,1)];
 bclass = reshape(bclass, EstimOpt.NVarC+EstimOpt.NLatent, EstimOpt.NClass);
-bstr = reshape(B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarstr),EstimOpt.NVarstr, EstimOpt.NLatent);
-bmea = B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarstr+1:end);
+bstr = reshape(B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+1:EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarStr),EstimOpt.NVarStr, EstimOpt.NLatent);
+bmea = B(EstimOpt.NClass*EstimOpt.NVarA + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)+EstimOpt.NLatent*EstimOpt.NVarStr+1:end);
 
 LV_tmp = Xstr*bstr; ... % NP x NLatent
 LV_tmp = reshape(permute(LV_tmp(:,:, ones(EstimOpt.NRep,1)),[2 3 1]), EstimOpt.NLatent, EstimOpt.NRep*EstimOpt.NP); ...
@@ -43,9 +43,9 @@ end
 L_mea = ones(EstimOpt.NP,EstimOpt.NRep); ...
 l = 0; ...
 
-if EstimOpt.NVarmea_exp > 0
-    Xmea_exp = reshape(Xmea_exp,1,EstimOpt.NP,EstimOpt.NVarmea_exp);
-    Xmea_exp = reshape(Xmea_exp(ones(EstimOpt.NRep,1),:,:), EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarmea_exp);
+if EstimOpt.NVarMeaExp > 0
+    Xmea_exp = reshape(Xmea_exp,1,EstimOpt.NP,EstimOpt.NVarMeaExp);
+    Xmea_exp = reshape(Xmea_exp(ones(EstimOpt.NRep,1),:,:), EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarMeaExp);
 end
 for i = 1:size(X_mea,2)
     if EstimOpt.MeaSpecMatrix(i) == 0 % OLS
@@ -84,7 +84,7 @@ for i = 1:size(X_mea,2)
         else
             X = [LV(EstimOpt.MeaMatrix(:,i)'== 1,:)', Xmea_exp]; ...
         end
-        tmp = (EstimOpt.MeaExpMatrix(i)~= 0)*EstimOpt.NVarmea_exp;
+        tmp = (EstimOpt.MeaExpMatrix(i)~= 0)*EstimOpt.NVarMeaExp;
         b = bmea(l+1:l+ k+ size(X,2)); ...
         Xb = reshape(X*b(1:sum(EstimOpt.MeaMatrix(:,i),1)+tmp), EstimOpt.NRep, EstimOpt.NP)'; ... % NP x NRep
         alpha = cumsum([b(sum(EstimOpt.MeaMatrix(:,i))+tmp+1); exp(b(sum(EstimOpt.MeaMatrix(:,i))+tmp+2:end))]); ...

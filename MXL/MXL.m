@@ -36,13 +36,13 @@ else
     disp('Estimating MXL model ...')
 end
 
-if isfield(EstimOpt,'FullCov') == 0;
+if isfield(EstimOpt,'FullCov') == 0
     EstimOpt.FullCov = 0;
 end
 if ~isfield(EstimOpt,'WTP_space')
     EstimOpt.WTP_space = 0;
     EstimOpt.WTP_matrix = [];
-elseif EstimOpt.WTP_space == 0;
+elseif EstimOpt.WTP_space == 0
     EstimOpt.WTP_matrix = [];
 end
 
@@ -244,7 +244,7 @@ if EstimOpt.FullCov == 0
                     cprintf(rgb('DarkOrange'), 'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
                     b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
                 end
-                b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));                
+                b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
             if sum(EstimOpt.Dist == 3) > 0 % Triangular
                 indx = find(EstimOpt.Dist == 3);
@@ -385,31 +385,31 @@ cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarA+1); %to be cut down later
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarA); %to be cut down later
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
-    err_mtx=lhsnorm(zeros((EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep);
-    err_mtx = reshape(err_mtx, EstimOpt.NRep*EstimOpt.NP, EstimOpt.NVarA+1);
+    err_mtx=lhsnorm(zeros((EstimOpt.NVarA)*EstimOpt.NP,1),diag(ones((EstimOpt.NVarA)*EstimOpt.NP,1)),EstimOpt.NRep);
+    err_mtx = reshape(err_mtx, EstimOpt.NRep*EstimOpt.NP, EstimOpt.NVarA);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
+        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
         cprintf('*blue','Halton '); cprintf('draws with reverse radix scrambling (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
+        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
         hm1 = scramble(hm1,'RR2');
     elseif EstimOpt.Draws == 5
         cprintf('*blue','Sobol '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = sobolset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 6
         cprintf('*blue','Sobol '); cprintf('draws with random linear scramble and random digital shift (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = sobolset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
     
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
-    err_mtx = err_mtx(:,2:EstimOpt.NVarA+1);
+    %     err_mtx = err_mtx(:,2:EstimOpt.NVarA+1);
     
     if EstimOpt.NP*EstimOpt.NRep < 3e+7
         err_mtx = icdf('Normal',err_mtx,0,1); %to be cut down later
@@ -694,14 +694,14 @@ Results.b0_old = b0;
 
 LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 % save tmp1
-if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available! 
+if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
     try
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-    catch theErrorInfo
+    catch % theErrorInfo
         Results.LLdetailed = LLfun2(Results.bhat);
         Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType, 'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));        
-    end        
+        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+    end
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
@@ -793,21 +793,21 @@ if EstimOpt.FullCov == 0
         Results.DetailsA(EstimOpt.Dist == 4,3:4) = [exp(Results.bhat(EstimOpt.Dist == 4)).*Results.std(EstimOpt.Dist == 4), pv(exp(Results.bhat(EstimOpt.Dist == 4)), exp(Results.bhat(EstimOpt.Dist == 4)).*Results.std(EstimOpt.Dist == 4))];
         btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
         stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
-        Results.DetailsV(EstimOpt.Dist == 4,1) = exp(btmp(EstimOpt.Dist == 4)); 
+        Results.DetailsV(EstimOpt.Dist == 4,1) = exp(btmp(EstimOpt.Dist == 4));
         Results.DetailsV(EstimOpt.Dist == 4,3:4) = [stdx(EstimOpt.Dist == 4), pv(exp(btmp(EstimOpt.Dist == 4)), stdx(EstimOpt.Dist == 4)) ];
     end
     Results.R = [Results.DetailsA, Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM; 
-             Results.DetailsM(1:EstimOpt.NVarA,(4*i -3)) = Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i));
-             Results.DetailsM(1:EstimOpt.NVarA,(4*i -1):4*i) = [Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))];
+        for i=1:EstimOpt.NVarM
+            Results.DetailsM(1:EstimOpt.NVarA,(4*i -3)) = Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i));
+            Results.DetailsM(1:EstimOpt.NVarA,(4*i -1):4*i) = [Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)),Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))];
         end
         Results.R = [Results.R, Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0
         Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; 
+        for i=1:EstimOpt.NVarNLT
             Results.DetailsNLT(i,1) = Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i);
             
             Results.DetailsNLT(i,3:4) = [Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+EstimOpt.NVarS+i))];
@@ -822,7 +822,7 @@ if EstimOpt.FullCov == 0
         Results.DetailsJL(:,1) = Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
         Results.DetailsJL(:,3) = Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson));
         Results.DetailsJL(:,4) = pv(Results.bhat((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)),Results.std((end - 2*EstimOpt.Johnson+1):(end - EstimOpt.Johnson)));
-       
+        
         % Scale parameters
         Results.DetailsJS(:,1) = exp(Results.bhat((end - EstimOpt.Johnson+1):end));
         Results.DetailsJS(:,3) = exp(Results.bhat((end - EstimOpt.Johnson+1):end)).*Results.std((end - EstimOpt.Johnson+1):end);
@@ -834,17 +834,17 @@ if EstimOpt.FullCov == 0
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
-        for i=1:EstimOpt.NVarS; 
-           Results.DetailsS(i,1) = Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i);
-           Results.DetailsS(i,3:4) = [Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i))];
+        for i=1:EstimOpt.NVarS
+            Results.DetailsS(i,1) = Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i);
+            Results.DetailsS(i,3:4) = [Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(2+EstimOpt.NVarM)+i))];
         end
         DetailsS0 = NaN(EstimOpt.NVarA,4);
         DetailsS0(1:EstimOpt.NVarS,1:4) = Results.DetailsS;
-
+        
         if EstimOpt.NVarS <= EstimOpt.NVarA % will not work if NVarS > NVarA
-            Results.R = [Results.R; [DetailsS0,NaN(size(DetailsS0,1),size(Results.R,2)-size(DetailsS0,2))]]; 
+            Results.R = [Results.R; [DetailsS0,NaN(size(DetailsS0,1),size(Results.R,2)-size(DetailsS0,2))]];
         end
-     end
+    end
     
 elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
@@ -864,7 +864,7 @@ elseif EstimOpt.FullCov == 1
         for i = 1:sum(EstimOpt.Dist == 3)
             stdx(i) = sqrt(g(i,:)*Results.ihess([indx(i), DiagIndex(i)+EstimOpt.NVarA], [indx(i), DiagIndex(i)+EstimOpt.NVarA])*g(i,:)');
         end
-        Results.DetailsV(EstimOpt.Dist == 3,1) = exp(btmp(EstimOpt.Dist == 3))+ exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang'; 
+        Results.DetailsV(EstimOpt.Dist == 3,1) = exp(btmp(EstimOpt.Dist == 3))+ exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang';
         Results.DetailsV(EstimOpt.Dist == 3,3:4) = [stdx, pv(exp(btmp(EstimOpt.Dist == 3))+ exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang', stdx) ];
     end
     if sum(EstimOpt.Dist == 4) > 0
@@ -889,16 +889,16 @@ elseif EstimOpt.FullCov == 1
     Results.R = [Results.DetailsA, Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM; 
-            Results.DetailsM(1:EstimOpt.NVarA,(4*i -3)) = Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)); 
-            Results.DetailsM(1:EstimOpt.NVarA,(4*i -1):4*i) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))]; 
+        for i=1:EstimOpt.NVarM
+            Results.DetailsM(1:EstimOpt.NVarA,(4*i -3)) = Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i));
+            Results.DetailsM(1:EstimOpt.NVarA,(4*i -1):4*i) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))];
         end
         Results.R = [Results.R, Results.DetailsM];
     end
     
     if EstimOpt.NVarNLT > 0
         Results.DetailsNLT = [];
-        for i=1:EstimOpt.NVarNLT; 
+        for i=1:EstimOpt.NVarNLT
             Results.DetailsNLT(i,1) = Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i);
             Results.DetailsNLT(i,3:4)  = [Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),pv(Results.bhat(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i),Results.std(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarM+EstimOpt.NVarS+i))];
         end
@@ -923,30 +923,30 @@ elseif EstimOpt.FullCov == 1
     end
     if EstimOpt.NVarS > 0
         Results.DetailsS = [];
-        for i=1:EstimOpt.NVarS; 
+        for i=1:EstimOpt.NVarS
             Results.DetailsS(i,1) = Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i);
             Results.DetailsS(i,3:4) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i),Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+EstimOpt.NVarM)+i))];
         end
         DetailsS0 = NaN(EstimOpt.NVarA,4);
         DetailsS0(1:EstimOpt.NVarS,1:4) = Results.DetailsS;
         if EstimOpt.NVarS <= EstimOpt.NVarA % will not work if NVarS > NVarA
-            Results.R = [Results.R, DetailsS0]; 
+            Results.R = [Results.R, DetailsS0];
         end
     end
     
     Results.chol = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))]; %Results.R = (1:EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5),size(Results.R,2)+1:size(Results.R,2)+3) =
     Results.DetailsVcov = tril(ones(EstimOpt.NVarA));
-        choltmp = Results.chol(:,1);
+    choltmp = Results.chol(:,1);
     if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
         choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5)) = 1;
     end
     Results.DetailsVcov(Results.DetailsVcov == 1) = choltmp;
-        if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
         choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:).^2,2));
         Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:) = Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:)./choltmp(:, ones(1,EstimOpt.NVarA));
-        end
-        Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
-        Results.DetailsVcor = corrcov(Results.DetailsVcov);
+    end
+    Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
+    Results.DetailsVcor = corrcov(Results.DetailsVcov);
 end
 
 EstimOpt.params = length(b0);
@@ -998,15 +998,15 @@ if EstimOpt.Johnson > 0
 end
 
 if EstimOpt.NVarS > 0
-   Temp = cell(1, size(Template1,2));
-   Temp(1,1) = {'DetailsS'};
-   Template1 = [Template1; Temp];
-   Temp = cell(1, size(Template2,2));
-   Temp(1,1) = {'DetailsS'};
-   Template2 = [Template2; Temp];
-   Names.DetailsS = EstimOpt.NamesS;
-   Heads.DetailsS = {'Covariates of Scale'};
-   ST = {'DetailsS'};
+    Temp = cell(1, size(Template1,2));
+    Temp(1,1) = {'DetailsS'};
+    Template1 = [Template1; Temp];
+    Temp = cell(1, size(Template2,2));
+    Temp(1,1) = {'DetailsS'};
+    Template2 = [Template2; Temp];
+    Names.DetailsS = EstimOpt.NamesS;
+    Heads.DetailsS = {'Covariates of Scale'};
+    ST = {'DetailsS'};
 end
 
 %% Tworzenie naglowka
@@ -1038,18 +1038,18 @@ else
 end
 
 switch EstimOpt.Draws
-     case 1
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
-     case 2
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
-     case  3
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
-     case 4 
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
-     case 5
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
-     case 6
-     Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};    
+    case 1
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+    case 2
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+    case  3
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+    case 4
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+    case 5
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
+    case 6
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ', num2str(EstimOpt.HaltonSkip), '; leap = ', num2str(EstimOpt.HaltonLeap),')']};
 end
 
 Tail(15,2) = {OptimOpt.Algorithm;};
@@ -1065,7 +1065,7 @@ else
     
 end
 
-outHessian = [];
+% outHessian = [];
 if isequal(OptimOpt.Algorithm,'quasi-newton')
     outHessian='off, ';
     switch EstimOpt.HessEstFix
@@ -1107,66 +1107,66 @@ end
 Tail(17,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
 if EstimOpt.Display~=0
-
+    
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
-%     fullOrgTemplate = which('template.xls');   
-%     currFld = pwd;
-%     
-% if EstimOpt.FullCov == 0
-%     if isfield(EstimOpt,'ProjectName')
-%         fullSaveName = strcat(currFld,'\MXL_d_results_',EstimOpt.ProjectName,'.xls');
-%     else
-%         fullSaveName = strcat(currFld,'\MXL_d_results.xls');
-%     end
-% else
-%     if isfield(EstimOpt,'ProjectName')
-%         fullSaveName = strcat(currFld,'\MXL_results_',EstimOpt.ProjectName,'.xls');
-%     else
-%         fullSaveName = strcat(currFld,'\MXL_results.xls');
-%     end
-% end
-%     
-%     copyfile(fullOrgTemplate, 'templateTMP.xls')
-%     fullTMPTemplate = which('templateTMP.xls');
-% 
-%     excel = actxserver('Excel.Application');
-%     excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
-%     excel.Visible = 1;
-%     excel.DisplayAlerts = 0;
-%     excelSheets = excel.ActiveWorkbook.Sheets;
-%     excelSheet1 = excelSheets.get('Item',1);
-%     excelSheet1.Activate;
-%     column = size(Results.R_out,2);
-%     columnName = [];    
-%         while column > 0
-%             modulo = mod(column - 1,26);
-%             columnName = [char(65 + modulo) , columnName];
-%             column = floor(((column - modulo) / 26));
-%         end
-% 
-%     rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
-%     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
-%     excelActivesheetRange.Value = Results.R_out;
-%     if isfield(EstimOpt,'xlsOverwrite') && EstimOpt.xlsOverwrite == 0
-%         i = 1;
-%         while exist(fullSaveName, 'file') == 2
-%             if isempty(strfind(fullSaveName, '('))
-%                 pos = strfind(fullSaveName, '.xls');
-%                 fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
-%             else
-%                 pos = strfind(fullSaveName, '(');
-%                 fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
-%             end
-%             i = i+1;
-%         end
-%     end
-%     excelWorkbook.ConflictResolution = 2;
-%     SaveAs(excelWorkbook,fullSaveName);
-%     excel.DisplayAlerts = 0;
-%     excelWorkbook.Saved = 1;
-%     Close(excelWorkbook)
-%     Quit(excel)
-%     delete(excel)
-%     delete(fullTMPTemplate)
+    %     fullOrgTemplate = which('template.xls');
+    %     currFld = pwd;
+    %
+    % if EstimOpt.FullCov == 0
+    %     if isfield(EstimOpt,'ProjectName')
+    %         fullSaveName = strcat(currFld,'\MXL_d_results_',EstimOpt.ProjectName,'.xls');
+    %     else
+    %         fullSaveName = strcat(currFld,'\MXL_d_results.xls');
+    %     end
+    % else
+    %     if isfield(EstimOpt,'ProjectName')
+    %         fullSaveName = strcat(currFld,'\MXL_results_',EstimOpt.ProjectName,'.xls');
+    %     else
+    %         fullSaveName = strcat(currFld,'\MXL_results.xls');
+    %     end
+    % end
+    %
+    %     copyfile(fullOrgTemplate, 'templateTMP.xls')
+    %     fullTMPTemplate = which('templateTMP.xls');
+    %
+    %     excel = actxserver('Excel.Application');
+    %     excelWorkbook = excel.Workbooks.Open(fullTMPTemplate);
+    %     excel.Visible = 1;
+    %     excel.DisplayAlerts = 0;
+    %     excelSheets = excel.ActiveWorkbook.Sheets;
+    %     excelSheet1 = excelSheets.get('Item',1);
+    %     excelSheet1.Activate;
+    %     column = size(Results.R_out,2);
+    %     columnName = [];
+    %         while column > 0
+    %             modulo = mod(column - 1,26);
+    %             columnName = [char(65 + modulo) , columnName];
+    %             column = floor(((column - modulo) / 26));
+    %         end
+    %
+    %     rangeE = strcat('A1:',columnName,num2str(size(Results.R_out,1)));
+    %     excelActivesheetRange = get(excel.Activesheet,'Range',rangeE);
+    %     excelActivesheetRange.Value = Results.R_out;
+    %     if isfield(EstimOpt,'xlsOverwrite') && EstimOpt.xlsOverwrite == 0
+    %         i = 1;
+    %         while exist(fullSaveName, 'file') == 2
+    %             if isempty(strfind(fullSaveName, '('))
+    %                 pos = strfind(fullSaveName, '.xls');
+    %                 fullSaveName = strcat(fullSaveName(1:pos-1),'(',num2str(i),').xls');
+    %             else
+    %                 pos = strfind(fullSaveName, '(');
+    %                 fullSaveName = strcat(fullSaveName(1:pos),num2str(i),').xls');
+    %             end
+    %             i = i+1;
+    %         end
+    %     end
+    %     excelWorkbook.ConflictResolution = 2;
+    %     SaveAs(excelWorkbook,fullSaveName);
+    %     excel.DisplayAlerts = 0;
+    %     excelWorkbook.Saved = 1;
+    %     Close(excelWorkbook)
+    %     Quit(excel)
+    %     delete(excel)
+    %     delete(fullTMPTemplate)
 end
 end
