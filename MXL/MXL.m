@@ -385,7 +385,7 @@ cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarA); %to be cut down later
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, EstimOpt.NVarA);
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
     err_mtx=lhsnorm(zeros((EstimOpt.NVarA)*EstimOpt.NP,1),diag(ones((EstimOpt.NVarA)*EstimOpt.NP,1)),EstimOpt.NRep);
@@ -393,10 +393,10 @@ elseif EstimOpt.Draws == 2 % LHS
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
+        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
         cprintf('*blue','Halton '); cprintf('draws with reverse radix scrambling (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
+        hm1 = haltonset(EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'RR2');
     elseif EstimOpt.Draws == 5
         cprintf('*blue','Sobol '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
@@ -417,11 +417,10 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
         for i = 1:EstimOpt.NVarA
             err_mtx(:,i) = icdf('Normal',err_mtx(:,i),0,1); %to be cut down later
         end
-    end
-    
-    err_mtx(:,EstimOpt.Dist == -1) = 0;
-    
+    end       
 end
+
+err_mtx(:,EstimOpt.Dist == -1) = 0;
 
 
 %% Display Options
