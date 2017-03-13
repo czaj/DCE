@@ -350,6 +350,8 @@ elseif nargout == 2 %  function value + gradient
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = (YY==1);
+%         save tmp1
+%         return              
         parfor n = 1:NP
             F3sum = [];
             b_mtx_n = b_mtx(:,:,n);
@@ -357,10 +359,15 @@ elseif nargout == 2 %  function value + gradient
             U = reshape(XXa_n*b_mtx_n,NAlt,NCT,NRep);  % NAlt x NCT x NRep
             %             U_max = max(U);
             %             U = exp(U - U_max(ones(NAlt,1),:,:));  % rescale utility to avoid exploding
-            U = exp(bsxfun(@minus,U,max(U)));  % rescale utility to avoid exploding                      
+
+%             U_max = max(U);
+%             tic; parfor i=1:1e4; U2 = U - U_max(ones(NAlt,1),:,:); end; toc
+%             tic; parfor i=1:1e4; U2 = (bsxfun(@minus,U,U_max)); end; toc                       
+%             tic; parfor i=1:1e4; U2 = U - U_max; end; toc
+%             tic; for i=1:1e4; U2 = U - max(U); end; toc
+
             
-%             tic; for i=1:1e3; U2 = (bsxfun(@minus,U,max(U))); end; toc
-%             tic; for i=1:1e3; U2 = U - max(U); end; toc
+            U = exp(bsxfun(@minus,U,max(U)));  % rescale utility to avoid exploding                                 
             
             %             U_sum = reshape(sum(U,1),1,NCT,NRep);
             %             U_prob = U./U_sum(ones(NAlt,1,1),:,:);  % NAlt x NCT x NRep
