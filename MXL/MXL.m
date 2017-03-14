@@ -444,11 +444,12 @@ if any(EstimOpt.Dist > 1) && EstimOpt.NumGrad == 0
 end
 
 
-if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
-    EstimOpt.NumGrad = 1;
-    OptimOpt.GradObj = 'off';
-    cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when the number of alternatives differs for the same individual  \n')
-end
+% This is not necessary any more (?)
+% if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
+%     EstimOpt.NumGrad = 1;
+%     OptimOpt.GradObj = 'off';
+%     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when the number of alternatives differs and WTP_space > 1  \n')
+% end
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
