@@ -30,7 +30,7 @@ warning off MATLAB:mir_warning_maybe_uninitialized_temporary
 format shortG;
 format compact;
 
-if isfield(EstimOpt,'NClass') == 0;
+if isfield(EstimOpt,'NClass') == 0
     EstimOpt.NClass = 2;
 end
 
@@ -49,7 +49,7 @@ end
 if isfield(EstimOpt, 'WTP_space') == 0
     EstimOpt.WTP_space = 0;
     EstimOpt.WTP_matrix = [];
-elseif EstimOpt.WTP_space == 0;
+elseif EstimOpt.WTP_space == 0
     EstimOpt.WTP_matrix = [];
 end
 
@@ -143,9 +143,9 @@ if size(EstimOpt.MeaSpecMatrix,2) ~= size(INPUT.Xmea,2)
     error('Measurment specification (model) erroneously defined')
 end
 
-EstimOpt.NVarstr = size(INPUT.Xstr,2);  % no. of variables in structural equation
-EstimOpt.NVarmea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurments without couting cutoffs, constants etc
-EstimOpt.NVarmea_exp = size(INPUT.Xmea_exp,2);
+EstimOpt.NVarStr = size(INPUT.Xstr,2);  % no. of variables in structural equation
+EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurments without couting cutoffs, constants etc
+EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
 for i=1:size(EstimOpt.MeaMatrix,2)
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
@@ -161,7 +161,7 @@ for i=1:size(EstimOpt.MeaMatrix,2)
     end
 end
 
-for i=1:EstimOpt.NVarstr
+for i=1:EstimOpt.NVarStr
     if sum(isnan(INPUT.Xstr(INPUT.MissingInd==0,i))) > 0
         cprintf(rgb('DarkOrange'), 'WARNING: Structural variable %d contains NaN values \n', i)
     end
@@ -170,11 +170,11 @@ for i=1:EstimOpt.NVarstr
     end
 end
 
-if EstimOpt.NVarmea_exp > 0
-    if isfield(EstimOpt,'NamesMeaExp') == 0 || isempty(EstimOpt.NamesMeaExp) || length(EstimOpt.NamesMeaExp) ~= EstimOpt.NVarmea_exp
-        EstimOpt.NamesMeaExp = (1:EstimOpt.NVarmea_exp)';
+if EstimOpt.NVarMeaExp > 0
+    if isfield(EstimOpt,'NamesMeaExp') == 0 || isempty(EstimOpt.NamesMeaExp) || length(EstimOpt.NamesMeaExp) ~= EstimOpt.NVarMeaExp
+        EstimOpt.NamesMeaExp = (1:EstimOpt.NVarMeaExp)';
         EstimOpt.NamesMeaExp = cellstr(num2str(EstimOpt.NamesMeaExp));
-    elseif size(EstimOpt.NamesMeaExp,1) ~= EstimOpt.NVarmea_exp
+    elseif size(EstimOpt.NamesMeaExp,1) ~= EstimOpt.NVarMeaExp
         EstimOpt.NamesMeaExp = EstimOpt.NamesMeaExp';
     end
 end
@@ -186,8 +186,8 @@ EstimOpt.CutMatrix = zeros(1, size(INPUT.Xmea,2));
 EstimOpt.NamesLV = {};
 for i = 1:size(INPUT.Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit: cutoffs
-        EstimOpt.NVarcut = EstimOpt.NVarcut + length(unique(INPUT.Xmea(:,i))) - 1 + EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
-        EstimOpt.CutMatrix(i) = length(unique(INPUT.Xmea(:,i))) - 1 + sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut + length(unique(INPUT.Xmea(:,i))) - 1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.CutMatrix(i) = length(unique(INPUT.Xmea(:,i))) - 1 + sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
@@ -201,8 +201,8 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(:,i))) - 1;
         EstimOpt.Names = [EstimOpt.Names, 'OP '];
     elseif EstimOpt.MeaSpecMatrix(i) == 0
-        EstimOpt.NVarcut = EstimOpt.NVarcut + 2+EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0); %OLS: constant + sigma
-        EstimOpt.CutMatrix(i) = 2+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut + 2+EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0); %OLS: constant + sigma
+        EstimOpt.CutMatrix(i) = 2+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'OLS '];
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
@@ -215,10 +215,10 @@ for i = 1:size(INPUT.Xmea,2)
         end
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Sigma'}];
     elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-        EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(:,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(:,i))) - 1)*(1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients
+        EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(:,i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(:,i))) - 1)*(1+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(:,i)))-1;
         EstimOpt.Names = [EstimOpt.Names, 'MNL '];
-        EstimOpt.CutMatrix(i) = (1+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0)+sum(EstimOpt.MeaMatrix(:,i)))*(length(unique(INPUT.Xmea(:,i)))-1);
+        EstimOpt.CutMatrix(i) = (1+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0)+sum(EstimOpt.MeaMatrix(:,i)))*(length(unique(INPUT.Xmea(:,i)))-1);
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for j = 1:(length(unique(INPUT.Xmea(:,i)))-1)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
@@ -230,8 +230,8 @@ for i = 1:size(INPUT.Xmea,2)
             end
         end
     elseif EstimOpt.MeaSpecMatrix(i) == 3 % Poisson
-        EstimOpt.NVarcut = EstimOpt.NVarcut +1+EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
-        EstimOpt.CutMatrix(i) = 1+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut +1+EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
+        EstimOpt.CutMatrix(i) = 1+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 1;
         EstimOpt.Names = [EstimOpt.Names, 'POISS '];
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
@@ -243,8 +243,8 @@ for i = 1:size(INPUT.Xmea,2)
             EstimOpt.NamesLV = [EstimOpt.NamesLV; EstimOpt.NamesMeaExp];
         end
     elseif EstimOpt.MeaSpecMatrix(i) == 4 % Negative Binomial
-        EstimOpt.NVarcut = EstimOpt.NVarcut +2+EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
-        EstimOpt.CutMatrix(i) = 2+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut +2+EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
+        EstimOpt.CutMatrix(i) = 2+sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'NB '];
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
@@ -257,8 +257,8 @@ for i = 1:size(INPUT.Xmea,2)
         end
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Theta'}];
     elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP
-        EstimOpt.NVarcut = EstimOpt.NVarcut +2 +sum(EstimOpt.MeaMatrix(:,i)) +2*EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
-        EstimOpt.CutMatrix(i) = 2+2*sum(EstimOpt.MeaMatrix(:,i))+ 2*EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+        EstimOpt.NVarcut = EstimOpt.NVarcut +2 +sum(EstimOpt.MeaMatrix(:,i)) +2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0); %Poiss: only constant
+        EstimOpt.CutMatrix(i) = 2+2*sum(EstimOpt.MeaMatrix(:,i))+ 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'ZIP '];
         EstimOpt.NamesLV = [EstimOpt.NamesLV; {'Cons.'}];
@@ -300,10 +300,10 @@ end
 for i = 1:EstimOpt.NLatent
     EstimOpt.NamesC =  [EstimOpt.NamesC; cellfun(@(x)[x num2str(i)],{'LV '},'UniformOutput',0)];
 end
-if isfield(EstimOpt,'NamesStr') == 0 || isempty(EstimOpt.NamesStr) || length(EstimOpt.NamesStr) ~= EstimOpt.NVarstr
-    EstimOpt.NamesStr = (1:EstimOpt.NVarstr)';
+if isfield(EstimOpt,'NamesStr') == 0 || isempty(EstimOpt.NamesStr) || length(EstimOpt.NamesStr) ~= EstimOpt.NVarStr
+    EstimOpt.NamesStr = (1:EstimOpt.NVarStr)';
     EstimOpt.NamesStr = cellstr(num2str(EstimOpt.NamesStr));
-elseif size(EstimOpt.NamesStr,1) ~= EstimOpt.NVarstr
+elseif size(EstimOpt.NamesStr,1) ~= EstimOpt.NVarStr
     EstimOpt.NamesStr = EstimOpt.NamesStr';
 end
 
@@ -389,13 +389,13 @@ end
 EstimOpt.jitter1 = 0.8; % Jittering parameter (relative) for HMNL starting values (attributes)
 EstimOpt.jitter2 = 0.1; % Jittering parameter (absolute) for class probabilities starting values
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarstr*EstimOpt.NLatent + EstimOpt.NVarmea + EstimOpt.NVarcut)
+if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
     b0 = B_backup(:);
     disp('Using the starting values from Backup')
 elseif isfield(Results_old,'HLC') && isfield(Results_old.HLC,'b0') % starting values provided
     Results_old.HLC.b0_old = Results_old.HLC.b0(:);
     Results_old.HLC = rmfield(Results_old.HLC,'b0');
-    if length(Results_old.HLC.b0_old) ~= (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarstr*EstimOpt.NLatent + EstimOpt.NVarmea + EstimOpt.NVarcut)
+    if length(Results_old.HLC.b0_old) ~= (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
         cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
         Results_old.HLC = rmfield(Results_old.HLC,'b0_old');
     else
@@ -407,7 +407,7 @@ if  ~exist('b0','var')
     if isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'bhat')
         disp('Using MIMIC results as starting values')
         Results_old.MIMIC.bhat = Results_old.MIMIC.bhat(:);
-        bstr = reshape(Results_old.MIMIC.bhat(1:EstimOpt.NVarstr*EstimOpt.NLatent), EstimOpt.NVarstr, EstimOpt.NLatent);
+        bstr = reshape(Results_old.MIMIC.bhat(1:EstimOpt.NVarStr*EstimOpt.NLatent), EstimOpt.NVarStr, EstimOpt.NLatent);
         LV = INPUT.Xstr*bstr;
         LV = LV(:,:, ones(EstimOpt.NCT*EstimOpt.NAlt,1)); % NP x NLatent x NCT*NAlt
         LV = permute(LV, [3 1 2]);
@@ -635,7 +635,7 @@ end
 % save tmp_HLC
 
 Results.LL = -LL;
-R2 = R2_hybrid(INPUT.YY,INPUT.Xa,[],INPUT.Xstr,INPUT.XXc,INPUT.MissingInd,err_sliced,EstimOpt,Results.bhat,1);
+R2 = R2_hybrid(INPUT.YY,INPUT.Xa,INPUT.Xstr,INPUT.XXc,[],[],INPUT.MissingInd,err_sliced,EstimOpt,Results.bhat,1);     
 
 Results.b0_old = b0;
 
@@ -671,13 +671,14 @@ end
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(imag(Results.std) ~= 0) = NaN;
 
 Results.DetailsA = [Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA))];
 l = EstimOpt.NClass*EstimOpt.NVarA;
 Results.DetailsV = [Results.bhat(l+1:l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)), Results.std(l+1:l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)), pv(Results.bhat(l+1:l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)), Results.std(l+1:l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)))];
 l = l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1);
-Results.DetailsS = [Results.bhat(l+1:l+EstimOpt.NLatent*EstimOpt.NVarstr), Results.std(l+1:l+EstimOpt.NLatent*EstimOpt.NVarstr), pv(Results.bhat(l+1:l+EstimOpt.NLatent*EstimOpt.NVarstr), Results.std(l+1:l+EstimOpt.NLatent*EstimOpt.NVarstr))];
-l = l + EstimOpt.NLatent*EstimOpt.NVarstr;
+Results.DetailsS = [Results.bhat(l+1:l+EstimOpt.NLatent*EstimOpt.NVarStr), Results.std(l+1:l+EstimOpt.NLatent*EstimOpt.NVarStr), pv(Results.bhat(l+1:l+EstimOpt.NLatent*EstimOpt.NVarStr), Results.std(l+1:l+EstimOpt.NLatent*EstimOpt.NVarStr))];
+l = l + EstimOpt.NLatent*EstimOpt.NVarStr;
 Results.DetailsM = [Results.bhat(l+1:end), Results.std(l+1:end), pv(Results.bhat(l+1:end), Results.std(l+1:end))];
 
 Results.LL0 = Results.MIMIC0.LL + Results_old.MNL0.LL;
@@ -707,7 +708,7 @@ for j = 1:EstimOpt.NClass -1
 end
 
 bclass = reshape([Results.bhat(EstimOpt.NVarA*EstimOpt.NClass +1 :EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1)); zeros(EstimOpt.NVarC+EstimOpt.NLatent,1)], EstimOpt.NVarC+EstimOpt.NLatent, EstimOpt.NClass);
-bstr = reshape(Results.bhat(EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1)+1:EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NLatent*EstimOpt.NVarstr), EstimOpt.NVarstr, EstimOpt.NLatent);
+bstr = reshape(Results.bhat(EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1)+1:EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NLatent*EstimOpt.NVarStr), EstimOpt.NVarStr, EstimOpt.NLatent);
 LV = INPUT.Xstr*bstr;
 V = exp([INPUT.XXc, LV]*bclass);% NP x NClass
 Vsum = sum(V,2);
@@ -720,13 +721,13 @@ for i = 1:EstimOpt.NLatent
     disp(' ')
     disp(num2str(i,'Structural equation of Latent Variable %1.0f'));
     disp(['var.', blanks(size(char(EstimOpt.NamesStr),2)-2) ,'coef.      st.err.  p-value'])
-    disp([char(EstimOpt.NamesStr) ,blanks(EstimOpt.NVarstr)',num2str(Results.DetailsS(l+1:l+EstimOpt.NVarstr,1),'%8.4f'), star_sig(Results.DetailsS(l+1:l+EstimOpt.NVarstr,3)), num2str(Results.DetailsS(l+1:l+EstimOpt.NVarstr,2:3),'%8.4f %8.4f')])
-    l = l + EstimOpt.NVarstr;
+    disp([char(EstimOpt.NamesStr) ,blanks(EstimOpt.NVarStr)',num2str(Results.DetailsS(l+1:l+EstimOpt.NVarStr,1),'%8.4f'), star_sig(Results.DetailsS(l+1:l+EstimOpt.NVarStr,3)), num2str(Results.DetailsS(l+1:l+EstimOpt.NVarStr,2:3),'%8.4f %8.4f')])
+    l = l + EstimOpt.NVarStr;
 end
 
 l = 0;
 for i = 1:size(INPUT.Xmea,2)
-    tmp = EstimOpt.NVarmea_exp*(EstimOpt.MeaExpMatrix(i) ~=0);
+    tmp = EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
     disp(' ')
     disp([num2str('Measurment equation for '), char(EstimOpt.NamesMea(i))]);
     if EstimOpt.MeaSpecMatrix(i) == 0
@@ -753,7 +754,7 @@ for i = 1:size(INPUT.Xmea,2)
         if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary
             g = [Results.DetailsM(l+1,1) ; exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
             for n = 2:length(unique(INPUT.Xmea(:,i)))-1
-                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarstr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarstr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarstr)*EstimOpt.NLatent+l+n)*g(1:n));
+                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
                 Results.DetailsM(l+n,1:3) = [sum(g(1:n),1), stdx, pv(sum(g(1:n),1), stdx)];
                 disp([num2str([n, Results.DetailsM(l+n,1)],'Cutoff %1.0f %7.4f'), star_sig(Results.DetailsM(l+n,3)), num2str(Results.DetailsM(l+n,2:3),'%8.4f %8.4f')])
             end
@@ -791,7 +792,7 @@ end
 %
 Results.R = [Results.DetailsA; Results.DetailsV ; Results.DetailsS;Results.DetailsM];
 
-Results.R_out  = cell(3+EstimOpt.NVarA + 2+ EstimOpt.NVarC + EstimOpt.NLatent+ 3 +4+EstimOpt.NVarstr +  3*size(INPUT.Xmea,2)+EstimOpt.NVarcut+EstimOpt.NVarmea+ 2 + 7, 4+3*max(EstimOpt.NClass-1,EstimOpt.NLatent -1));
+Results.R_out  = cell(3+EstimOpt.NVarA + 2+ EstimOpt.NVarC + EstimOpt.NLatent+ 3 +4+EstimOpt.NVarStr +  3*size(INPUT.Xmea,2)+EstimOpt.NVarcut+EstimOpt.NVarMea+ 2 + 7, 4+3*max(EstimOpt.NClass-1,EstimOpt.NLatent -1));
 Results.R_out(1,1) = {'HLC'};
 head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
 NClasses = {'NClass 1','NClass 2', 'NClass 3', 'NClass 4', 'NClass 5', 'NClass 6', 'NClass 7', 'NClass 8', 'NClass 9','NClass 10'};
@@ -818,14 +819,14 @@ for i = 1:EstimOpt.NLatent
     Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+6,2:3:(2+(EstimOpt.NLatent-1)*3)) = LVlist(1,1:EstimOpt.NLatent);
 end
 Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+7,1:(1+3*EstimOpt.NLatent)) = [head, repmat(head(1,2:4),1,EstimOpt.NLatent-1)];
-Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+8:EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+7+EstimOpt.NVarstr,1) = EstimOpt.NamesStr;
+Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+8:EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+7+EstimOpt.NVarStr,1) = EstimOpt.NamesStr;
 for i = 1: EstimOpt.NLatent
-    Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+8:EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+7+EstimOpt.NVarstr,2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarstr+1:i*EstimOpt.NVarstr,:));
+    Results.R_out(EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+8:EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+7+EstimOpt.NVarStr,2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:));
 end
 l = EstimOpt.NVarA+5+EstimOpt.NVarC+EstimOpt.NLatent+4; % this is for indexing in R_out
 k = 0;
 for i = 1:size(INPUT.Xmea,2)
-    Results.R_out(EstimOpt.NVarstr+3+l+1,1) =  cellfun(@(x)[x char(EstimOpt.NamesMea(i))],{'Measurment equation for '},'UniformOutput',0);
+    Results.R_out(EstimOpt.NVarStr+3+l+1,1) =  cellfun(@(x)[x char(EstimOpt.NamesMea(i))],{'Measurment equation for '},'UniformOutput',0);
     if EstimOpt.MeaSpecMatrix(i) == 0
         model = 'OLS';
     elseif EstimOpt.MeaSpecMatrix(i) == 1
@@ -839,15 +840,15 @@ for i = 1:size(INPUT.Xmea,2)
     elseif EstimOpt.MeaSpecMatrix(i) == 5
         model = 'ZIP';
     end
-    Results.R_out(EstimOpt.NVarstr+3+l+2,1) = cellfun(@(x)[x model],{'Estimated using '},'UniformOutput',0);
-    Results.R_out(EstimOpt.NVarstr+3+l+3,1:4) = head;
-    Results.R_out(EstimOpt.NVarstr+3+l+4:EstimOpt.NVarstr+3+l+3 + EstimOpt.CutMatrix(i) ,1:4) = [EstimOpt.NamesLV(k+1:k+EstimOpt.CutMatrix(i)), num2cell(Results.DetailsM(k+1:k+EstimOpt.CutMatrix(i),:))];
+    Results.R_out(EstimOpt.NVarStr+3+l+2,1) = cellfun(@(x)[x model],{'Estimated using '},'UniformOutput',0);
+    Results.R_out(EstimOpt.NVarStr+3+l+3,1:4) = head;
+    Results.R_out(EstimOpt.NVarStr+3+l+4:EstimOpt.NVarStr+3+l+3 + EstimOpt.CutMatrix(i) ,1:4) = [EstimOpt.NamesLV(k+1:k+EstimOpt.CutMatrix(i)), num2cell(Results.DetailsM(k+1:k+EstimOpt.CutMatrix(i),:))];
     l = l+3+EstimOpt.CutMatrix(i);
     k = k + EstimOpt.CutMatrix(i);
 end
-Results.R_out(EstimOpt.NVarstr+3+l+2,1) = {'Model characteristics'};
-Results.R_out(EstimOpt.NVarstr+3+l+3:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
-Results.R_out(EstimOpt.NVarstr+3+l+3:end,2) = num2cell(Results.stats);
+Results.R_out(EstimOpt.NVarStr+3+l+2,1) = {'Model characteristics'};
+Results.R_out(EstimOpt.NVarStr+3+l+3:end,1) = {'LL0'; 'LL' ; 'McFadden R2';'Ben-Akiva R2' ;'AIC/n' ; 'n'; 'k'};
+Results.R_out(EstimOpt.NVarStr+3+l+3:end,2) = num2cell(Results.stats);
 
 disp(' ')
 disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])

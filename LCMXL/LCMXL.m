@@ -21,7 +21,7 @@ if nargin < 3 % check no. of inputs
     error('Too few input arguments for LCMXL(INPUT,EstimOpt,OptimOpt)')
 end
 
-if isfield(EstimOpt,'NClass') == 0;
+if isfield(EstimOpt,'NClass') == 0
     EstimOpt.NClass = 2;
 end
 
@@ -40,13 +40,13 @@ else
     disp(num2str(EstimOpt.NClass,'Estimating LCMXL model with %1.0f classes ...'))
 end
 
-if isfield(EstimOpt,'FullCov') == 0;
+if isfield(EstimOpt,'FullCov') == 0
     EstimOpt.FullCov = 0;
 end
 if isfield(EstimOpt, 'WTP_space') == 0
     EstimOpt.WTP_space = 0;
     EstimOpt.WTP_matrix = [];
-elseif EstimOpt.WTP_space == 0;
+elseif EstimOpt.WTP_space == 0
     EstimOpt.WTP_matrix = [];
 end
 
@@ -238,9 +238,9 @@ else % EstimOpt.FullCov == 1
             b0 = zeros(2*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA))+EstimOpt.NVarC*(EstimOpt.NClass-1),1);
             b0(1:EstimOpt.NVarA*EstimOpt.NClass) = Results_old.LCMXL_d.bhat(1:EstimOpt.NVarA*EstimOpt.NClass);
             b0(EstimOpt.NClass*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA))+1:end) = Results_old.LCMXL_d.bhat(2*EstimOpt.NVarA*EstimOpt.NClass+1:end);
-            for i = 1: EstimOpt.NClass
-                vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass +1 + (i-1)*EstimOpt.NVarA:EstimOpt.NVarA*EstimOpt.NClass +i*EstimOpt.NVarA ));
-                b0(EstimOpt.NVarA*EstimOpt.NClass+1 + (i-1)*sum(1+EstimOpt.NVarA):EstimOpt.NVarA*EstimOpt.NClass+ i*sum(1:EstimOpt.NVarA)) = vc_tmp(tril(ones(size(vc_tmp)))==1);
+            for i = 1:EstimOpt.NClass
+                vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*EstimOpt.NVarA:EstimOpt.NVarA*EstimOpt.NClass+i*EstimOpt.NVarA));
+                b0(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*sum(1:EstimOpt.NVarA):EstimOpt.NVarA*EstimOpt.NClass+i*sum(1:EstimOpt.NVarA)) = vc_tmp(tril(ones(size(vc_tmp)))==1);
             end
         elseif isfield(Results_old,'LC') && isfield(Results_old.LC,'bhat')
             disp('Using LC coefficients for starting values')

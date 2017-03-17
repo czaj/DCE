@@ -50,6 +50,7 @@ end
 
 if EstimOpt.WTP_space > 0
     %    error('WTP-space does not work in GMXL')
+    error('Are you sure you want to estimate GMXL in WTP-space? We don''t think it makes sense ...')
 end
 if EstimOpt.FullCov == 0
     disp('with non-correlated random parameters ...')
@@ -132,8 +133,8 @@ if isfield(EstimOpt,'tau0') == 0
     EstimOpt.tau0 = 1;
 end
 
-if isfield(EstimOpt,'gamma0') == 0
-    EstimOpt.gamma0 = 0;
+if isfield(EstimOpt,'Gamma0') == 0
+    EstimOpt.Gamma0 = 0;
 end
 
 if EstimOpt.WTP_space > 0
@@ -192,17 +193,17 @@ end
 %% Starting values
 
 
-if ~isfield(EstimOpt,'gamma0')
+if ~isfield(EstimOpt,'Gamma0')
     if  EstimOpt.FullCov == 0 && (~isfield(Results_old,'GMXL_d') || ~isfield(Results_old.GMXL_d,'b0'))
-        EstimOpt.gamma0 = 0;
+        EstimOpt.Gamma0 = 0;
     elseif EstimOpt.FullCov == 1 && (~isfield(Results_old,'GMXL') || ~isfield(Results_old.GMXL,'b0'))
-        EstimOpt.gamma0 = 0;
+        EstimOpt.Gamma0 = 0;
     end
 end
 
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup)
-        if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
+        if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
             if size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1
                 b0 = B_backup(:);
                 disp('Using the starting values from Backup')
@@ -223,7 +224,7 @@ if EstimOpt.FullCov == 0
                 Results_old.GMXL_d = rmfield(Results_old.GMXL_d,'b0_old');
             else
                 b0 = Results_old.GMXL_d.b0_old(:);
-                if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
+                if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
                     b0 = b0(1:end-1);
                 end
             end
@@ -243,20 +244,20 @@ if EstimOpt.FullCov == 0
         else
             error('No starting values available - run MNL or MXL_d first')
         end
-        if (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1)
-            b0 = [b0;  log(EstimOpt.gamma0./(1-EstimOpt.gamma0))];
+        if (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1)
+            b0 = [b0;  log(EstimOpt.Gamma0./(1-EstimOpt.Gamma0))];
         end
     end
     
 elseif EstimOpt.FullCov == 1
     
     if exist('B_backup','var') && ~isempty(B_backup) && ...
-            ((EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1) || ...
-            (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1 && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2))
+            ((EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1) || ...
+            (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1 && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2))
         disp('Using the starting values from Backup')
-        if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1)
+        if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1)
             b0 = B_backup(:);
-        elseif (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2)
+        elseif (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2)
             b0 = B_backup(:);
         end
     elseif isfield(Results_old,'GMXL') && isfield(Results_old.GMXL,'b0') % starting values provided
@@ -267,7 +268,7 @@ elseif EstimOpt.FullCov == 1
             Results_old.GMXL = rmfield(Results_old.GMXL,'b0_old');
         else
             b0 = Results_old.GMXL.b0_old(:);
-            if (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
+            if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
                 b0 = b0(1:end-1);
             end
         end
@@ -277,8 +278,8 @@ elseif EstimOpt.FullCov == 1
             disp('Using MXL results as starting values')
             Results_old.MXL.bhat = Results_old.MXL.bhat(:);
             b0 = [Results_old.MXL.bhat; zeros(EstimOpt.NVarT,1);sqrt(EstimOpt.tau0)];
-            if (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1)
-                b0 = [b0;  log(EstimOpt.gamma0./(1-EstimOpt.gamma0))];
+            if (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1)
+                b0 = [b0;  log(EstimOpt.Gamma0./(1-EstimOpt.Gamma0))];
             end
         elseif isfield(Results_old,'GMXL_d') && isfield(Results_old.GMXL_d,'bhat')
             disp('Using GMXL_d results as starting values')
@@ -290,18 +291,18 @@ elseif EstimOpt.FullCov == 1
             Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
             vc_tmp = diag(Results_old.MXL_d.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2));
             b0 = [Results_old.MXL_d.bhat(1:EstimOpt.NVarA); vc_tmp(tril(ones(size(vc_tmp)))==1);Results_old.MXL_d.bhat(EstimOpt.NVarA*2+1:end); zeros(EstimOpt.NVarT,1); sqrt(EstimOpt.tau0)];
-            if (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1)
-                b0 = [b0;  log(EstimOpt.gamma0./(1-EstimOpt.gamma0))];
+            if (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1)
+                b0 = [b0;  log(EstimOpt.Gamma0./(1-EstimOpt.Gamma0))];
             end
         elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
             disp('Using MNL results as starting values')
-            %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(EstimOpt.NVarA*(EstimOpt.NVarM)+ncv(EstimOpt.NVarA),1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end); zeros(EstimOpt.NVarT,1);EstimOpt.tau0; EstimOpt.gamma0];
+            %             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);zeros(EstimOpt.NVarA*(EstimOpt.NVarM)+ncv(EstimOpt.NVarA),1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end); zeros(EstimOpt.NVarT,1);EstimOpt.tau0; EstimOpt.Gamma0];
             b0 = [Results_old.MNL.bhat(1:EstimOpt.NVarA);0.1*ones(EstimOpt.NVarA*(EstimOpt.NVarM)+sum(1:EstimOpt.NVarA),1);0.1*ones(EstimOpt.NVarM.*EstimOpt.NVarA,1);Results_old.MNL.bhat(EstimOpt.NVarA+1:end); 0.1*ones(EstimOpt.NVarT,1); sqrt(EstimOpt.tau0)];
             if sum(EstimOpt.Dist==1) > 0
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
-            if (EstimOpt.gamma0 ~= 0 && EstimOpt.gamma0 ~= 1)
-                b0 = [b0;  log(EstimOpt.gamma0./(1-EstimOpt.gamma0))];
+            if (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1)
+                b0 = [b0;  log(EstimOpt.Gamma0./(1-EstimOpt.Gamma0))];
             end
         else
             error('No starting values available')
@@ -309,9 +310,9 @@ elseif EstimOpt.FullCov == 1
     end
 end
 
-if EstimOpt.gamma0 == 0
+if EstimOpt.Gamma0 == 0
     disp('GMXL type II - variance of residual taste heterogeneity fully scaled (gamma = 0)');
-elseif EstimOpt.gamma0 == 1
+elseif EstimOpt.Gamma0 == 1
     disp('GMXL type I - variance of residual taste heterogeneity not scaled (gamma = 1)');
 end
 
@@ -321,7 +322,7 @@ end
 %end
 
 %b0(end-1) = log(b0(end-1)); % tau entering the LL-function as exp(tau) later
-%if isfield(EstimOpt,'gamma0') == 1 && (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1)
+%if isfield(EstimOpt,'Gamma0') == 1 && (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
 %    b0 = b0(1:end-1);
 %else
 %    b0(end) = log(b0(end)./(1-b0(end)));
@@ -444,13 +445,13 @@ if EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 0
     OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - WTP-space not supported by analytical gradient \n')
 end
-if EstimOpt.gamma0 ~= 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist > 0)
+if EstimOpt.Gamma0 ~= 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist > 0)
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Non-normal random parameters not supported by analytical gradient for GMXL and GMXL of type I \n')
 end
 
-if EstimOpt.gamma0 == 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist > 1)
+if EstimOpt.Gamma0 == 0 && EstimOpt.NumGrad == 0 && any(EstimOpt.Dist > 1)
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Non-normal or log-normal random parameters not supported by analytical gradient for GMXL of type II \n')
@@ -716,8 +717,8 @@ if EstimOpt.FullCov == 0
         %DetailsT0(1:EstimOpt.NVarT,1:4) = Results.DetailsT;
         %Results.R = [Results.R, DetailsT0]; % might not work of NVarS > NVarA
     end
-    if isfield(EstimOpt, 'gamma0') && (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) % transfer gamma* back to gamma
-        Results.bhat = [Results.bhat; EstimOpt.gamma0];
+    if isfield(EstimOpt, 'Gamma0') && (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) % transfer gamma* back to gamma
+        Results.bhat = [Results.bhat; EstimOpt.Gamma0];
         Results.std = [Results.std; NaN];
         Results.DetailsGamma(1,1) = Results.bhat(end);
         Results.DetailsGamma(1,3:4) = [Results.std(end), NaN];
@@ -764,8 +765,8 @@ else % => EstimOpt.FullCov == 1
         %         Results.R = [Results.R, DetailsT0]; % might not work of NVarT > NVarA
     end
     Results.chol = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))];
-    if isfield(EstimOpt, 'gamma0') && (EstimOpt.gamma0 == 0 || EstimOpt.gamma0 == 1) % transfer gamma* back to gamma
-        Results.bhat = [Results.bhat; EstimOpt.gamma0];
+    if isfield(EstimOpt, 'Gamma0') && (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) % transfer gamma* back to gamma
+        Results.bhat = [Results.bhat; EstimOpt.Gamma0];
         Results.std = [Results.std; NaN];
         Results.DetailsGamma(1,1) = Results.bhat(end);
         Results.DetailsGamma(1,3:4) = [Results.std(end),NaN];
