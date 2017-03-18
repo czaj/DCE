@@ -914,7 +914,9 @@ if EstimOpt.NVarM > 0
 	Temp2 = cell(1, size(Template2,2));
     Temp2(1,1) = {'DetailsCM'};
     Template2 = [Template2; Temp2];
-	Heads.DetailsCM = EstimOpt.NamesM;
+	%Heads.DetailsCM = EstimOpt.NamesM;
+    Heads.DetailsCM(:,2) = EstimOpt.NamesM;
+    Heads.DetailsCM{1,1} = 'Interactions with LV:';
 end
 
 if EstimOpt.NVarS >0
@@ -960,40 +962,60 @@ end
 %l = EstimOpt.NVarA+3+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0); % this is for indexing in R_out
 k = 0;
 
+if any(EstimOpt.MeaSpecMatrix == 2)
+    Results.DetailsOP = [];
+end
+
 for i = 1:size(INPUT.Xmea,2)
     Heads.(strcat('Xmea',num2str(i))){1,1} = ['Measurment equation for',' ',char(EstimOpt.NamesMea(i))];
     model = model_name(EstimOpt.MeaSpecMatrix(i));
     Heads.(strcat('Xmea',num2str(i))){1,2} = ['Estimated using',' ', model];
     
-        if EstimOpt.MeaSpecMatrix(i) == 2
-        l = EstimOpt.CutMatrix(i) - length(unique(INPUT.Xmea(:,i))) + 1;
-        Results.DetailsOP(:,1) = Results.DetailsM(l+1:l+length(unique(INPUT.Xmea(:,i)))-1,1);
-        Results.DetailsOP(:,3:4) = Results.DetailsM(l+1:l+length(unique(INPUT.Xmea(:,i)))-1,3:4);
+    if EstimOpt.MeaSpecMatrix(i) == 2
+        l = k + EstimOpt.CutMatrix(i) - length(unique(INPUT.Xmea(:,i))) + 1;
+        Results.DetailsOP = vertcat(Results.DetailsOP, Results.DetailsM(l+1:l+length(unique(INPUT.Xmea(:,i)))-1,:));
         if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary
             g = [Results.DetailsM(l+1,1); exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
             for n = 2:length(unique(INPUT.Xmea(:,i)))-1
                 stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
                 Results.DetailsM(l+n,1) = sum(g(1:n),1);
-                Results.DetailsM(l+n,3:4) = [stdx, pv(sum(g(1:n),1), stdx)];          
+                Results.DetailsM(l+n,3:4) = [stdx, pv(sum(g(1:n),1), stdx)];
             end
         end
+    end
+    
+    if EstimOpt.MeaSpecMatrix(i) == 5 || EstimOpt.MeaSpecMatrix(i) == 6
+        Heads.(strcat('Xmea',num2str(i))){1,3} = 'Probability of Non-participation (logit)';
+        Results.(strcat('Xmea',num2str(i)))(:,1:4) = Results.DetailsM(k+1:k+floor(EstimOpt.CutMatrix(i)/2),:);
+        Results.(strcat('Xmea2',num2str(i)))(:,1:4) = Results.DetailsM(k+floor(EstimOpt.CutMatrix(i)/2)+1:k+EstimOpt.CutMatrix(i),:);
+        Names.(strcat('Xmea',num2str(i))) = EstimOpt.NamesMea_tmp(k+1:k+floor(EstimOpt.CutMatrix(i)/2));
+        Names.(strcat('Xmea2',num2str(i))) = EstimOpt.NamesMea_tmp(k+floor(EstimOpt.CutMatrix(i)/2)+1:k+EstimOpt.CutMatrix(i));
+        if EstimOpt.MeaSpecMatrix(i) == 5
+        	Heads.(strcat('Xmea2',num2str(i))) = {'Poisson model'};
+        else %if EstimOpt.MeaSpecMatrix(i) == 6
+            Heads.(strcat('Xmea2',num2str(i))) = {'Negative binomial model'}; 
         end
-    
-    %Results.R_out(EstimOpt.NVarStr+3+l+1,1) =  cellfun(@(x)[x char(EstimOpt.NamesMea(i))],{'Measurment equation for '},'UniformOutput',0);
-    Results.(strcat('Xmea',num2str(i)))(1:EstimOpt.CutMatrix(i),1:4) = Results.DetailsM(k+1:k+EstimOpt.CutMatrix(i),:);
-    %Results.R_out(EstimOpt.NVarStr+3+l+3,1:4) = head;
-    %Results.R_out(EstimOpt.NVarStr+3+l+4:EstimOpt.NVarStr+3+l+3 + EstimOpt.CutMatrix(i) ,1:4) = [EstimOpt.NamesLV(k+1:k+EstimOpt.CutMatrix(i)), num2cell(Results.DetailsM(k+1:k+EstimOpt.CutMatrix(i),:))];
-    Names.(strcat('Xmea',num2str(i))) = EstimOpt.NamesMea_tmp(k+1:k+EstimOpt.CutMatrix(i));
-    %l = l+3+EstimOpt.CutMatrix(i);
-    
+        Temp1 = cell(2, size(Template1,2));
+        Temp1(1,1) = {strcat('Xmea',num2str(i))};
+        Temp1(2,1) = {strcat('Xmea2',num2str(i))};
+        Template1 = [Template1; Temp1];
+        Temp2 = cell(2, size(Template2,2));
+        Temp2(1,1) = {strcat('Xmea',num2str(i))};
+        Temp2(2,1) = {strcat('Xmea2',num2str(i))};
+        Template2 = [Template2; Temp2];
+        ST = [ST, {strcat('Xmea',num2str(i))}, {strcat('Xmea2',num2str(i))}];        
+    else
+        Results.(strcat('Xmea',num2str(i)))(1:EstimOpt.CutMatrix(i),1:4) = Results.DetailsM(k+1:k+EstimOpt.CutMatrix(i),:);
+        Names.(strcat('Xmea',num2str(i))) = EstimOpt.NamesMea_tmp(k+1:k+EstimOpt.CutMatrix(i));
+        Temp1 = cell(1, size(Template1,2));
+        Temp1(1,1) = {strcat('Xmea',num2str(i))};
+        Template1 = [Template1; Temp1];
+        Temp2 = cell(1, size(Template2,2));
+        Temp2(1,1) = {strcat('Xmea',num2str(i))};
+        Template2 = [Template2; Temp2];
+        ST = [ST, {strcat('Xmea',num2str(i))}];
+    end
     k = k + EstimOpt.CutMatrix(i);
-    Temp1 = cell(1, size(Template1,2));
-    Temp1(1,1) = {strcat('Xmea',num2str(i))};
-    Template1 = [Template1; Temp1];
-    Temp2 = cell(1, size(Template2,2));
-    Temp2(1,1) = {strcat('Xmea',num2str(i))};
-    Template2 = [Template2; Temp2];
-    ST = [ST, {strcat('Xmea',num2str(i))}];
 end
 
 
