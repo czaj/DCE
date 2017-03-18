@@ -1056,7 +1056,8 @@ if EstimOpt.NVarM > 0
     Temp = cell(1, size(Template2,2));
     Temp(1,1) = {'DetailsM'};
     Template2 = [Template2; Temp];
-    Heads.DetailsM = EstimOpt.NamesM;
+    Heads.DetailsM(:,2) = EstimOpt.NamesM;
+    Heads.DetailsM{1,1} = 'Interactions of the means:';
 end
 
 if EstimOpt.NVarNLT > 0
