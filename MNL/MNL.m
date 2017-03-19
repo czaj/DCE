@@ -584,7 +584,8 @@ ST = {'DetailsA'};
 if NVarMOld > 0
     Template1 = [Template1, 'DetailsM'];
     Template2 = [Template2; 'DetailsM'];
-    Heads.DetailsM = EstimOpt.NamesM;
+    Heads.DetailsM(:,2) = EstimOpt.NamesM;
+    Heads.DetailsM{1,1} = 'Interactions';
     ST = [ST, 'DetailsM'];
 end
 
