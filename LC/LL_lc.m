@@ -32,9 +32,9 @@ end
 if NVarS > 0
     bs = reshape(B(NClass*NVarA+1:NClass*(NVarA+NVarS)),[NVarS,NClass]);
     Scale = exp(Xs*bs);
-    U = exp(reshape((Xa*Bclass).*Scale,[NAlt,NCT*NP*NClass])); % NAlt x NCT*NP*NClass
+    U = reshape((Xa*Bclass).*Scale,[NAlt,NCT*NP*NClass]); % NAlt x NCT*NP*NClass
 else
-    U = exp(reshape(Xa*Bclass,[NAlt,NCT*NP*NClass])); % NAlt x NCT*NP*NClass
+    U = reshape(Xa*Bclass,[NAlt,NCT*NP*NClass]); % NAlt x NCT*NP*NClass
 end
 
 % U_max = max(U);
@@ -80,6 +80,7 @@ if nargout == 2 % function value + gradient
 %             Xa_tmp = reshape(Xa(YY(:,1:NCT*NP) == 1, :, ones(NClass,1)).*Scale(1:NAlt:end, ones(1,NVarA),:),NCT,NP,NVarA*NClass) ; % NCT*NP x NVarA
             Xa_tmp = reshape(Xa(YY(:,1:NCT*NP) == 1,:,:).*Scale(1:NAlt:end,:,:),[NCT,NP,NVarA*NClass]) ; % NCT*NP x NVarA
         else
+
 %             XXa = reshape(Xa(:,:, ones(NClass,1)), NAlt,NCT*NP,NVarA, NClass);
             XXa = reshape(Xa,[NAlt,NCT*NP,NVarA,1]);
 %             Xa_tmp = reshape(Xa(YY(:,1:NCT*NP) == 1, :, ones(NClass,1)),NCT,NP,NVarA*NClass) ; % NCT*NP x NVarA
@@ -92,6 +93,7 @@ if nargout == 2 % function value + gradient
         
         %probs_x = reshape(probs_x(:,ones(NVarA,1),:),  NP, NVarA*NClass);
         g1 = F.*reshape(probs_x(:,ones(NVarA,1),:),[NP,NVarA*NClass]); % gradient for choice parameters
+        
         if NVarS > 0
             bss = reshape(Bclass,[1,1,NVarA*NClass]);
             Ftmp = Xa_tmp - Xhat;
