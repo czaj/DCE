@@ -1044,7 +1044,11 @@ Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist);
 EstimOpt.JSNVariables = find(EstimOpt.Dist > 4 & EstimOpt.Dist <= 7);
+
+
 %% Tworzebnie templatek do printu
+
+
 Template1 = {'DetailsA', 'DetailsV'};
 Template2 = {'DetailsA', 'DetailsV'};
 Names.DetailsA = EstimOpt.NamesA;
@@ -1057,7 +1061,7 @@ if EstimOpt.NVarM > 0
     Temp(1,1) = {'DetailsM'};
     Template2 = [Template2; Temp];
     Heads.DetailsM(:,2) = EstimOpt.NamesM;
-    Heads.DetailsM{1,1} = 'Interactions of the means:';
+    Heads.DetailsM{1,1} = 'Interactions of means';
 end
 
 if EstimOpt.NVarNLT > 0

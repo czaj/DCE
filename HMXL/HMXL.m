@@ -1155,7 +1155,7 @@ if EstimOpt.NVarM > 0
     Temp2 = cell(1, size(Template2,2));
     Temp2(1,1) = {'DetailsCM'};
     Template2 = [Template2; Temp2];
-    Heads.DetailsCM{1,1} = 'Interactions of the means with LV:';
+    Heads.DetailsCM{1,1} = 'Interactions of means with LV';
     Heads.DetailsCM(:,2) = EstimOpt.NamesM;
 end
 
@@ -1198,7 +1198,7 @@ if any(EstimOpt.MeaSpecMatrix == 2)
 end
 
 for i = 1:size(INPUT.Xmea,2)
-    Heads.(strcat('Xmea',num2str(i))){1,1} = ['Measurment equation for',' ',char(EstimOpt.NamesMea(i))];
+    Heads.(strcat('Xmea',num2str(i))){1,1} = ['Measurment equation for:',' ',char(EstimOpt.NamesMea(i))];
     model = model_name(EstimOpt.MeaSpecMatrix(i));
     Heads.(strcat('Xmea',num2str(i))){1,2} = ['Estimated using',' ', model];
     

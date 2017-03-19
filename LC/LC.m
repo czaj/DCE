@@ -31,6 +31,7 @@ if isfield(EstimOpt, 'Display') == 0
 end
 
 if isfield(EstimOpt,'NClass') == 0
+    cprintf(rgb('DarkOrange'), 'WARNING: Number of latent classes not specified - assuming 2 classes. \n')
     EstimOpt.NClass = 2;
 end
 
@@ -336,7 +337,7 @@ if sum(EstimOpt.BActiveClass == 0,1) > 0
         b0x = b0_1((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA);
         bactivex = bactive_1((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA);
         b0 = [b0; b0x(EstimOpt.BActiveClass ==1)];
-        EstimOpt.BActive = [EstimOpt.BActive, bactivex(EstimOpt.BActiveClass ==1)];
+        EstimOpt.BActive = [EstimOpt.BActive, bactivex(EstimOpt.BActiveClass == 1)];
     end
     
     b0 = [b0; b0_2];
