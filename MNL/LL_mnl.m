@@ -141,157 +141,127 @@ f = logprobs;
 
 
 if nargout == 2 % function value + gradient
-    
-    if any(isnan(Xa(:))) == 0 % No missing choices / alternatives
-        if WTP_space == 0
-            XXa = reshape(Xa,[NAlt,N,NVarA]);
-            %         Xhat = squeeze(sum(P(:,:,ones(NVarA,1)).*XXa,1))'; % N x NVarA
-%             Xhat = reshape(sum(P(:,:,ones(NVarA,1)).*XXa,1),[N,NVarA]); % N x NVarA
-            Xhat = reshape(sum(P.*XXa,1),[N,NVarA]); % N x NVarA
-            g = Xa(y == 1, :) - Xhat;
-            
-            if NVarNLT > 0
-                XXtt = reshape(XXt, NAlt, N, NVarNLT);
-%                 Xhatlam = squeeze(sum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                Xhatlam = reshape(sum(P.*XXtt,1),[N,NVarNLT]); % N x NVarNLT
-                if NVarNLT == 1
-                    Xhatlam = Xhatlam';
-                end
-                g = [g,XXt(y == 1,:) - Xhatlam];
-                if NVarM > 0
-                    gm = g(:,repmat(1:NVarA,[1,NVarM])).*(Xm(XmIndx,kron(1:NVarM,ones(1,NVarA))));
-                    g = [g(:,1:NVarA),gm,g(:,NVarA+1:end)];
-                end
-            end               
-            
-        else
-            % non - cost variables
-            if NVarM == 0
-                alphaX = Xa(:, 1:(NVarA - WTP_space)).*(B(WTP_matrix,ones(NAlt*N,1))');
-            else
-                alphaX = Xa(:, 1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,XmIndx2)';
-            end
-            alphaXX = reshape(alphaX, NAlt, N, NVarA - WTP_space);
-            Xhat1 = squeeze(sum(P(:,:,ones(NVarA- WTP_space,1)).*alphaXX,1));
-            g1 = alphaX(y == 1, :) - Xhat1;
-            % cost variables
-            if WTP_space == 1
-                if NVarM == 0
-                    pX = Xa(:, NVarA) + Xa(:, 1:NVarA-1)*b0(1:NVarA-1);
-                else
-                    pX = Xa(:, NVarA) + sum(Xa(:, 1:NVarA-1).*ba_grad(1:NVarA-1,XmIndx2)',2);
-                end
-                
-                pXX = reshape(pX, NAlt, N);
-                Xhat2 = squeeze(sum(P.*pXX,1))'; % N x 1
-                g2 = pX(y == 1, :) - Xhat2;
-            else
-                pX = zeros(NAlt*N, WTP_space);
-                for i = 1:WTP_space
-                    if NVarM == 0
-                        pX(:,i) = Xa(:, NVarA - WTP_space + i) + Xa(:, WTP_matrix == NVarA - WTP_space + i)*b0(WTP_matrix == NVarA - WTP_space + i);
-                    else
-                        pX(:,i) = Xa(:, NVarA - WTP_space + i) + sum(Xa(:, WTP_matrix == NVarA - WTP_space + i).*ba_grad(WTP_matrix == NVarA - WTP_space + i,XmIndx2)',2);
-                    end
-                end
-                pXX = reshape(pX, NAlt, N, WTP_space);
-                Xhat2 = squeeze(sum(P(:,:, ones(WTP_space,1)).*pXX,1)); % N x WTP_space
-                g2 = pX(y == 1, :) - Xhat2;
-            end
-            
-            g =[g1,g2];
-            
-            if NVarNLT > 0
-                XXtt = reshape(XXt, NAlt, N, NVarNLT);
-                Xhatlam = squeeze(sum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                if NVarNLT == 1
-                    Xhatlam = Xhatlam';
-                end
-                g = [g,  XXt(y == 1, :) - Xhatlam];
-            end
-            if NVarM > 0
-                gm = g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(XmIndx ,kron(1:NVarM, ones(1,NVarA))));
-                g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
-            end
+    IsNaN = any(isnan(Xa(:)));
+    if NVarS > 0
+        %Scale = reshape(cs, [NAlt, N]);
+        Xs = reshape(Xs(1:NAlt:end,:), [N, NVarS]);
+        
+    end
+    if WTP_space == 0
+        if NVarS > 0
+           Xa = Xa.*cs; 
         end
+        XXa = reshape(Xa,[NAlt,N,NVarA]);
+        
+        %         Xhat = squeeze(sum(P(:,:,ones(NVarA,1)).*XXa,1))'; % N x NVarA
+%             Xhat = reshape(sum(P(:,:,ones(NVarA,1)).*XXa,1),[N,NVarA]); % N x NVarA
+        if IsNaN == 0
+            Xhat = reshape(sum(P.*XXa,1),[N,NVarA]); % N x NVarA
+        else
+            Xhat = reshape(nansum(P.*XXa,1),[N,NVarA]); % N x NVarA
+        end
+        g = Xa(y == 1, :) - Xhat;
+        if NVarS > 0
+            gScale = g*B(1:NVarA,1);
+            gScale = gScale.*Xs;
+            g = [g, gScale];
+        end
+        if NVarNLT > 0
+            if NVarS > 0
+               XXt = XXt.*Scale; 
+            end
+            XXtt = reshape(XXt, NAlt, N, NVarNLT);
+            
+%                 Xhatlam = squeeze(sum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
+            if IsNaN == 0
+                Xhatlam = reshape(sum(P.*XXtt,1),[N,NVarNLT]); % N x NVarNLT
+            else
+                Xhatlam = reshape(nansum(P.*XXtt,1),[N,NVarNLT]); % N x NVarNLT
+            end
+            g = [g,XXt(y == 1,:) - Xhatlam];
+            if NVarM > 0
+                gm = g(:,repmat(1:NVarA,[1,NVarM])).*(Xm(XmIndx,kron(1:NVarM,ones(1,NVarA))));
+                g = [g(:,1:NVarA),gm,g(:,NVarA+1:end)];
+            end
+        end               
         
     else
-        
-        if WTP_space == 0
-            XXa = reshape(Xa,NAlt, N, NVarA);
-            Xhat = reshape(nansum(P(:,:,ones(NVarA,1)).*XXa,1),[N,NVarA]); % N x NVarA
-            g = Xa(y==1,:) - Xhat;
-            
-            if NVarNLT > 0
-                XXtt = reshape(XXt, NAlt, N, NVarNLT);
-                Xhatlam = squeeze(nansum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                if NVarNLT == 1
-                    Xhatlam = Xhatlam';
-                end
-                
-                g = [g, XXt(y == 1, :) - Xhatlam];
-                if NVarM > 0
-                    gm =  g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(XmIndx,kron(1:NVarM, ones(1,NVarA))));
-                    g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
-                end
-            end
-            
+        if NVarS > 0
+           Xa = Xa.*cs; 
+        end
+        % non - cost variables
+        if NVarM == 0
+            alphaX = Xa(:, 1:(NVarA - WTP_space)).*(B(WTP_matrix,ones(NAlt*N,1))');
         else
-            
-            if NVarM == 0
-                alphaX = Xa(:, 1:(NVarA - WTP_space)).*(B(WTP_matrix,ones(NAlt*N,1))');
-            else
-                alphaX = Xa(:, 1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,XmIndx2)';
-            end
-            
-            alphaXX = reshape(alphaX, NAlt, N, NVarA - WTP_space);
+            alphaX = Xa(:, 1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,XmIndx2)';
+        end
+        alphaXX = reshape(alphaX, NAlt, N, NVarA - WTP_space);
+        if IsNaN == 0
+            Xhat1 = squeeze(sum(P(:,:,ones(NVarA- WTP_space,1)).*alphaXX,1));
+        else
             Xhat1 = squeeze(nansum(P(:,:,ones(NVarA- WTP_space,1)).*alphaXX,1));
-            g1 = alphaX(y == 1, :) - Xhat1;
-            
-            if WTP_space == 1
-                
-                if NVarM == 0
-                    pX = Xa(:, NVarA) + Xa(:, 1:NVarA-1)*b0(1:NVarA-1);
-                else
-                    pX = Xa(:, NVarA) + nansum(Xa(:, 1:NVarA-1).*ba_grad(1:NVarA-1,XmIndx2)',2);
-                end
-                
-                pXX = reshape(pX, NAlt, N);
-                Xhat2 = squeeze(nansum(P.*pXX,1))'; % N x 1
-                g2 = pX(y == 1, :) - Xhat2;
-                
+        end
+        g1 = alphaX(y == 1, :) - Xhat1;
+        % cost variables
+        if WTP_space == 1
+            if NVarM == 0
+                pX = Xa(:, NVarA) + Xa(:, 1:NVarA-1)*b0(1:NVarA-1);
             else
-                
-                pX = zeros(NAlt*N, WTP_space);
-                
-                for i = 1:WTP_space
-                    if NVarM == 0
-                        pX(:,i) = Xa(:, NVarA - WTP_space + i) + Xa(:, WTP_matrix == NVarA - WTP_space + i)*b0(WTP_matrix == NVarA - WTP_space + i);
-                    else
-                        pX(:,i) = Xa(:, NVarA - WTP_space + i) + nansum(Xa(:, WTP_matrix == NVarA - WTP_space + i).*ba_grad(WTP_matrix == NVarA - WTP_space + i,XmIndx2)',2);
-                    end
+                pX = Xa(:, NVarA) + sum(Xa(:, 1:NVarA-1).*ba_grad(1:NVarA-1,XmIndx2)',2);
+            end
+
+            pXX = reshape(pX, NAlt, N);
+            if IsNaN == 0
+                Xhat2 = squeeze(sum(P.*pXX,1))'; % N x 1
+            else
+                Xhat2 = squeeze(nansum(P.*pXX,1))'; % N x 1
+            end
+            g2 = pX(y == 1, :) - Xhat2;
+        else
+            pX = zeros(NAlt*N, WTP_space);
+            for i = 1:WTP_space
+                if NVarM == 0
+                    pX(:,i) = Xa(:, NVarA - WTP_space + i) + Xa(:, WTP_matrix == NVarA - WTP_space + i)*b0(WTP_matrix == NVarA - WTP_space + i);
+                else
+                    pX(:,i) = Xa(:, NVarA - WTP_space + i) + sum(Xa(:, WTP_matrix == NVarA - WTP_space + i).*ba_grad(WTP_matrix == NVarA - WTP_space + i,XmIndx2)',2);
                 end
-                
-                pXX = reshape(pX, NAlt, N, WTP_space);
+            end
+            pXX = reshape(pX, NAlt, N, WTP_space);
+            if IsNaN == 0
+                Xhat2 = squeeze(sum(P(:,:, ones(WTP_space,1)).*pXX,1)); % N x WTP_space
+            else
                 Xhat2 = squeeze(nansum(P(:,:, ones(WTP_space,1)).*pXX,1)); % N x WTP_space
-                g2 = pX(y == 1, :) - Xhat2;
             end
-            
-            g =[g1,g2];
-            
-            if NVarNLT > 0
-                XXtt = reshape(XXt, NAlt, N, NVarNLT);
+            g2 = pX(y == 1, :) - Xhat2;
+        end
+        g =[g1,g2];
+        if NVarS > 0
+
+            if NVarM == 0
+                gScale = g2*B(NVarA-WTP_space+1:NVarA,:);
+            else
+                gScale = sum(g2.*ba_grad(NVarA-WTP_space+1:end,XmIndx)',2);
+            end
+           gScale = gScale.*Xs;
+           g = [g, gScale];
+        end
+        if NVarNLT > 0
+            XXtt = reshape(XXt, NAlt, N, NVarNLT);
+            if IsNaN == 0
+                Xhatlam = squeeze(sum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
+            else
                 Xhatlam = squeeze(nansum(P(:,:,ones(NVarNLT,1)).*XXtt,1)); % N x NVarNLT
-                if NVarNLT == 1
-                    Xhatlam = Xhatlam';
-                end
-                g = [g,  XXt(y == 1, :) - Xhatlam];
             end
-            
-            if NVarM > 0
-                gm = g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(XmIndx ,kron(1:NVarM, ones(1,NVarA))));
-                g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
+            if NVarNLT == 1
+                Xhatlam = Xhatlam';
             end
+            g = [g,  XXt(y == 1, :) - Xhatlam];
+        end
+        if NVarM > 0
+            gm = g(:,repmat(1:NVarA, 1, NVarM)).*(Xm(XmIndx ,kron(1:NVarM, ones(1,NVarA))));
+            g = [g(:,1:NVarA),gm, g(:,NVarA+1:end)];
         end
     end
+        
+    
 end
