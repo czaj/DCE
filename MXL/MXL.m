@@ -798,30 +798,35 @@ if EstimOpt.FullCov == 0
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
         log_idx = find(EstimOpt.Dist==1);
-        bhat_sim = mvnrnd(Results.bhat,Results.ihess,NSdSim)';
-        bhat_new = zeros(NSdSim,5*NVarA);
-        parfor i = 1:NSdSim
-            bhat_i = bhat_sim(:,i);
-            B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
-            %     b0v = bhat_i(NVarA+1:end)';
-            %     VC = tril(ones(NVarA));
-            %     VC(VC==1) = b0v;
-            %     VC = VC*VC';
-            %     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,sim2);
-            B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-            bhat_new(i,:) = [mean(B0_i), median(B0_i), std(B0_i), quantile(B0_i,0.025), quantile(B0_i,0.975)];
+        try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
+            bhat_sim = mvnrnd(Results.bhat(1:NVarA*2),Results.ihess(1:NVarA*2,1:NVarA*2),NSdSim)';
+            bhat_new = zeros(NSdSim,5*NVarA);
+            parfor i = 1:NSdSim
+                bhat_i = bhat_sim(:,i);
+                B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
+                %     b0v = bhat_i(NVarA+1:end)';
+                %     VC = tril(ones(NVarA));
+                %     VC(VC==1) = b0v;
+                %     VC = VC*VC';
+                %     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,sim2);
+                B0_i(:,log_idx) = exp(B0_i(:,log_idx));
+                bhat_new(i,:) = [mean(B0_i), median(B0_i), std(B0_i), quantile(B0_i,0.025), quantile(B0_i,0.975)];
+            end
+            Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
+            Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
+            Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
+            Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
+            
+            %         Results.DetailsA(log_idx,1) = Results.DistStats_Coef(log_idx,1);
+            Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
+            Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
+            %         Results.DetailsV(log_idx,1) = Results.DistStats_Coef(log_idx,3);
+            Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
+            Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
+        catch % theErrorInfo
+            Results.DetailsA(log_idx,[1,3:4]) = NaN;
+            Results.DetailsV(log_idx,[1,3:4]) = NaN;
         end
-        Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
-        Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
-        Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
-        Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
-        
-        %         Results.DetailsA(log_idx,1) = Results.DistStats_Coef(log_idx,1);
-        Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
-        Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
-        %         Results.DetailsV(log_idx,1) = Results.DistStats_Coef(log_idx,3);
-        Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
-        Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
     end
     
     if sum(EstimOpt.Dist == 3) > 0
@@ -907,30 +912,35 @@ elseif EstimOpt.FullCov == 1
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
         log_idx = find(EstimOpt.Dist==1);
-        bhat_sim = mvnrnd(Results.bhat,Results.ihess,NSdSim)';
-        bhat_new = zeros(NSdSim,5*NVarA);
-        parfor i = 1:NSdSim
-            bhat_i = bhat_sim(:,i);
-%             B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
+        try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
+            bhat_sim = mvnrnd(Results.bhat,Results.ihess,NSdSim)';
+            bhat_new = zeros(NSdSim,5*NVarA);
+            parfor i = 1:NSdSim
+                bhat_i = bhat_sim(:,i);
+                %             B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
                 b0v = bhat_i(NVarA+1:NVarA+sum(1:NVarA))';
                 VC = tril(ones(NVarA));
                 VC(VC == 1) = b0v;
                 VC = VC*VC';
                 B0_i = mvnrnd(bhat_i(1:NVarA)',VC,NSdSim);
-            B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-            bhat_new(i,:) = [mean(B0_i), median(B0_i), std(B0_i), quantile(B0_i,0.025), quantile(B0_i,0.975)];
+                B0_i(:,log_idx) = exp(B0_i(:,log_idx));
+                bhat_new(i,:) = [mean(B0_i), median(B0_i), std(B0_i), quantile(B0_i,0.025), quantile(B0_i,0.975)];
+            end
+            Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
+            Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
+            Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
+            Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
+            
+            %         Results.DetailsA(log_idx,1) = Results.DistStats_Coef(log_idx,1);
+            Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
+            Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
+            %         Results.DetailsV(log_idx,1) = Results.DistStats_Coef(log_idx,3);
+            Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
+            Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
+        catch % theErrorInfo
+            Results.DetailsA(log_idx,[1,3:4]) = NaN;
+            Results.DetailsV(log_idx,[1,3:4]) = NaN;
         end
-        Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
-        Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
-        Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
-        Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
-        
-        %         Results.DetailsA(log_idx,1) = Results.DistStats_Coef(log_idx,1);
-        Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
-        Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
-        %         Results.DetailsV(log_idx,1) = Results.DistStats_Coef(log_idx,3);
-        Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
-        Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
     end
     
     if sum(EstimOpt.Dist == 3) > 0
@@ -1044,7 +1054,11 @@ Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist);
 EstimOpt.JSNVariables = find(EstimOpt.Dist > 4 & EstimOpt.Dist <= 7);
+
+
 %% Tworzebnie templatek do printu
+
+
 Template1 = {'DetailsA', 'DetailsV'};
 Template2 = {'DetailsA', 'DetailsV'};
 Names.DetailsA = EstimOpt.NamesA;
@@ -1057,7 +1071,7 @@ if EstimOpt.NVarM > 0
     Temp(1,1) = {'DetailsM'};
     Template2 = [Template2; Temp];
     Heads.DetailsM(:,2) = EstimOpt.NamesM;
-    Heads.DetailsM{1,1} = 'Interactions of the means:';
+    Heads.DetailsM{1,1} = 'Interactions of means';
 end
 
 if EstimOpt.NVarNLT > 0

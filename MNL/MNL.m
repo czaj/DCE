@@ -236,12 +236,12 @@ if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
 end
 
-if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0
+if EstimOpt.NVarS > 0 && EstimOpt.NVarNLT>0 && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
     if EstimOpt.Display ~= 0
         %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - covariates of scale not supported by analytical gradient \n')
-        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale jointly with nonlinear transformations not supported by analytical gradient \n')
     end
 end
 
@@ -585,7 +585,7 @@ if NVarMOld > 0
     Template1 = [Template1, 'DetailsM'];
     Template2 = [Template2; 'DetailsM'];
     Heads.DetailsM(:,2) = EstimOpt.NamesM;
-    Heads.DetailsM{1,1} = 'Interactions:';
+    Heads.DetailsM{1,1} = 'Interactions';
     ST = [ST, 'DetailsM'];
 end
 
