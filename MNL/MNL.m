@@ -578,14 +578,14 @@ end
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {''};
+Heads.DetailsA = {'';'tb'};
 ST = {'DetailsA'};
 
 if NVarMOld > 0
     Template1 = [Template1, 'DetailsM'];
     Template2 = [Template2; 'DetailsM'];
-    Heads.DetailsM(:,2) = EstimOpt.NamesM;
-    Heads.DetailsM{1,1} = 'Interactions';
+    Heads.DetailsM(:,2) = [EstimOpt.NamesM;{'lb'}];
+    Heads.DetailsM(1:2,1) = {'Interactions';'lc'};
     ST = [ST, 'DetailsM'];
 end
 
@@ -595,8 +595,10 @@ if EstimOpt.NVarNLT > 0
     ST = [ST, 'DetailsNLT0'];
     if EstimOpt.NLTType == 1
         Heads.DetailsNLT0 = {'Box-Cox transformation parameters'};
+        Heads.DetailsNLT0(2,:) = {'tb'};
     elseif EstimOpt.NLTType == 2
         Heads.DetailsNLT0 = {'Yeo-Johnson transformation parameters'};
+        Heads.DetailsNLT0(2,:) = {'tb'};
     end
 end
 
@@ -607,6 +609,7 @@ if EstimOpt.NVarS > 0
     Template2 = [Template2; 'DetailsS'];
     Names.DetailsS = EstimOpt.NamesS;
     Heads.DetailsS = {'Covariates of Scale'};
+    Heads.DetailsS(2,:) = {'tb'};
     ST = [ST, 'DetailsS'];
 end
 

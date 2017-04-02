@@ -1125,27 +1125,36 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
-Template1 = {'DetailsA', 'DetailsV'};
-% Template2 = {'DetailsA', 'DetailsV'};
+Template1 = {'DetailsA', 'DetailsV', 'DetailsL'};
+Template2 = {'DetailsA', 'DetailsV'};
+Template2{2,1} = 'DetailsL';
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'Means'};
-Heads.DetailsV = {'Standard Deviations'};
+Heads.DetailsA = {'Means';'tc'};
+Heads.DetailsV = {'Standard Deviations';'lb'};
+Heads.DetailsL(:,2) = [EstimOpt.NamesLV;{'lb'}];
+Heads.DetailsL(1:2,1) = {'Interactions of means with LV';'lc'};
 ST = [];
 
 % head = {'var.' , 'coef.', 'st.err.' , 'p-value'};
 % headx = [head, repmat(head(1,2:4),1,1+EstimOpt.NLatent+EstimOpt.NVarM)];
-Temp = [];
+Results.DetailsL_tmp = [];
 for i = 1:EstimOpt.NLatent
-    Results.(LVlist2{i}) = Results.DetailsL(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA,:);
-    Heads.(LVlist2{i}) = EstimOpt.NamesLV(i);
-    Template1 = [Template1, LVlist2(i)]; %#ok<AGROW>
-    Temp = [Temp, LVlist2(i)]; %#ok<AGROW>
-    %Results.R_out(4:(EstimOpt.NVarA+3),5+(i-1)*3:4+i*3) = num2cell(Results.DetailsL(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA,:));
+   Results.DetailsL_tmp = horzcat(Results.DetailsL_tmp, Results.DetailsL(EstimOpt.NVarA*(i-1)+1:EstimOpt.NVarA*i,:));
 end
-Template2 = cell(2,max(size(Temp,2),2));
-Template2(1,1) = {'DetailsA'};
-Template2(1,2) = {'DetailsV'};
-Template2(end,:) = Temp;
+Results.DetailsL = Results.DetailsL_tmp;
+
+
+% for i = 1:EstimOpt.NLatent
+%     Results.(LVlist2{i}) = Results.DetailsL(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA,:);
+%     Heads.(LVlist2{i}) = EstimOpt.NamesLV(i);
+%     Template1 = [Template1, LVlist2(i)];
+%     Temp = [Temp, LVlist2(i)];
+% end
+% 
+% 
+% Template2 = cell(2,max(size(Temp,2),2));
+% 
+% Template2(end,:) = Temp;
 
 % for i = 1:EstimOpt.NLatent
 % Results.R_out(4:(EstimOpt.NVarA+3),8+(i-1)*3:7+i*3) = num2cell(Results.DetailsL(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA,:));
@@ -1155,8 +1164,8 @@ if EstimOpt.NVarM > 0
     Temp2 = cell(1, size(Template2,2));
     Temp2(1,1) = {'DetailsCM'};
     Template2 = [Template2; Temp2];
-    Heads.DetailsCM{1,1} = 'Interactions of means with LV';
-    Heads.DetailsCM(:,2) = EstimOpt.NamesM;
+    Heads.DetailsCM(:,2) = [EstimOpt.NamesM;{'lb'}];
+    Heads.DetailsCM(1:2,1) = {'Interactions of means';'lc'};
 end
 
 
@@ -1168,16 +1177,17 @@ if EstimOpt.NVarS >0
     Temp2(1,1) = {'DetailsScale'};
     Template2 = [Template2; Temp2];
     Names.DetailsScale = EstimOpt.NamesS;
-    Heads.DetailsScale = {'Covariates of Scale'};
+    Heads.DetailsS = {'Covariates of Scale';'tb'};
     ST = {'DetailsScale'};
 end
 
 if EstimOpt.NVarStr > 0
     for i = 1: EstimOpt.NLatent
         Results.SE(1:EstimOpt.NVarStr,4*i-3:4*i) = Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:);
-        Heads.SE{1,1} = 'Structural equations';
+        Heads.SE(1:2,1) = {'Structural equations';'lc'};
         Heads.SE(i,2) = EstimOpt.NamesLV(i);
     end
+    Heads.SE(EstimOpt.NLatent+1,2) = {'lb'};
     %Results.R_out(EstimOpt.NVarA+7+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0):EstimOpt.NVarA+6+EstimOpt.NVarStr+(2 + EstimOpt.NVarS)*(EstimOpt.NVarS>0),2 + 3*(i-1):1+3*i) = num2cell(Results.DetailsS((i-1)*EstimOpt.NVarStr+1:i*EstimOpt.NVarStr,:));
 end
 
@@ -1198,10 +1208,9 @@ if any(EstimOpt.MeaSpecMatrix == 2)
 end
 
 for i = 1:size(INPUT.Xmea,2)
-    Heads.(strcat('Xmea',num2str(i))){1,1} = ['Measurment equation for:',' ',char(EstimOpt.NamesMea(i))];
     model = model_name(EstimOpt.MeaSpecMatrix(i));
-    Heads.(strcat('Xmea',num2str(i))){1,2} = ['Estimated using',' ', model];
-    
+    Heads.(strcat('Xmea',num2str(i)))(1:2,1) = [{['Measurment equation for:',' ',char(EstimOpt.NamesMea(i)),' (',model,')']};'lb'];
+ 
     if EstimOpt.MeaSpecMatrix(i) == 2
         l = k + EstimOpt.CutMatrix(i) - length(unique(INPUT.Xmea(:,i))) + 1;
         Results.DetailsOP = vertcat(Results.DetailsOP, Results.DetailsM(l+1:l+length(unique(INPUT.Xmea(:,i)))-1,:));
@@ -1216,15 +1225,15 @@ for i = 1:size(INPUT.Xmea,2)
     end
     
     if EstimOpt.MeaSpecMatrix(i) == 5 || EstimOpt.MeaSpecMatrix(i) == 6
-        Heads.(strcat('Xmea',num2str(i))){1,3} = 'Probability of Non-participation (logit)';
+        Heads.(strcat('Xmea',num2str(i)))(1:2,2) = [{'Probability of Non-participation (logit)'};{'lb'}];
         Results.(strcat('Xmea',num2str(i)))(:,1:4) = Results.DetailsM(k+1:k+floor(EstimOpt.CutMatrix(i)/2),:);
         Results.(strcat('Xmea2',num2str(i)))(:,1:4) = Results.DetailsM(k+floor(EstimOpt.CutMatrix(i)/2)+1:k+EstimOpt.CutMatrix(i),:);
         Names.(strcat('Xmea',num2str(i))) = EstimOpt.NamesMea_tmp(k+1:k+floor(EstimOpt.CutMatrix(i)/2));
         Names.(strcat('Xmea2',num2str(i))) = EstimOpt.NamesMea_tmp(k+floor(EstimOpt.CutMatrix(i)/2)+1:k+EstimOpt.CutMatrix(i));
         if EstimOpt.MeaSpecMatrix(i) == 5
-        	Heads.(strcat('Xmea2',num2str(i))) = {'Poisson model'};
+        	Heads.(strcat('Xmea2',num2str(i))) = [{'Poisson model'};{'lb'}];
         else %if EstimOpt.MeaSpecMatrix(i) == 6
-            Heads.(strcat('Xmea2',num2str(i))) = {'Negative binomial model'}; 
+            Heads.(strcat('Xmea2',num2str(i))) = [{'Negative binomial model'};{'lb'}];
         end
         Temp1 = cell(2, size(Template1,2));
         Temp1(1,1) = {strcat('Xmea',num2str(i))};

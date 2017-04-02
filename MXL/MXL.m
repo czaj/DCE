@@ -1062,16 +1062,16 @@ EstimOpt.JSNVariables = find(EstimOpt.Dist > 4 & EstimOpt.Dist <= 7);
 Template1 = {'DetailsA', 'DetailsV'};
 Template2 = {'DetailsA', 'DetailsV'};
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'Means'};
-Heads.DetailsV = {'Standard Deviations'};
+Heads.DetailsA = {'Means';'tc'};
+Heads.DetailsV = {'Standard Deviations';'lb'};
 ST = {};
 if EstimOpt.NVarM > 0
     Template1 = [Template1, 'DetailsM'];
     Temp = cell(1, size(Template2,2));
     Temp(1,1) = {'DetailsM'};
     Template2 = [Template2; Temp];
-    Heads.DetailsM(:,2) = EstimOpt.NamesM;
-    Heads.DetailsM{1,1} = 'Interactions of means';
+    Heads.DetailsM(:,2) = [EstimOpt.NamesM;{'lb'}];
+    Heads.DetailsM(1:2,1) = {'Interactions of means';'lc'};
 end
 
 if EstimOpt.NVarNLT > 0
@@ -1080,14 +1080,14 @@ if EstimOpt.NVarNLT > 0
     Temp(1,1) = {'DetailsNLT0'};
     Template2 = [Template2; Temp];
     if EstimOpt.NLTType == 1
-        Heads.DetailsNLT0 = {'Box-Cox transformation parameters'};
+        Heads.DetailsNLT0 = {'Box-Cox transformation parameters';'tb'};
     elseif EstimOpt.NLTType == 2
-        Heads.DetailsNLT0 = {'Yeo-Johnson transformation parameters'};
+        Heads.DetailsNLT0 = {'Yeo-Johnson transformation parameters';'tb'};
     end
 end
 
 if EstimOpt.Johnson > 0
-    Heads.ResultsJ = {'Johnson location parameters';'Johnson scale parameters'}; %heads need to be written vertically
+    Heads.ResultsJ = {'Johnson location parameters';'Johnson scale parameters';'tb'}; %heads need to be written vertically
     Template1 = [Template1, 'ResultsJ'];
     Temp = cell(1, size(Template2,2));
     Temp(1,1) = {'ResultsJ'};
@@ -1102,7 +1102,7 @@ if EstimOpt.NVarS > 0
     Temp(1,1) = {'DetailsS'};
     Template2 = [Template2; Temp];
     Names.DetailsS = EstimOpt.NamesS;
-    Heads.DetailsS = {'Covariates of Scale'};
+    Heads.DetailsS = {'Covariates of Scale';'tb'};
     ST = {'DetailsS'};
 end
 
