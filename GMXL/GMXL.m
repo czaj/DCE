@@ -800,8 +800,8 @@ Results.INPUT = INPUT;
 Template1 = {'DetailsA', 'DetailsV'};
 Template2 = {'DetailsA', 'DetailsV'};
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'Means'};
-Heads.DetailsV = {'Standard Deviations'};
+Heads.DetailsA = {'Means';'tc'};
+Heads.DetailsV = {'Standard Deviations';'lb'};
 ST = {};
 
 if EstimOpt.NVarM > 0
@@ -809,7 +809,8 @@ if EstimOpt.NVarM > 0
     Temp = cell(1, size(Template2,2));
     Temp(1,1) = {'DetailsM'};
     Template2 = [Template2; Temp];
-    Heads.DetailsM = EstimOpt.NamesM;
+    Heads.DetailsM(:,2) = [EstimOpt.NamesM;{'lb'}];
+    Heads.DetailsM(1:2,1) = {'Interactions of means';'lc'};
 end
 
 if EstimOpt.NVarS > 0
@@ -820,7 +821,7 @@ if EstimOpt.NVarS > 0
     Temp(1,1) = {'DetailsS'};
     Template2 = [Template2; Temp];
     Names.DetailsS = EstimOpt.NamesS;
-    Heads.DetailsS = {'Covariates of Scale'};
+    Heads.DetailsS = {'Covariates of Scale';'tb'};
     ST = [ST,{'DetailsS'}];
 end
 
@@ -832,7 +833,7 @@ if EstimOpt.NVarT > 0
     Temp(1,1) = {'DetailsT'};
     Template2 = [Template2; Temp];
     Names.DetailsT = EstimOpt.NamesT;
-    Heads.DetailsT= {'Covariates of tau'};
+    Heads.DetailsT= {'Covariates of tau';'tb'};
     ST = [ST,{'DetailsT'}];
 end
 
@@ -844,7 +845,7 @@ Temp = cell(1, size(Template2,2));
 Temp(1,1) = {'DetailsGT'};
 Template2 = [Template2; Temp];
 Names.DetailsGT = {'gamma';'tau'};
-Heads.DetailsGT = {'GMXL parameters'};
+Heads.DetailsGT = {'GMXL parameters';'tb'};
 ST = [ST,{'DetailsGT'}];
 
 Head = cell(1,2);
