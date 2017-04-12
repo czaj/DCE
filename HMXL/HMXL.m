@@ -135,6 +135,8 @@ if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
     % 	error('Define attitudes to measurment equations')
     cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
     INPUT.Xmea = zeros(size(INPUT.Y,1),0);
+elseif size(INPUT.Xmea,1) ~= size(INPUT.Xa)
+    error('Incorrect number of observations for measurement equations.')
 end
 
 if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional covariates for explaining Measurment equations
@@ -245,6 +247,8 @@ if EstimOpt.NLatent > 0
         for i = 1:EstimOpt.NLatent
             EstimOpt.NamesLV = [EstimOpt.NamesLV; cellfun(@(x)[x num2str(i)],{'LV '},'UniformOutput',0)];
         end
+    else
+        EstimOpt.NamesLV = EstimOpt.NamesLV(:);
     end
     LVlist2 = {};
     for i = 1:EstimOpt.NLatent
@@ -529,6 +533,7 @@ end
 
 %% Starting values
 
+
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(2+EstimOpt.NLatent+EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut+EstimOpt.NVarS)
         b0 = B_backup(:);
@@ -674,6 +679,23 @@ if sum(EstimOpt.Dist == -1) > 0
         VCtmp(VCtmp2 == 1) = 0;
         EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent) = EstimOpt.BActive(EstimOpt.NVarA+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA+EstimOpt.NLatent)-EstimOpt.NLatent) .* (Vt(VCtmp~=0)');
     end
+end
+
+if isfield(EstimOpt,'LVMatrix') && ~isempty(EstimOpt.LVMatrix)
+    if size(EstimOpt.LVMatrix,1) ~= EstimOpt.NVarA
+        error('Incorrect size of EstimOpt.LVMatrix - number of rows must be equal to the number of attributes')
+    elseif size(EstimOpt.LVMatrix,2) ~= EstimOpt.NLatent
+        error('Incorrect size of EstimOpt.LVMatrix - number of columns must be equal to the number of Latent Variables')
+    end
+    % else
+    %     EstimOpt.LVMatrix = ones(EstimOpt.NVarA,EstimOpt.NLatent);
+    % end
+    %
+    % if isfield(EstimOpt,'LVMatrix')
+    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive)
+        EstimOpt.BActive = ones(1,length(b0));
+    end
+    EstimOpt.BActive(EstimOpt.NVarA*2+1:EstimOpt.NVarA*(2+EstimOpt.NLatent)) = EstimOpt.LVMatrix(:); %Make sure Xm does not come before LV interactions
 end
 
 if EstimOpt.ConstVarActive == 1
