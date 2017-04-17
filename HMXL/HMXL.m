@@ -265,9 +265,9 @@ for i = 1:size(INPUT.Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit: cutoffs
         EstimOpt.NVarcut = EstimOpt.NVarcut + length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
         EstimOpt.CutMatrix(i) = length(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) - 1 + sum(EstimOpt.MeaMatrix(:,i))+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0);
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
@@ -282,9 +282,9 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'OLS '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
@@ -303,10 +303,10 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.Names = [EstimOpt.Names, 'MNL '];
         EstimOpt.CutMatrix(i) = (1+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0)+sum(EstimOpt.MeaMatrix(:,i)))*(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1);
         for j = 1:(length(unique(INPUT.Xmea(INPUT.MissingInd==0,i)))-1)
-            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-            for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {num2str(j+1,'Cons. (%1.0f vs. 1)')}];
+            %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
                 EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-            end
+            %end
             if EstimOpt.MeaExpMatrix(i) ~=0
                 EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
             end
@@ -317,9 +317,9 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 1;
         EstimOpt.Names = [EstimOpt.Names, 'POISS '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
@@ -329,9 +329,9 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'NB '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
@@ -342,16 +342,16 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
         EstimOpt.Names = [EstimOpt.Names, 'ZIP '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
         EstimOpt.NamesMea_tmp  = [EstimOpt.NamesMea_tmp ; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
@@ -361,17 +361,17 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 3;
         EstimOpt.Names = [EstimOpt.Names, 'ZINB '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
         
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; {'Cons.'}];
-        for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
+        %for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesLV(EstimOpt.MeaMatrix(:,i) == 1)];
-        end
+        %end
         if EstimOpt.MeaExpMatrix(i) ~=0
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp; EstimOpt.NamesMeaExp];
         end
