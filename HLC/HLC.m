@@ -94,6 +94,8 @@ if isfield(INPUT, 'Xmea') == 0 || numel(INPUT.Xmea) == 0
     % 	error('Define attitudes to measurment equations')
     cprintf(rgb('DarkOrange'), 'WARNING: Measurement equations empty.\n')
     INPUT.Xmea = zeros(size(INPUT.Y,1),0);
+elseif size(INPUT.Xmea,1) ~= size(INPUT.Xa)
+    error('Incorrect number of observations for measurement equations.')
 end
 
 if isfield(INPUT, 'Xmea_exp') == 0 || numel(INPUT.Xmea_exp) == 0 % additional covariates for explaining Measurment equations
