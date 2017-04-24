@@ -462,9 +462,9 @@ EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BL
 
 if sum(EstimOpt.BActiveClass == 0,1) == 0
     %Results.DetailsA = [Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA))];
-     for i=1:EstimOpt.NClass
-         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
-         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA), pv(Results.bhat((i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA), Results.std((i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
+     for i = 1:EstimOpt.NClass
+         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
+         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
      end
     l = EstimOpt.NClass*EstimOpt.NVarA;
 else
