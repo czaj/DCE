@@ -653,7 +653,7 @@ Tail(17,2) = {outHessian};
 
 
 if EstimOpt.Display~=0
-    Results.Dist = EstimOpt.Dist;
+    Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
 end
 end
