@@ -690,9 +690,9 @@ end
 
 Tail(16,2) = {outHessian};
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
-EstimOpt.Dist = -ones(1,EstimOpt.NVarA);
+% EstimOpt.Dist = -ones(1,EstimOpt.NVarA);
 if EstimOpt.Display~=0
-    Results.Dist = transpose(EstimOpt.Dist);
+    Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
     %     fullOrgTemplate = which('template.xls');
     %     currFld = pwd;
