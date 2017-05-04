@@ -14,6 +14,7 @@ Results.R_out = {};
 Results.stats = [];
 NSdSim = EstimOpt.NSdSim;
 
+
 %% Check data and inputs
 
 
@@ -178,6 +179,7 @@ end
 
 %% Optimization Options
 
+
 if  isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
 end
@@ -317,7 +319,8 @@ else
 end
 
 
-%% RESTRUNCTURING DATA
+%% Restructuring data
+
 
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 
@@ -349,7 +352,9 @@ if sum(EstimOpt.BActiveClass == 0,1) > 0
     clear bactive_1 b0_1 bactive_2 b0_2 b0x bactivex
 end
 
-%% ESTIMATION
+
+%% Estimation
+
 
 LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,INPUT.W, EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0
@@ -377,7 +382,9 @@ end
 
 % save tmp_LC
 
-%% OUTPUT
+
+%% Output
+
 
 Results.LL = -LL;
 Results.b0_old = b0;
@@ -462,10 +469,10 @@ EstimOpt.params = EstimOpt.params - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BL
 
 if sum(EstimOpt.BActiveClass == 0,1) == 0
     %Results.DetailsA = [Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA))];
-     for i = 1:EstimOpt.NClass
-         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
-         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
-     end
+    for i = 1:EstimOpt.NClass
+        Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
+        Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
+    end
     l = EstimOpt.NClass*EstimOpt.NVarA;
 else
     Bclass = Results.bhat(1:EstimOpt.NVarA)*ones(1,EstimOpt.NClass);
@@ -477,10 +484,10 @@ else
     stdclass(EstimOpt.BActiveClass == 0,2:end) = NaN;
     Results.DetailsA = [reshape(Bclass, EstimOpt.NClass*EstimOpt.NVarA,1), reshape(stdclass, EstimOpt.NClass*EstimOpt.NVarA,1), pv(reshape(Bclass, EstimOpt.NClass*EstimOpt.NVarA,1), reshape(stdclass, EstimOpt.NClass*EstimOpt.NVarA,1))];
     
-     for i=1:EstimOpt.NClass
-         Results.DetailsAtmp(1:EstimOpt.NVarA,4*i-3) = Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,1);
-         Results.DetailsAtmp(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,2), pv(Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,1), Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,2))];
-     end
+    for i=1:EstimOpt.NClass
+        Results.DetailsAtmp(1:EstimOpt.NVarA,4*i-3) = Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,1);
+        Results.DetailsAtmp(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,2), pv(Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,1), Results.DetailsA((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA,2))];
+    end
     Results.DetailsA = Results.DetailsAtmp;
     l = EstimOpt.NVarA + (EstimOpt.NClass - 1)*sum(EstimOpt.BActiveClass,1);
 end
@@ -493,21 +500,21 @@ if EstimOpt.NVarS > 0
     l = l+EstimOpt.NClass*EstimOpt.NVarS;
 end
 
-for i=1:EstimOpt.NClass -1
-    for j=1:EstimOpt.NVarC
+for i = 1:EstimOpt.NClass -1
+    for j = 1:EstimOpt.NVarC
         Results.DetailsV(j,4*i-3) = Results.bhat(l+j+EstimOpt.NVarC*(i-1));
         Results.DetailsV(j,4*i-1:4*i) = [Results.std(l+j+EstimOpt.NVarC*(i-1)), pv(Results.bhat(l+j+EstimOpt.NVarC*(i-1)), Results.std(l+j+EstimOpt.NVarC*(i-1)))];
     end
 end
 
-Results.DetailsV = [Results.DetailsV, zeros(EstimOpt.NVarC,1), NaN(EstimOpt.NVarC, 3)];
-    
+Results.DetailsV = [Results.DetailsV,zeros(EstimOpt.NVarC,1),NaN(EstimOpt.NVarC,3)];
+
 if sum(EstimOpt.BActiveClass == 0,1) == 0
-    bclass = reshape([Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
-    bhat_sim = mvnrnd(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end,(EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),NSdSim)';
+    bclass = reshape([Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
+    bclass_sim = reshape([mvnrnd(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end,(EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
 else
-    bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
-    bhat_sim = mvnrnd(Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end,(EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),NSdSim)';
+    bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
+    bclass_sim = reshape([mvnrnd(Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end,(EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
     Results.bhat = [Results.DetailsA(:,1);Results.DetailsV(:,1)];
 end
 
@@ -516,21 +523,31 @@ Vsum = sum(V,2);
 Results.PClass = zeros(1,4*EstimOpt.NClass);
 Results.PClass(1,1:4:EstimOpt.NClass*4-3) = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
 
-
-PC_0 = zeros(NSdSim, EstimOpt.NClass);
+PClass_mean = zeros(NSdSim,EstimOpt.NClass);
+% PClass_q025 = zeros(NSdSim,EstimOpt.NClass);
+% PClass_q975 = zeros(NSdSim,EstimOpt.NClass);
+XXc = INPUT.XXc;
 parfor i = 1:NSdSim
-    bhat_i = bhat_sim(:,i);
-    bclass = reshape([bhat_i;zeros(EstimOpt.NVarC,1)],EstimOpt.NVarC, EstimOpt.NClass);
-    V = exp(INPUT.XXc*bclass);
-    Vsum = sum(V,2);
-    PC_0(i,:) = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
+    bhat_sim_i = bclass_sim(:,:,i);
+    V_i = exp(XXc*bhat_sim_i);
+    Vsum_i = sum(V_i,2);
+    PC_i = V_i./Vsum_i;
+    PClass_mean(i,:) = mean(PC_i,1);
+    %     PClass_q025(i,:) = quantile(PC_i,0.025);
+    %     PClass_q975(i,:) = quantile(PC_i,0.975);
 end
-Results.PClass(1,3:4:EstimOpt.NClass*4-1) = std(PC_0);
-Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1),std(PC_0));
+Results.PClass(1,3:4:EstimOpt.NClass*4-1) = std(PClass_mean);
+Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(Results.PClass(1,1:4:EstimOpt.NClass*4-3),Results.PClass(1,3:4:EstimOpt.NClass*4-1));
 
-Results.stats = [Results.LL; Results_old.MNL0.LL;  1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.params];
+% Results.PClass95ci = [mean(PClass_q025,1);mean(PClass_q975,1)];
+Results.PClass95ci = [quantile(PClass_mean,0.025);quantile(PClass_mean,0.975)];
 
-%% Tworzenie naglowka
+Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
+
+
+%% Header
+
+
 Head = cell(1,2);
 Head(1,1) = {'LC'};
 if EstimOpt.WTP_space > 0
@@ -539,7 +556,10 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
+
 %% Results
+
+
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
@@ -576,7 +596,8 @@ Names.PClass = {""};
 Heads.PClass(1:2,1) = {'Average class probabilities';'lb'};
 ST = [ST,{'PClass'}];
 
-%% Tworzenie stopki
+
+%% Footer
 
 
 Tail = cell(17,2);
@@ -663,7 +684,7 @@ end
 Tail(17,2) = {outHessian};
 
 
-%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+%%  Print to screen and .xls
 
 
 if EstimOpt.Display~=0

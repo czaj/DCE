@@ -613,7 +613,10 @@ if EstimOpt.NVarS > 0
     ST = [ST, 'DetailsS'];
 end
 
-%% Tworzenie naglowka
+
+%% Header
+
+
 Head = cell(1,2);
 Head(1,1) = {'MNL'};
 if EstimOpt.WTP_space > 0
@@ -621,7 +624,11 @@ if EstimOpt.WTP_space > 0
 else
     Head(1,2) = {'in preference-space'};
 end
-%% Tworzenie stopki
+
+
+%% Footer
+
+
 Tail = cell(16,2);
 Tail(2,1) = {'Model diagnostics'};
 Tail(3:16,1) = { 'LL at convergence' ; 'LL at constant(s) only'; strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178))  ;'AIC/n' ;'BIC/n'; 'n (observations)'; 'r (respondents)';'k (parameters)';' ';'Estimation method';'Optimization method';'Gradient';'Hessian'};
@@ -689,7 +696,11 @@ else
 end
 
 Tail(16,2) = {outHessian};
-%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+
+
+%%  Print to screen and .xls
+
+
 % EstimOpt.Dist = -ones(1,EstimOpt.NVarA);
 if EstimOpt.Display~=0
     Results.Dist = -ones(EstimOpt.NVarA,1);
