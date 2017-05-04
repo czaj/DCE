@@ -12,7 +12,7 @@ Results.bhat = [];
 Results.R = [];
 Results.R_out = {};
 Results.stats = [];
-
+NSdSim = EstimOpt.NSdSim;
 
 %% Check data and inputs
 
@@ -500,20 +500,33 @@ for i=1:EstimOpt.NClass -1
     end
 end
 
-
+Results.DetailsV = [Results.DetailsV, zeros(EstimOpt.NVarC,1), NaN(EstimOpt.NVarC, 3)];
+    
 if sum(EstimOpt.BActiveClass == 0,1) == 0
     bclass = reshape([Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
+    bhat_sim = mvnrnd(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end,(EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),NSdSim)';
 else
     bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end); zeros(EstimOpt.NVarC,1)], EstimOpt.NVarC, EstimOpt.NClass);
+    bhat_sim = mvnrnd(Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end,(EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),NSdSim)';
     Results.bhat = [Results.DetailsA(:,1);Results.DetailsV(:,1)];
 end
 
-V = exp(INPUT.XXc*bclass); % NP x NClass
+V = exp(INPUT.XXc*bclass);
 Vsum = sum(V,2);
-Results.PClass = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1); %1 x NClass
-clear bclass l stdclass i f V Vsum
+Results.PClass = zeros(1,4*EstimOpt.NClass);
+Results.PClass(1,1:4:EstimOpt.NClass*4-3) = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
 
-Results.DetailsPClass = [Results.PClass', NaN(EstimOpt.NClass,1),NaN(EstimOpt.NClass,1),NaN(EstimOpt.NClass,1)]; %needed only for display purposes
+
+PC_0 = zeros(NSdSim, EstimOpt.NClass);
+parfor i = 1:NSdSim
+    bhat_i = bhat_sim(:,i);
+    bclass = reshape([bhat_i;zeros(EstimOpt.NVarC,1)],EstimOpt.NVarC, EstimOpt.NClass);
+    V = exp(INPUT.XXc*bclass);
+    Vsum = sum(V,2);
+    PC_0(i,:) = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
+end
+Results.PClass(1,3:4:EstimOpt.NClass*4-1) = std(PC_0);
+Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1),std(PC_0));
 
 Results.stats = [Results.LL; Results_old.MNL0.LL;  1-Results.LL/Results_old.MNL0.LL;R2; ((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs; ((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs ;EstimOpt.NObs; EstimOpt.NP; EstimOpt.params];
 
@@ -531,7 +544,7 @@ Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
 Heads.DetailsA = {'MNL';'tb'};
-ST = [];
+ST = {'DetailsA'};
 
 for i = 1:EstimOpt.NClass
     Heads.DetailsA{i} = num2str(i, 'Class %1.0f');
@@ -542,25 +555,26 @@ if EstimOpt.NVarS >0
     Template1 = [Template1;{'DetailsS'}];
     Template2 = [Template2;{'DetailsS'}];
     Names.DetailsS = EstimOpt.NamesS;
-    Heads.DetailsS(:,2) = Heads.DetailsA;
-    Heads.DetailsS(end,2) = {'tb'};
+    %Heads.DetailsS(:,2) = Heads.DetailsA;
+    %Heads.DetailsS(end,2) = {'tb'};
     Heads.DetailsS(1:2,1) = {'Explanatory variables of scale';'lb'};
-    ST = {'DetailsS'};
+    ST = [ST,{'DetailsS'}];
 end
 
 Template1 = [Template1;{'DetailsV'}];
 Template2 = [Template2;{'DetailsV'}];
 Names.DetailsV = EstimOpt.NamesC;
-Heads.DetailsV(:,2) = Heads.DetailsA(1:end-2);
-Heads.DetailsV(end+1,2) = {'lb'};
-Heads.DetailsV(1:2,1) = {'Latent class probability model';'lc'};
+%Heads.DetailsV(:,2) = Heads.DetailsA(1:end-1);
+%Heads.DetailsV(end+1,2) = {'lb'};
+Heads.DetailsV(1:2,1) = {'Probability model';'lb'};
 ST = [ST,{'DetailsV'}];
 
-Template1 = [Template1; {'DetailsPClass'}];
-Template2 = [Template2; {'DetailsPClass'}];
-Names.DetailsPClass = Heads.DetailsA(1:end-1);
-Heads.DetailsPClass = {'Average class probabilities';'lb'};
-ST = [ST,{'DetailsPClass'}];
+Template1 = [Template1; {'PClass'}];
+Template2 = [Template2; {'PClass'}];
+Names.PClass = {""};
+%Heads.DetailsPClass(:,2) = Heads.DetailsA;
+Heads.PClass(1:2,1) = {'Average class probabilities';'lb'};
+ST = [ST,{'PClass'}];
 
 %% Tworzenie stopki
 
