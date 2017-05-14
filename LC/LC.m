@@ -402,9 +402,9 @@ else
 end
 
 
-if EstimOpt.ClassScores ~= 0
-    Results.ClassScores = BayesProbs(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat); %INPUT.Xs,
-end
+% if EstimOpt.ClassScores ~= 0
+%    Results.ClassScores = BayesProbs(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.MissingInd,EstimOpt,Results.bhat); %INPUT.Xs,
+% end
 
 if EstimOpt.HessEstFix == 1
     f = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
@@ -563,11 +563,10 @@ end
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
 Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'MNL';'tb'};
 ST = {'DetailsA'};
 
 for i = 1:EstimOpt.NClass
-    Heads.DetailsA{i} = num2str(i, 'Class %1.0f');
+    Heads.DetailsA{i,1} = num2str(i, 'Class %1.0f');
 end
 Heads.DetailsA(end+1) = {'tb'};
 
@@ -575,8 +574,8 @@ if EstimOpt.NVarS >0
     Template1 = [Template1;{'DetailsS'}];
     Template2 = [Template2;{'DetailsS'}];
     Names.DetailsS = EstimOpt.NamesS;
-    %Heads.DetailsS(:,2) = Heads.DetailsA;
-    %Heads.DetailsS(end,2) = {'tb'};
+    Heads.DetailsS(:,2) = Heads.DetailsA;
+    Heads.DetailsS(end,2) = {'tb'};
     Heads.DetailsS(1:2,1) = {'Explanatory variables of scale';'lb'};
     ST = [ST,{'DetailsS'}];
 end
@@ -584,21 +583,20 @@ end
 Template1 = [Template1;{'DetailsV'}];
 Template2 = [Template2;{'DetailsV'}];
 Names.DetailsV = EstimOpt.NamesC;
-%Heads.DetailsV(:,2) = Heads.DetailsA(1:end-1);
-%Heads.DetailsV(end+1,2) = {'lb'};
+Heads.DetailsV(:,2) = Heads.DetailsA(1:end-1);
+Heads.DetailsV(end+1,2) = {'tb'};
 Heads.DetailsV(1:2,1) = {'Probability model';'lb'};
 ST = [ST,{'DetailsV'}];
 
 Template1 = [Template1; {'PClass'}];
 Template2 = [Template2; {'PClass'}];
 Names.PClass = {""};
-%Heads.DetailsPClass(:,2) = Heads.DetailsA;
+Heads.PClass(:,2) = Heads.DetailsA;
 Heads.PClass(1:2,1) = {'Average class probabilities';'lb'};
 ST = [ST,{'PClass'}];
 
 
 %% Footer
-
 
 Tail = cell(17,2);
 Tail(2,1) = {'Model diagnostics'};
