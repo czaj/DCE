@@ -607,57 +607,49 @@ if EstimOpt.FullCov == 0
     for i = 1:EstimOpt.NClass
         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
-    %Results.DetailsA = [Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA), pv(Results.bhat(1:EstimOpt.NClass*EstimOpt.NVarA), Results.std(1:EstimOpt.NClass*EstimOpt.NVarA))];
         l = EstimOpt.NClass*EstimOpt.NVarA;
-%     Results.DetailsV = [Results.bhat(l+1:l+EstimOpt.NClass*EstimOpt.NVarA ).^2, 2*Results.std(l+1:l+EstimOpt.NClass*EstimOpt.NVarA).*abs(Results.bhat(l+1:l+EstimOpt.NClass*EstimOpt.NVarA )), pv(Results.bhat(l+1:l+EstimOpt.NClass*EstimOpt.NVarA), Results.std(l+1:l+EstimOpt.NClass*EstimOpt.NVarA))];
         Results.DetailsV(1:EstimOpt.NVarA,4*i-3) = abs(Results.bhat(l+(i-1)*EstimOpt.NVarA + 1:l+i*EstimOpt.NVarA));
         Results.DetailsV(1:EstimOpt.NVarA,4*i-1:4*i) = [std_out((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA), pv(abs(Results.bhat(l+(i-1)*EstimOpt.NVarA + 1:l+i*EstimOpt.NVarA)),std_out((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
         l = 2*EstimOpt.NClass*EstimOpt.NVarA;
         if EstimOpt.NVarS > 0
-            Results.DetailsS(:,4*i-3) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
-            Results.DetailsS(:,4*i-1:4*i) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
+            Results.(['DetailsS',num2str(i)])(:,1) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
+            Results.(['DetailsS',num2str(i)])(:,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
             l = l+EstimOpt.NClass*EstimOpt.NVarS;
         end
         if i ~= EstimOpt.NClass
             for j = 1:EstimOpt.NVarC
-                Results.DetailsC(j,4*i-3) = Results.bhat(l+j+EstimOpt.NVarC*(i-1));
-                Results.DetailsC(j,4*i-1:4*i) = [Results.std(l+j+EstimOpt.NVarC*(i-1)),pv(Results.bhat(l+j+EstimOpt.NVarC*(i-1)), Results.std(l+j+EstimOpt.NVarC*(i-1)))];
+                Results.(['DetailsC',num2str(i)])(j,1) = Results.bhat(l+j+EstimOpt.NVarC*(i-1));
+                Results.(['DetailsC',num2str(i)])(j,3:4) = [Results.std(l+j+EstimOpt.NVarC*(i-1)),pv(Results.bhat(l+j+EstimOpt.NVarC*(i-1)), Results.std(l+j+EstimOpt.NVarC*(i-1)))];
             end
         end
     end
-    Results.DetailsC = [Results.DetailsC,zeros(EstimOpt.NVarC,1),NaN(EstimOpt.NVarC,3)];
+    Results.(['DetailsC',num2str(i)]) = NaN([EstimOpt.NVarC,4]);
 else
     for i = 1:EstimOpt.NClass
         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
-    l = EstimOpt.NClass*EstimOpt.NVarA;
-    Results.DetailsV(1:EstimOpt.NVarA,4*i-3:4*i-1) = sdtri(Results.bhat(l+1:l+sum(1:EstimOpt.NVarA)), Results.ihess(l+1:l+sum(1:EstimOpt.NVarA),l+1:l+sum(1:EstimOpt.NVarA)),EstimOpt);
-    Results.DetailsV = [Results.DetailsV(:,1:4*i-3),zeros(EstimOpt.NVarA,1),Results.DetailsV(:,4*i-2:4*i-1)];
-
-    %Results.DetailsV = [];
-    %Results.DetailsV = [Results.DetailsV ; sdtri(Results.bhat(l+1:l+sum(1:EstimOpt.NVarA)), Results.ihess(l+1:l+sum(1:EstimOpt.NVarA),l+1:l+sum(1:EstimOpt.NVarA)),EstimOpt)];
-    l = l + sum(1:EstimOpt.NVarA);
-    if EstimOpt.NVarS > 0
-        Results.DetailsS(:,4*i-3) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
-        Results.DetailsS(:,4*i-1:4*i) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
-        l = l+EstimOpt.NClass*EstimOpt.NVarS;
-    end
-    if i ~= EstimOpt.NClass
-        for j = 1:EstimOpt.NVarC
-            Results.DetailsC(j,4*i-3) = Results.bhat(l+j+EstimOpt.NVarC*(i-1));
-            Results.DetailsC(j,4*i-1:4*i) = [Results.std(l+j+EstimOpt.NVarC*(i-1)),pv(Results.bhat(l+j+EstimOpt.NVarC*(i-1)), Results.std(l+j+EstimOpt.NVarC*(i-1)))];
+        l = EstimOpt.NClass*EstimOpt.NVarA;
+        Results.DetailsV(1:EstimOpt.NVarA,4*i-3:4*i-1) = sdtri(Results.bhat(l+1:l+sum(1:EstimOpt.NVarA)), Results.ihess(l+1:l+sum(1:EstimOpt.NVarA),l+1:l+sum(1:EstimOpt.NVarA)),EstimOpt);
+        Results.DetailsV = [Results.DetailsV(:,1:4*i-3),zeros(EstimOpt.NVarA,1),Results.DetailsV(:,4*i-2:4*i-1)];
+        l = l + sum(1:EstimOpt.NVarA);
+        if EstimOpt.NVarS > 0
+            Results.(['DetailsS',num2str(i)])(:,1) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
+            Results.(['DetailsS',num2str(i)])(:,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
+            l = l+EstimOpt.NClass*EstimOpt.NVarS;
+        end
+        if i ~= EstimOpt.NClass
+            for j = 1:EstimOpt.NVarC
+                Results.(['DetailsC',num2str(i)])(j,1) = Results.bhat(l+j+EstimOpt.NVarC*(i-1));
+                Results.(['DetailsC',num2str(i)])(j,3:4) = [Results.std(l+j+EstimOpt.NVarC*(i-1)),pv(Results.bhat(l+j+EstimOpt.NVarC*(i-1)), Results.std(l+j+EstimOpt.NVarC*(i-1)))];
+            end
         end
     end
-            %Results.DetailsC = [Results.bhat(l+1:l+EstimOpt.NVarC*(EstimOpt.NClass-1)), Results.std(l+1:l+EstimOpt.NVarC*(EstimOpt.NClass-1)), pv(Results.bhat(l+1:l+EstimOpt.NVarC*(EstimOpt.NClass-1)), Results.std(l+1:l+EstimOpt.NVarC*(EstimOpt.NClass-1)))];
-    
-    end
-    Results.DetailsC = [Results.DetailsC,zeros(EstimOpt.NVarC,1),NaN(EstimOpt.NVarC,3)];
+    Results.(['DetailsC',num2str(i)]) = NaN([EstimOpt.NVarC,4]);
 end
 
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
-
 
 NSdSim = 10000;
 bclass = reshape([Results.bhat(end - EstimOpt.NVarC*(EstimOpt.NClass-1) +1 :end); zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
@@ -666,7 +658,10 @@ bclass_sim = reshape([mvnrnd(Results.bhat(end - EstimOpt.NVarC*(EstimOpt.NClass-
 V = exp(INPUT.XXc*bclass);
 Vsum = sum(V,2);
 Results.PClass = zeros(1,4*EstimOpt.NClass);
-Results.PClass(1,1:4:EstimOpt.NClass*4-3) = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
+Results.PClass_mean = mean(V./Vsum(:,ones(EstimOpt.NClass,1)),1);
+for i = 1:length(Results.PClass_mean)
+    Results.(['PClass',num2str(i)])(1) = Results.PClass_mean(i);
+end
 
 PClass_mean = zeros(NSdSim,EstimOpt.NClass);
 XXc = INPUT.XXc;
@@ -678,9 +673,14 @@ parfor i = 1:NSdSim
     PClass_mean(i,:) = mean(PC_i,1);
 end
 
-Results.PClass(1,3:4:EstimOpt.NClass*4-1) = std(PClass_mean);
+Results.PClass_std = std(PClass_mean);
 Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(Results.PClass(1,1:4:EstimOpt.NClass*4-3),Results.PClass(1,3:4:EstimOpt.NClass*4-1));
 Results.PClass95ci = [quantile(PClass_mean,0.025);quantile(PClass_mean,0.975)];
+
+for i = 1:length(Results.PClass_std)
+    Results.(['PClass',num2str(i)])(3) = Results.PClass_std(i);
+    Results.(['PClass',num2str(i)])(4) = pv(Results.(['PClass',num2str(i)])(1),Results.(['PClass',num2str(i)])(3));
+end
 
 EstimOpt.params = length(b0);
 if isfield(EstimOpt,'BActive')
@@ -706,49 +706,80 @@ else
 end
 
 %% Results
-
-Results.DetailsAV = [];
+Template1 = {};
+Template2 = {};
 for i = 1:EstimOpt.NClass
-    Results.DetailsAV = [Results.DetailsAV,Results.DetailsA(:,4*i-3:4*i),Results.DetailsV(:,4*i-3:4*i)];
+    Results.(num2str(i, 'Class%1.0f')) = [Results.DetailsA(:,4*i-3:4*i),Results.DetailsV(:,4*i-3:4*i)];
+    Template1 = [Template1,num2str(i, 'Class%1.0f')];
+    Template2 = [Template2,num2str(i, 'Class%1.0f')];
+    Names.(num2str(i, 'Class%1.0f')) = EstimOpt.NamesA;
+    Heads.(num2str(i, 'Class%1.0f')) = {num2str(i,'Class %1.0f'),'Means';'','Std. Deviations';'lc','lc'};
 end
 
-Template1 = {'DetailsAV'};
-Template2 = {'DetailsAV'};
-Names.DetailsAV = EstimOpt.NamesA;
+Heads.Class1(3,:) = {'tc','tc'};
+Heads.(num2str(i, 'Class%1.0f'))(3,:) = {'lb','lb'};
 ST=[];
 
-for i = 1:EstimOpt.NClass
-    Heads.DetailsAV{2*i-1,1} = num2str(i, 'Class %1.0f');
-    Heads.DetailsAV{2*i,1} = ' ';
-    Heads.DetailsAV{2*i-1,2} = 'Means';
-    Heads.DetailsAV{2*i,2} = 'Std. Deviations';
-end
-Heads.DetailsAV(end+1,1) = {'tb'};
-Heads.DetailsAV(end,2) = {'tb'};
-
 if EstimOpt.NVarS >0
-    Template1 = [Template1;{'DetailsS'}];
-    Template2 = [Template2;{'DetailsS'}];
-    Names.DetailsS = EstimOpt.NamesS;
-    Heads.DetailsS(:,2) = [Heads.DetailsAV(1:2:end-1,1);'tb'];
-    Heads.DetailsS(end,2) = {'tb'};
-    Heads.DetailsS(1:2,1) = {'Explanatory variables of scale';'lb'};
-    ST = [ST,{'DetailsS'}];
+    for i=1:EstimOpt.NClass
+        Temp{1,2*i-1} = ['DetailsS', num2str(i)];
+        Temp{1,2*i} = 'NULL';
+        Names.(['DetailsS',num2str(i)]) = EstimOpt.NamesS;
+        Heads.(['DetailsS',num2str(i)])(:,2) = {['Class ',num2str(i)]; 'lc'};
+        Heads.(['DetailsS',num2str(i)])(1:2,1) = {'';'lc'};
+        ST = [ST,{['DetailsS',num2str(i)]}];
+    end
+    Template1tmp = cell(2, size(Temp,2));
+    Template1tmp(1,1:EstimOpt.NClass) = Template1;
+    Template1tmp(2,:) = Temp; 
+    Template1 = Template1tmp;
+
+    Template2tmp = cell(2, size(Temp,2));
+    Template2tmp(1,1:EstimOpt.NClass) = Template2;
+    Template2tmp(2,:) = Temp; 
+    Template2 = Template2tmp;  
+    Heads.DetailsS1(1,1) = {'Explanatory variables of scale'};
+    Heads.DetailsS1(2,:) = {'lc','tc'};
 end
 
-Template1 = [Template1;{'DetailsC'}];
-Template2 = [Template2;{'DetailsC'}];
-Names.DetailsC = EstimOpt.NamesC;
-Heads.DetailsC(:,2) = [Heads.DetailsAV(1:2:end-1,1);'tb'];
-Heads.DetailsC(1:2,1) = {'Probability model';'lb'};
-ST = [ST,{'DetailsC'}];
+for i=1:EstimOpt.NClass
+    Temp{1,2*i-1} = ['DetailsC', num2str(i)];
+    Temp{1,2*i} = 'NULL';
+    Names.(['DetailsC',num2str(i)]) = EstimOpt.NamesC;
+    Heads.(['DetailsC',num2str(i)])(:,2) = {['Class ',num2str(i)]; 'lc'};
+    Heads.(['DetailsC',num2str(i)])(1:2,1) = {'';'lc'};
+    ST = [ST,{['DetailsC',num2str(i)]}];
+end
 
-Template1 = [Template1; {'PClass'}];
-Template2 = [Template2; {'PClass'}];
-Names.PClass = {""};
-Heads.PClass(:,2) = [Heads.DetailsAV(1:2:end-1,1);'tb'];
-Heads.PClass(1:2,1) = {'Average class probabilities';'lb'};
-ST = [ST,{'PClass'}];
+Template1tmp = cell(2, size(Temp,2));
+Template1tmp(1,1:EstimOpt.NClass) = Template1;
+Template1tmp(2,:) = Temp; 
+Template1 = Template1tmp;
+
+Template2tmp = cell(2, size(Temp,2));
+Template2tmp(1,1:EstimOpt.NClass) = Template2;
+Template2tmp(2,:) = Temp; 
+Template2 = Template2tmp;
+
+for i=1:EstimOpt.NClass
+    Temp{1,2*i-1} = ['PClass',num2str(i)];
+    Temp{1,2*i} = 'NULL';
+    Names.(['PClass',num2str(i)]) = {"(%)"};
+    Heads.(['PClass',num2str(i)])(:,2) = {['Class ',num2str(i)];'lc'};
+    Heads.(['PClass',num2str(i)])(1:2,1) = {'';'lc'};
+    ST = [ST,{['PClass',num2str(i)]}];
+end
+
+Template1 = [Template1; Temp];
+Template2 = [Template2; Temp];
+
+Heads.DetailsC1(1,1) = {'Probability model'};
+Heads.PClass1(1,1) = {'Average class probabilities'};
+
+Heads.DetailsC1(2,:) = {'lc','tc'};
+Heads.PClass1(2,:) = {'lc','tc'};
+
+
 %% Footer
 
 Tail = cell(17,2);
@@ -834,11 +865,12 @@ end
 
 Tail(17,2) = {outHessian};
 
+
 %%  Print to screen and .xls
 
 if EstimOpt.Display~=0
     Results.Dist = transpose(EstimOpt.Dist);
-    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
+    Results.R_out = genOutput_LCMXL(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
 end
 
 end
