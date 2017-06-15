@@ -555,7 +555,8 @@ if EstimOpt.FullCov == 0
                 Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
                 Results_old.MXL_d.bhat = Results_old.MXL_d.bhat(:);
                 % b0 = [Results_old.MXL_d.bhat(1:(2+EstimOpt.NVarM)*EstimOpt.NVarA); Results_old.HMNL.bhat(EstimOpt.NVarA+EstimOpt.NVarM+1:end)];
-                b0 = [Results_old.MXL_d.bhat(1:2*EstimOpt.NVarA); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+%                 b0 = [Results_old.MXL_d.bhat(1:2*EstimOpt.NVarA); Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
+                b0 = [Results_old.MXL_d.bhat(1:2*EstimOpt.NVarA); zeros(EstimOpt.NVarA*EstimOpt.NLatent,1); Results_old.HMNL.bhat(EstimOpt.NVarA*(1+EstimOpt.NLatent)+1:end)];
             else
                 disp('Using HMNL results as starting values')
                 Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);

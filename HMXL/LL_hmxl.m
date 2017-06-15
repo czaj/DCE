@@ -92,6 +92,8 @@ mLV = mean(LV_tmp,2);
 %LV = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 LV = (LV_tmp - mLV(:,ones(1,size(LV_tmp,2))))./sLV(:,ones(1,size(LV_tmp,2))); % normalilzing for 0 mean and std
 % save('LL_hmxl_out_msLV.mat','mLV','sLV');
+% save('LL_hmxl_out_LV.mat');
+% return
 
 if EstimOpt.NVarM > 0
     ba = ba(:,ones(NP,1))+bm*Xm; % NVarA x NP
@@ -359,18 +361,19 @@ else % function value + gradient
     Xstr_expand = reshape(Xstr_expand(ones(NRep*NLatent,1),:,:),NLatent,NRep*NP,NVarStr);
     LV_tmp = LV_tmp - mLV(:,ones(1,size(LV_tmp,2))); % NLatent x NRep*NP - this is normalized LV
     LV_std = sum(LV_tmp(:,:,ones(NVarStr,1)).*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr 
+    
     if FullCov == 2
-       LV_std2 =sum(bsxfun(@times,LV_tmp, LV_der21),2)/(NRep*NP-1) ; % derivative of sLV
+       LV_std2 = sum(bsxfun(@times,LV_tmp, LV_der21),2)/(NRep*NP-1) ; % derivative of sLV
        LV_der21 = bsxfun(@rdivide, LV_der21, sLV); % NVarA X NRep*NP
     end
-    Xstr_expand = Xstr_expand./sLV(:,ones(NRep*NP,1),ones(NVarStr,1)); % First term of differential
+    Xstr_expand = Xstr_expand./sLV(:,ones(NRep*NP,1),ones(NVarStr,1)); % First term of differential                               
     LV_tmp = LV_tmp./(sLV(:,ones(NRep*NP,1)).^3); 
     if FullCov == 2
-       LV_der2 = LV_der21 -  bsxfun(@times, LV_tmp,LV_std2);
+       LV_der2 = LV_der21 - bsxfun(@times, LV_tmp,LV_std2);
        LV_der2 = permute(reshape(LV_der2, NVarA,NRep,NP),[3 2 1]); % Assuming One Latent variable
     end
     LV_tmp = LV_tmp(:,:,ones(NVarStr,1));
-
+    
     LV_der = reshape(Xstr_expand - LV_tmp.*LV_std(:,ones(NRep*NP,1),:),NLatent,NRep,NP,NVarStr); % Latent x NRep x NP x NVarstr
     LV_der = permute(LV_der,[3 2 4 1]); % NP x NRep x NVarstr x Latent
     LV_expand = permute(reshape(LV',NRep,NP,NLatent),[2 1 3]); 
