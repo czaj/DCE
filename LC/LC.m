@@ -538,7 +538,7 @@ parfor i = 1:NSdSim
 end
 Results.PClass(1,3:4:EstimOpt.NClass*4-1) = std(PClass_mean);
 Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(Results.PClass(1,1:4:EstimOpt.NClass*4-3),Results.PClass(1,3:4:EstimOpt.NClass*4-1));
-
+Results.PClass(1,1:2:end) = Results.PClass(1,1:2:end)*100;
 % Results.PClass95ci = [mean(PClass_q025,1);mean(PClass_q975,1)];
 Results.PClass95ci = [quantile(PClass_mean,0.025);quantile(PClass_mean,0.975)];
 
@@ -590,7 +590,7 @@ ST = [ST,{'DetailsV'}];
 
 Template1 = [Template1; {'PClass'}];
 Template2 = [Template2; {'PClass'}];
-Names.PClass = {""};
+Names.PClass = {"(%)"};
 Heads.PClass(:,2) = Heads.DetailsA;
 Heads.PClass(1:2,1) = {'Average class probabilities';'lb'};
 ST = [ST,{'PClass'}];
