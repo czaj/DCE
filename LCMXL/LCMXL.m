@@ -674,12 +674,12 @@ parfor i = 1:NSdSim
 end
 
 Results.PClass_std = std(PClass_mean);
-Results.PClass(1,4:4:EstimOpt.NClass*4) = pv(Results.PClass(1,1:4:EstimOpt.NClass*4-3),Results.PClass(1,3:4:EstimOpt.NClass*4-1));
 Results.PClass95ci = [quantile(PClass_mean,0.025);quantile(PClass_mean,0.975)];
-
+Results.PClass(1,1:4:end) = Results.PClass(1,1:4:end)*100;
 for i = 1:length(Results.PClass_std)
     Results.(['PClass',num2str(i)])(3) = Results.PClass_std(i);
     Results.(['PClass',num2str(i)])(4) = pv(Results.(['PClass',num2str(i)])(1),Results.(['PClass',num2str(i)])(3));
+    Results.(['PClass',num2str(i)])(1,1:4:end) = Results.(['PClass',num2str(i)])(1,1:4:end)*100;
 end
 
 EstimOpt.params = length(b0);
@@ -764,7 +764,7 @@ Template2 = Template2tmp;
 for i=1:EstimOpt.NClass
     Temp{1,2*i-1} = ['PClass',num2str(i)];
     Temp{1,2*i} = 'NULL';
-    Names.(['PClass',num2str(i)]) = {"(%)"};
+    Names.(['PClass',num2str(i)]) = {'(%)'};
     Heads.(['PClass',num2str(i)])(:,2) = {['Class ',num2str(i)];'lc'};
     Heads.(['PClass',num2str(i)])(1:2,1) = {'';'lc'};
     ST = [ST,{['PClass',num2str(i)]}];
