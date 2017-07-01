@@ -679,7 +679,7 @@ Results.PClass(1,1:4:end) = Results.PClass(1,1:4:end)*100;
 for i = 1:length(Results.PClass_std)
     Results.(['PClass',num2str(i)])(3) = Results.PClass_std(i);
     Results.(['PClass',num2str(i)])(4) = pv(Results.(['PClass',num2str(i)])(1),Results.(['PClass',num2str(i)])(3));
-    Results.(['PClass',num2str(i)])(1,1:4:end) = Results.(['PClass',num2str(i)])(1,1:4:end)*100;
+    Results.(['PClass',num2str(i)])(1,1:2:end) = Results.(['PClass',num2str(i)])(1,1:2:end)*100;
 end
 
 EstimOpt.params = length(b0);
