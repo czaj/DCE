@@ -456,12 +456,16 @@ if any(INPUT.MissingInd == 1) % In case of some missing data
     l = 1;
     for i = 1:EstimOpt.NP
         R2(i) = prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i));
+        Results.CrossEntropy = log(prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i)));
         l = l+idx(i);
     end
     R2 = mean(R2);
+    Results.CrossEntropy = mean(Results.CrossEntropy);
 else
-    R2 = mean(prod(reshape(exp(Results.LLdetailed), EstimOpt.NCT, EstimOpt.NP),1).^(1/EstimOpt.NCT),2);
+    R2 = mean(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT),2);
+    Results.CrossEntropy = -mean(log(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT)),2);
 end
+Results.CrossEntropyCS = -mean(Results.LLdetailed);
 
 if EstimOpt.HessEstFix == 1
     f = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);

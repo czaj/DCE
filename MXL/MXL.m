@@ -667,11 +667,11 @@ if EstimOpt.ConstVarActive == 0
     end
     
     
-%         options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e3,'TolFun',1e-6,'TolX',1e-6,'OutputFcn',@outputf);
-%     
-%         [Results.beta, LL,Results.exitf,Results.output] = fminsearch(LLfun, b0,options_tmp);
-%     
-%         save tmp1
+    %         options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e3,'TolFun',1e-6,'TolX',1e-6,'OutputFcn',@outputf);
+    %
+    %         [Results.beta, LL,Results.exitf,Results.output] = fminsearch(LLfun, b0,options_tmp);
+    %
+    %         save tmp1
     
     %     [x,fval,exitflag,output,lambda,grad,hessian] = knitromatlab(fun,x0,A,b,Aeq,beq,lb,ub,nonlcon,extendedFeatures,options,KNITROOptions)
     %     [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g,Results.hess] = knitromatlab(LLfun,b0,[],[],[],[],[],[],[],[],[],'knitro.opt'); %
@@ -764,8 +764,10 @@ if any(INPUT.MissingInd == 1) % In case of some missing data
         idx = sum(reshape(idx, EstimOpt.NCT, EstimOpt.NP),1)'; % no. of missing NCT for every respondent
     idx = EstimOpt.NCT - idx;
     R2 = mean(exp(-Results.LLdetailed./idx),1);
+    Results.CrossEntropy = mean(Results.LLdetailed./idx,1);
 else
     R2 = mean(exp(-Results.LLdetailed/EstimOpt.NCT),1);
+    Results.CrossEntropy = mean(Results.LLdetailed./EstimOpt.NCT,1);
 end
 
 if EstimOpt.Scores ~= 0
