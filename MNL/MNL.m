@@ -34,7 +34,7 @@ if EstimOpt.Display ~= 0
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
     if any(INPUT.W ~= 1)
-        cprintf('Black','Estimating '); cprintf('*Black','weighted'); cprintf('Black',' MNL model...\n');
+        cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','MNL model...\n');
     else
         disp('Estimating MNL model ...')
     end
