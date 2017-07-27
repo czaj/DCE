@@ -583,8 +583,13 @@ elseif EstimOpt.FullCov == 1
             b0 = Results_old.HMXL.b0_old(:);
         end
     end
-    if  ~exist('b0','var')
-        if isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'bhat')
+    if  ~exist('b0','var')        
+        if isfield(Results_old,'MXL') && isfield(Results_old.HMXL_d,'bhat') && isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'bhat')
+            disp('Using MXL and HMXL_d results as starting values')
+            Results_old.MXL.bhat = Results_old.MXL.bhat(:);
+            Results_old.HMXL_d.bhat = Results_old.HMXL_d.bhat(:);            
+            b0 = [Results_old.MXL.bhat;Results_old.HMXL_d.bhat(EstimOpt.NVarA*2+1:end)];
+        elseif isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'bhat')
             disp('Using HMXL_d results as starting values')
             Results_old.HMXL_d.bhat = Results_old.HMXL_d.bhat(:);
             vc_tmp = diag(Results_old.HMXL_d.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)).^2;
