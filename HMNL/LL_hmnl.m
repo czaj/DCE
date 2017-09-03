@@ -279,7 +279,7 @@ else % function value + gradient
     Xstr_expand = reshape(Xstr_expand(ones(NRep*NLatent,1),:,:),[NLatent,NRep*NP,NVarStr]);
     LV_tmp = LV_tmp - mLV; % NLatent x NRep*NP
     LV_std = sum(LV_tmp.*Xstr_expand,2)/(NRep*NP-1); % NLatent x 1 x NVarstr
-    Xstr_expand = Xstr_expand./sLV(:,ones(NRep*NP,1),ones(NVarStr,1));
+    Xstr_expand = Xstr_expand./sLV;
     LV_tmp = LV_tmp./(sLV.^3);
     LV_tmp = LV_tmp(:,:,ones(NVarStr,1));
     
