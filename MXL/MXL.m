@@ -770,6 +770,7 @@ if EstimOpt.FullCov == 0
     %         Results.DetailsV(log_idx,3:4) = [Results.std_lognormal(NVarA + log_idx),pv(Results.DetailsV(log_idx,1),Results.std_lognormal(NVarA + log_idx))];
     %     end
     
+    if isfield(EstimOpt,'EffectiveMoments') && EstimOpt.EffectiveMoments == 1
     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
@@ -800,6 +801,7 @@ if EstimOpt.FullCov == 0
             Results.DetailsA(log_idx,[1,3:4]) = NaN;
             Results.DetailsV(log_idx,[1,3:4]) = NaN;
         end
+    end
     end
     
     if sum(EstimOpt.Dist == 3) > 0
@@ -875,6 +877,7 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
     Results.DetailsV = [Results.DetailsV(:,1),zeros(NVarA,1),Results.DetailsV(:,2:3)];
+    if isfield(EstimOpt,'EffectiveMoments') && EstimOpt.EffectiveMoments == 1
     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
@@ -905,6 +908,7 @@ elseif EstimOpt.FullCov == 1
             Results.DetailsA(log_idx,[1,3:4]) = NaN;
             Results.DetailsV(log_idx,[1,3:4]) = NaN;
         end
+    end
     end
     if sum(EstimOpt.Dist == 3) > 0
         Results.DetailsA(EstimOpt.Dist == 3,1) = exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang';
