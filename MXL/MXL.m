@@ -676,7 +676,7 @@ Results.LL = -LL;
 Results.b0_old = b0;
 
 LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
-% save tmp1
+
 if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
     try
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
