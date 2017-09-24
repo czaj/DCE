@@ -16,6 +16,7 @@ Results.stats = [];
 
 %% Check data and inputs
 
+
 if nargin < 3
     error('Too few input arguments for MNL(INPUT,EstimOpt,OptimOpt)')
 end
@@ -334,7 +335,9 @@ if EstimOpt.Display ~= 0
     fprintf('\n')
 end
 
+
 %% Restucturing Data - gets rid of not completed choice tasks, but leaves missing alternatives
+
 
 idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP])) == EstimOpt.NAlt;
 idx = reshape(idx(ones(EstimOpt.NAlt,1),:),[EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.NP,1]);
@@ -382,7 +385,9 @@ else
     INPUT.W = ones(sum(EstimOpt.NCTMiss),1);
 end
 
+
 %% Estimation
+
 
 LLfun = @(B) LL_mnl_MATlike(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,INPUT.W,EstimOpt,OptimOpt,B);
 
@@ -403,7 +408,9 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+
 %% Output
+
 
 % save tmp_MNL_output
 
@@ -531,7 +538,9 @@ if EstimOpt.NVarS > 0
     Results.DetailsS(:,3:4) = [Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),pv(Results.bhat(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+NVarMOld)+1:EstimOpt.NVarA*(1+NVarMOld)+EstimOpt.NVarS))];
 end
 
+
 %% Template filling
+
 
 Template1 = {'DetailsA'};
 Template2 = {'DetailsA'};
