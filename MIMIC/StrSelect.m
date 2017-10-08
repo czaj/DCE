@@ -1,4 +1,4 @@
-function BActiveX = StrSelect(EstimOpt, Model)
+function BActiveX = StrSelect(EstimOpt,Model)
 
 BActive = EstimOpt.BActive(:)';
 StrMatrix = EstimOpt.StrMatrix;
@@ -10,26 +10,26 @@ if Model == 0 % MIMIC
        error('Wrong length of EstimOpt.Bactive')
    end
 elseif Model == 1 % HMNL
-    if length(BActive) == (EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
-       l = EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM);
+    if length(BActive) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
+       l = EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM);
    else
        error('Wrong length of EstimOpt.Bactive')
    end
 elseif Model == 2 % HMXL_d
-    if length(BActive) == (EstimOpt.NVarA*(2+EstimOpt.NLatent+EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
-       l = EstimOpt.NVarA*(2+EstimOpt.NLatent+ EstimOpt.NVarM);
+    if length(BActive) == (EstimOpt.NVarA*(2 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
+       l = EstimOpt.NVarA*(2 + EstimOpt.NLatent + EstimOpt.NVarM);
    else
        error('Wrong length of EstimOpt.Bactive')
    end
 elseif Model == 3 % HMXL
-    if length(BActive) == (EstimOpt.NVarA*(1+EstimOpt.NLatent+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) +EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
-       l = EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM)+ sum(1:EstimOpt.NVarA);
+    if length(BActive) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
+       l = EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:EstimOpt.NVarA);
    else
        error('Wrong length of EstimOpt.Bactive')
    end
-elseif Model == 4 % HMXL_e
-    if length(BActive) == (EstimOpt.NVarA*(1+EstimOpt.NLatent+EstimOpt.NVarM) + sum(1:(EstimOpt.NVarA+EstimOpt.NLatent))-EstimOpt.NLatent +EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
-       l = EstimOpt.NVarA*(1+EstimOpt.NLatent+ EstimOpt.NVarM)+ sum(1:EstimOpt.NVarA+EstimOpt.NLatent);
+elseif Model == 4 % HMXL_d
+    if length(BActive) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:(EstimOpt.NVarA + EstimOpt.NLatent)) - EstimOpt.NLatent + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
+       l = EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:EstimOpt.NVarA + EstimOpt.NLatent);
    else
        error('Wrong length of EstimOpt.Bactive')
    end
