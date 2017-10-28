@@ -108,7 +108,7 @@ if nargout == 2 % function value + gradient
             if NVarS > 0
                 bss = reshape(Bclass(NVarA,:),[1,1,NClass]);
                 gs = reshape(F2.*bss,[NCT,NP,1,NClass]);
-                gs = gs.*reshape(Xs(1:NAlt:end,:,:),[NCT,NP,NVarS,NClass]);
+                gs = gs.*reshape(Xs(1:NAlt:end,:,ones(NClass,1)),[NCT,NP,NVarS,NClass]);
                 gs = reshape(sum(gs,1),[NP,NVarS,NClass]).*probs_x;
             end
             g12 = squeeze(sum(F2,1)).*squeeze(probs_x);
