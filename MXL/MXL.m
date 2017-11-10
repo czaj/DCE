@@ -705,17 +705,6 @@ elseif EstimOpt.HessEstFix == 4
 end
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 
-if EstimOpt.RobustStd == 1
-    if EstimOpt.NumGrad == 0
-        [~,Results.jacobian] = LLfun2(Results.bhat);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
-    else
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-    end
-    RobustHess = Results.jacobian'*Results.jacobian;
-    Results.ihess = Results.ihess*RobustHess*Results.ihess;
-end
-
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
@@ -725,6 +714,19 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+if EstimOpt.RobustStd == 1
+    if ~isfield(Results,'jacobian')
+        if EstimOpt.NumGrad == 0
+            [~,Results.jacobian] = LLfun2(Results.bhat);
+            Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        else
+            Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        end
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
