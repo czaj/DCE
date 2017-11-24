@@ -1,6 +1,6 @@
 function [f,g,h]= LL_mxl_MATlike(YY,XXa,XXm,Xs,err,W,EstimOpt,OptimOpt,b0)
 
-% save res_LL_mxl_MATlike;
+% save res_LL_mxl_MATlike2;
 % return
 
 LLfun = @(B) LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,B);
