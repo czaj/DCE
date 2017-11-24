@@ -85,8 +85,10 @@ else
 end
 
 
-if isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds) 
-    error('Specify bounds for distributions')
+if isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds)
+%     error('Specify bounds for distributions')
+    EstimOpt.Bounds = [-10*ones(NVarA,1),10*ones(NVarA,1)];
+
 else
     if size(EstimOpt.Bounds,1) == 1 && size(EstimOpt.Bounds,2) == 2
         EstimOpt.Bounds = EstimOpt.Bounds(ones(1,NVarA),:);

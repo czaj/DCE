@@ -39,7 +39,11 @@ end
 Z = [Z;Z2];
 
 if Leg > 0
+    if Order > 2
     Z = [Z; reshape(permute(Z_tmp(:,:, 3:end), [1 3 2]), [(Order - 2)*sum(Dist == 2 | Dist == 3), NRep*NP])];
+%     else
+%         Z = [Z; reshape(permute(Z_tmp(:,:, 3:end), [1 3 2]), [(Order - 2)*sum(Dist == 2 | Dist == 3), NRep*NP])];
+    end
 end
 
 if FullCov == 1
