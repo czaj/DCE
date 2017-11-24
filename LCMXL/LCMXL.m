@@ -732,6 +732,13 @@ for i = 1:EstimOpt.NClass
     ST = [ST,{['DetailsC',num2str(i)]}];%#ok<AGROW>
 end
 
+if size(Template1,2) < size(Temp,2)
+    Template1{1,size(Temp,2)} = [];
+end
+if size(Template2,2) < size(Temp,2)
+    Template2{1,size(Temp,2)} = [];
+end
+    
 Template1 = [Template1;Temp];
 Template2 = [Template2;Temp];
 
