@@ -177,7 +177,7 @@ NKnots=5;
 % 2*(NV-1)+[(NV-1)*(NV-2)/2], i.e, a second order polynomial in each WTP by
 % itself (for 2*(NV-1) extra Z variables) plus cross-product terms for each pair
 % of WTPs.
-CrossCorr=1;
+CrossCorr=0;
 
 %Do not change the following lines. They calculate the number of Z variables
 if ZTYPE==1; 
@@ -216,7 +216,7 @@ WantHessian=0;
 %Set WantBoot=1 for yes, =0 for no.
 %Bootstrapping takes much longer than original estimation, and so
 %you might want to bootstrap only after you are pretty sure of your model
-WantBoot=1;
+WantBoot=0;
  
 %If WantBoot=1, specify the number of resamples:
 NReps=4;
