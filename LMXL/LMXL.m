@@ -1,7 +1,6 @@
 function Results = LMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 
-
-% save tmp_MXL
+% save tmp_LMXL
 % return
 
 global B_backup
@@ -21,7 +20,7 @@ NSdSim = EstimOpt.NSdSim;
 
 
 if nargin < 3 % check no. of inputs
-    error('Too few input arguments for MXL(INPUT,EstimOpt,OptimOpt)')
+    error('Too few input arguments for LML(INPUT,EstimOpt,OptimOpt)')
 end
 
 disp(' ');
@@ -34,9 +33,9 @@ format shortG;
 format compact;
 
 if any(INPUT.W ~= 1)
-    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','Logit-MXL model...\n');
+    cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','LML model...\n');
 else
-    disp('Estimating Logit-MXL model ...')
+    disp('Estimating LML model ...')
 end
 
 if isfield(EstimOpt,'FullCov') == 0
@@ -67,7 +66,6 @@ end
 
 if isfield(EstimOpt,'Dist') == 0 || isempty(EstimOpt.Dist)
     EstimOpt.Dist = zeros(1,NVarA);
-    %EstimOpt.Dist(1) = 1; % scale distributed log-normally (does not matter for MXL)
     if EstimOpt.WTP_space == 0
         cprintf(rgb('DarkOrange'), 'WARNING: distributions for random parameters not specified - assuming normality \n')
     else
@@ -75,7 +73,9 @@ if isfield(EstimOpt,'Dist') == 0 || isempty(EstimOpt.Dist)
         EstimOpt.Dist(end-EstimOpt.WTP_space+1:end) = 1; % cost in WTP-space models log-normally distributed
     end
 else
-    if length(EstimOpt.Dist) == 1
+    if ~isvector(EstimOpt.Dist)
+        error('EstimOpt.Dist must be a vector')
+    elseif length(EstimOpt.Dist) == 1
         EstimOpt.Dist = EstimOpt.Dist.*ones(1,NVarA);
     elseif length(EstimOpt.Dist) == NVarA
         EstimOpt.Dist = EstimOpt.Dist(:)';
@@ -84,25 +84,64 @@ else
     end
 end
 
-
-if isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds)
-%     error('Specify bounds for distributions')
-    EstimOpt.Bounds = [-10*ones(NVarA,1),10*ones(NVarA,1)];
-
-else
+if ~(isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds))
     if size(EstimOpt.Bounds,1) == 1 && size(EstimOpt.Bounds,2) == 2
         EstimOpt.Bounds = EstimOpt.Bounds(ones(1,NVarA),:);
-    elseif size(EstimOpt.Bounds,1) == NVarA && size(EstimOpt.Bounds,2) == 2
-     
+    elseif size(EstimOpt.Bounds,1) == 2 && size(EstimOpt.Bounds,2) == 1
+        EstimOpt.Bounds = EstimOpt.Bounds(:,ones(1,NVarA))';
+    elseif size(EstimOpt.Bounds,1) == 2 && size(EstimOpt.Bounds,2) == NVarA
+        EstimOpt.Bounds = EstimOpt.Bounds';
+	elseif size(EstimOpt.Bounds,1) == NVarA && size(EstimOpt.Bounds,2) == 2
+        % Size ok. Do nothing. Test bounds later.
     else
         error('Incorrect no. of Bounds provided')
     end
-    if any(EstimOpt.Bounds(EstimOpt.Dist == 1 | EstimOpt.Dist == 3,1) <= 0)
-       error('For log normally distributed variables lower bound needs to be bigger than 0') 
+else
+    if isfield(Results_old,'MXL') && isfield(Results_old.MXL,'bhat') && ~isempty(Results_old.MXL.bhat) && ... % MXL exists
+        (size(Results_old.MXL.bhat(:),1) == ((NVarA + sum(1:NVarA)) + Results_old.MXL.EstimOpt.NVarS)) &&  ... % MXL has correct no. of parameters
+        all(Results_old.MXL.EstimOpt.Dist == 0 | Results_old.MXL.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
+        VC = tril(ones(NVarA));
+        VC(VC == 1) = Results_old.MXL.bhat(NVarA+1:NVarA+sum(1:NVarA));
+        VC = VC*VC';
+        EstimOpt.Bounds = [Results_old.MXL.bhat(1:NVarA) - 2*sqrt(diag(VC)),Results_old.MXL.bhat(1:NVarA) + 2*sqrt(diag(VC))];
+        EstimOpt.Bounds(Results_old.MXL.EstimOpt.Dist == 1) = exp(EstimOpt.Bounds(Results_old.MXL.EstimOpt.Dist == 1));
+    elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && ~isempty(Results_old.MXL_d.bhat) && ... % MXL exists
+        (size(Results_old.MXL_d.bhat(:),1) == (NVarA*2 + Results_old.MXL_d.EstimOpt.NVarS)) && ... % MXL_d has correct no. of parameters
+        all(Results_old.MXL_d.EstimOpt.Dist == 0 | Results_old.MXL_d.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
+        EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_oldMXL_dMXL.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
+        EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1) = exp(EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1)); %  median, not mean
+    else % run quick MXL_d and use mean +/- 2*s.d.
+        disp('Bounds not provided - using a quick MXL_d model to generate')
+        EstimOpt_tmp = EstimOpt;
+        %         EstimOpt_tmp.Display = 0;
+        EstimOpt_tmp.NumGrad = 0;
+        EstimOpt_tmp.NRep = 1e2;
+        EstimOpt_tmp.Dist = [];
+        EstimOpt_tmp.HessEstFix = 1;
+        OptimOpt_tmp = optimoptions('fminunc');
+        OptimOpt_tmp.Algorithm = 'quasi-newton';
+        OptimOpt_tmp.GradObj = 'on';
+        OptimOpt_tmp.Hessian = 'off';
+        OptimOpt_tmp.Display = 'off';
+        OptimOpt_tmp.FunValCheck= 'off';
+        OptimOpt_tmp.Diagnostics = 'off';
+        OptimOpt_tmp.OptimalityTolerance = 1e-3;
+        OptimOpt_tmp.StepTolerance = 1e-3;
+        Results_old.MXL_d = MXL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);
+        EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
     end
 end
 
-if isfield(EstimOpt,'Grid') == 0 || isempty(EstimOpt.Grid) 
+if any(EstimOpt.Bounds(EstimOpt.Dist == 1 | EstimOpt.Dist == 3,1) <= 0)
+    cprintf(rgb('DarkOrange'),'WARNING: Lower bound of log-normally distributed parameters must be  >= 0. Adjusting offendig lower Bound(s) to 0. \n')
+    EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1) = max(0,EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1));
+end
+
+if any(EstimOpt.Bounds(:,1) >= EstimOpt.Bounds(:,2))
+    error('Lower Bound(s) greater than upper Bound(s).')
+end
+
+if isfield(EstimOpt,'Grid') == 0 || isempty(EstimOpt.Grid)
     EstimOpt.Grid = 1000;
 end
 
@@ -226,7 +265,7 @@ if isfield(EstimOpt,'Seed1') == 1
 end
 % cprintf('Simulation with ');
 % cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
-% 
+%
 % if EstimOpt.Draws == 1
 %     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
 %     err_mtx = randn(EstimOpt.NP*EstimOpt.NRep, NVarA);
@@ -250,10 +289,10 @@ end
 %         hm1 = sobolset(NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
 %         hm1 = scramble(hm1,'MatousekAffineOwen');
 %     end
-% 
+%
 %     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
 %     clear hm1;
-%    
+%
 % end
 % err_mtx = err_mtx';
 GridMat = zeros(NVarA, EstimOpt.Grid);
@@ -261,7 +300,7 @@ err_mtx = zeros(NVarA, EstimOpt.NRep*EstimOpt.NP);
 for i = 1:NVarA
     GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(EstimOpt.Grid-1)):EstimOpt.Bounds(i,2);
     err_mtx(i,:) = randsample(GridMat(i,:),EstimOpt.NRep*EstimOpt.NP, true);
-   % err_mtx(i,:) = EstimOpt.Bounds(i,1) + err_mtx(i,:)*(EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1));
+    % err_mtx(i,:) = EstimOpt.Bounds(i,1) + err_mtx(i,:)*(EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1));
 end
 
 %% Display Options
@@ -345,8 +384,8 @@ Results.B = Tmp(:,:,1);
 Results.P_sort = zeros(NVarA, EstimOpt.NRep);
 Results.B_sort = zeros(NVarA, EstimOpt.NRep);
 for i = 1:NVarA
-   [Results.B_sort(i,:),I] = sort(Results.B(i,:)); 
-   Results.P_sort(i,:) = Results.P(I);
+    [Results.B_sort(i,:),I] = sort(Results.B(i,:));
+    Results.P_sort(i,:) = Results.P(I);
 end
 Results.P2_sort = sum(reshape(Results.P_sort, [NVarA, 10, EstimOpt.NRep/10] ),2);
 Results.P2_sort = reshape(Results.P2_sort, [NVarA, EstimOpt.NRep/10]);
