@@ -55,11 +55,11 @@ if NVarNLT > 0
     end
     if NumGrad == 0 %
         if NLTType == 1 % BC
-            XXt =  Xa(:, NLTVariables);
+            XXt = Xa(:,NLTVariables);
             %nie jestem pewien czy to jest dobrze
             %XXt2(:, IndTransNon0 == 1) = -(XXt(:, IndTransNon0 == 1).^(bt(IndTransNon0 == 1,ones(size(Xa,1), 1))').*(bt(IndTransNon0 == 1,ones(size(Xa,1), 1))'.*log(XXt(:, IndTransNon0 == 1))-1)+1)./(bt(IndTransNon0 == 1,ones(size(Xa,1), 1)).^2)';
-            XXt(:, IndTransNon0 == 1) = -(XXt(:, IndTransNon0 == 1).^(bt(IndTransNon0 == 1,:)').*(bt(IndTransNon0 == 1,:)'.*log(XXt(:, IndTransNon0 == 1))-1)+1)./(bt(IndTransNon0 == 1,:).^2)';
-            XXt(:, IndTransNon0 == 0) = -0.5*log(XXt(:, IndTransNon0 == 0)).^2;
+            XXt(:,IndTransNon0 == 1) = -(XXt(:, IndTransNon0 == 1).^(bt(IndTransNon0 == 1,:)').*(bt(IndTransNon0 == 1,:)'.*log(XXt(:, IndTransNon0 == 1))-1)+1)./(bt(IndTransNon0 == 1,:).^2)';
+            XXt(:,IndTransNon0 == 0) = -0.5*log(XXt(:, IndTransNon0 == 0)).^2;
         elseif NLTType == 2 % YJ
             XXt = Xa(:, NLTVariables);
             XXt(IndXtCase1) = ((XXt(IndXtCase1)+1).^bt_tmp(IndXtCase1).*(bt_tmp(IndXtCase1).*log(XXt(IndXtCase1)+1)-1)+1)./(bt_tmp(IndXtCase1).^2);% X >= 0, lam ~= 0

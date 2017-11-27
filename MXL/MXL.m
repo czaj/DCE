@@ -231,16 +231,16 @@ if EstimOpt.FullCov == 0
     if ~exist('b0','var')
         disp('Using MNL results as starting values')
         if ~(isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT))
-            EstimOpt.Display = 0;
-            OptimOpt_0 = optimoptions('fminunc');
-            OptimOpt_0.Algorithm = 'quasi-newton';
-            OptimOpt_0.GradObj = 'off';
-            OptimOpt_0.Hessian = 'off';
-            OptimOpt_0.Display = 'off';
-            OptimOpt_0.FunValCheck= 'off';
-            OptimOpt_0.Diagnostics = 'off';
-            Results_old.MNL = MNL(INPUT,Results_old,EstimOpt,OptimOpt_0);
-            EstimOpt.Display = 1;
+            EstimOpt_tmp = EstimOpt;
+            EstimOpt_tmp.Display = 0;
+            OptimOpt_tmp = optimoptions('fminunc');
+            OptimOpt_tmp.Algorithm = 'quasi-newton';
+            OptimOpt_tmp.GradObj = 'off';
+            OptimOpt_tmp.Hessian = 'off';
+            OptimOpt_tmp.Display = 'off';
+            OptimOpt_tmp.FunValCheck= 'off';
+            OptimOpt_tmp.Diagnostics = 'off';
+            Results_old.MNL = MNL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);            
         end        
         Results_old.MNL.bhat = Results_old.MNL.bhat(:);
         b0 = [Results_old.MNL.bhat(1:NVarA);max(1,abs(Results_old.MNL.bhat(1:NVarA)));Results_old.MNL.bhat(NVarA+1:end)];
@@ -299,16 +299,16 @@ else % EstimOpt.FullCov == 1
         else
             disp('Using MNL results as starting values')
             if ~(isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT))
-                EstimOpt.Display = 0;            
-                OptimOpt_0 = optimoptions('fminunc');
-                OptimOpt_0.Algorithm = 'quasi-newton';
-                OptimOpt_0.GradObj = 'off';
-                OptimOpt_0.Hessian = 'off';
-                OptimOpt_0.Display = 'off';
-                OptimOpt_0.FunValCheck= 'off';
-                OptimOpt_0.Diagnostics = 'off';
-                Results_old.MNL = MNL(INPUT,Results_old,EstimOpt,OptimOpt_0);
-                EstimOpt.Display = 1;
+                EstimOpt_tmp = EstimOpt;
+                EstimOpt_tmp.Display = 0;         
+                OptimOpt_tmp = optimoptions('fminunc');
+                OptimOpt_tmp.Algorithm = 'quasi-newton';
+                OptimOpt_tmp.GradObj = 'off';
+                OptimOpt_tmp.Hessian = 'off';
+                OptimOpt_tmp.Display = 'off';
+                OptimOpt_tmp.FunValCheck= 'off';
+                OptimOpt_tmp.Diagnostics = 'off';
+                Results_old.MNL = MNL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);
             end
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:NVarA);zeros(sum(1:NVarA),1);Results_old.MNL.bhat(NVarA+1:end)];
@@ -435,7 +435,9 @@ end
 
 err_mtx(:,EstimOpt.Dist == -1) = 0;
 
+
 %% Display Options
+
 
 if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -590,6 +592,7 @@ fprintf('\n')
 
 %% Rescructure data
 
+
 INPUT.XXa = reshape(INPUT.Xa,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP,NVarA]);
 INPUT.XXa = permute(INPUT.XXa,[1 3 2]);
 INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
@@ -655,7 +658,9 @@ end
 
 % end
 
+
 %% Estimation
+
 
 LLfun = @(B) LL_mxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,INPUT.W,EstimOpt,OptimOpt,B);
 
@@ -679,7 +684,7 @@ if EstimOpt.ConstVarActive == 0
 
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
-    EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:)=[];
+    EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:) = [];
     EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
     %     EstimOpt.CONS1 = sparse(EstimOpt.CONS1);
     %     EstimOpt.CONS2 = sparse(EstimOpt.CONS2);
@@ -690,7 +695,9 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+
 %% Output
+
 
 % save tmp1
 % return
@@ -1039,7 +1046,9 @@ Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist);
 EstimOpt.JSNVariables = find(EstimOpt.Dist > 4 & EstimOpt.Dist <= 7);
 
+
 %% Tworzebnie templatek do printu
+
 
 Template1 = {'DetailsA','DetailsV'};
 Template2 = {'DetailsA','DetailsV'};
@@ -1088,7 +1097,10 @@ if EstimOpt.NVarS > 0
     ST = {'DetailsS'};
 end
 
+
 %% Tworzenie naglowka
+
+
 Head = cell(1,2);
 if EstimOpt.FullCov == 0
     Head(1,1) = {'MXL_d'};
@@ -1102,7 +1114,9 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
+
 %% Tworzenie stopki
+
 
 Tail = cell(17,2);
 Tail(2,1) = {'Model diagnostics'};
@@ -1184,9 +1198,13 @@ else
 end
 Tail(17,2) = {outHessian};
 
+
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+
 
 if EstimOpt.Display~=0
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+
+
 end
