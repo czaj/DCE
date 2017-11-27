@@ -18,6 +18,7 @@ NRep = EstimOpt.NRep;
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
 NCT = EstimOpt.NCT;
+NGrid = EstimOpt.NGrid;
 
 
 %% Check data and inputs
@@ -145,8 +146,8 @@ if any(EstimOpt.Bounds(:,1) >= EstimOpt.Bounds(:,2))
     error('Lower Bound(s) greater than upper Bound(s).')
 end
 
-if isfield(EstimOpt,'NGrid') == 0 || isempty(EstimOpt.NGrid)
-    EstimOpt.NGrid = 1000; % Train uses 1000
+if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
+    NGrid = 1000; % Train uses 1000
 end
 
 disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal)'])
@@ -313,18 +314,26 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
     err_mtx = net(hm1,NP*NRep); % this takes every point:
     clear hm1;
 end
-err_mtx = err_mtx';
 
-GridMat = zeros(NVarA,EstimOpt.NGrid);
-% err_mtx = zeros(NVarA,NRep*NP);
-
+err_mtx = floor((NGrid).*err_mtx)' + 1;
+GridMat = zeros(NVarA,NGrid);
 for i = 1:NVarA
-    GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(EstimOpt.NGrid-1)):EstimOpt.Bounds(i,2);
+    GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(NGrid-1)):EstimOpt.Bounds(i,2);
+    err_mtx(i,:) = GridMat(i,err_mtx(i,:));
 %     err_mtx(i,:) = randsample(GridMat(i,:),NRep*NP,true);
 %     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
 end
 
-err_mtx = GridMat(:,1) + (GridMat(:,end) - GridMat(:,1)).*err_mtx;
+% [min(err_mtx,[],2), EstimOpt.Bounds(:,1)]
+% [max(err_mtx,[],2), EstimOpt.Bounds(:,2)]
+% for i = 1:NVarA
+%     tmp(:,i) = any(ismember(err_mtx(i,:),GridMat(i,:))==0);
+% end
+% tmp
+% for i = 1:NVarA
+%     tmp(:,i) = any(ismember(GridMat(i,:),err_mtx(i,:))==0);
+% end
+% tmp
 
 % Train does this: Grid = 1000, NRep = 2000
 % BETAS=randi(NGridPts,[NP,NV,NDRAWS]); %BETAS go from 1 to NGridPts
@@ -491,7 +500,7 @@ if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Dr
 end
 
 cprintf('Conducting pre-estimation calculations for ');
-cprintf('*blue',[num2str(EstimOpt.NGrid) ' ']);
+cprintf('*blue',[num2str(NGrid) ' ']);
 cprintf('grid points. \n');
 tocnote_00 = toc;
 b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
