@@ -13,7 +13,7 @@ if isequal(OptimOpt.GradObj,'on')
         g = sum(j);
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             h = j'*j;
-        end        
+        end
     else % => EstimOpt.NumGrad == 1
         f = LLfun(b0);
         if isequal(OptimOpt.Hessian,'user-supplied') == 1

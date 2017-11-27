@@ -96,23 +96,23 @@ if ~(isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds))
         EstimOpt.Bounds = EstimOpt.Bounds(:,ones(1,NVarA))';
     elseif size(EstimOpt.Bounds,1) == 2 && size(EstimOpt.Bounds,2) == NVarA
         EstimOpt.Bounds = EstimOpt.Bounds';
-	elseif size(EstimOpt.Bounds,1) == NVarA && size(EstimOpt.Bounds,2) == 2
+    elseif size(EstimOpt.Bounds,1) == NVarA && size(EstimOpt.Bounds,2) == 2
         % Size ok. Do nothing. Test bounds later.
     else
         error('Incorrect no. of Bounds provided')
     end
 else
     if isfield(Results_old,'MXL') && isfield(Results_old.MXL,'bhat') && ~isempty(Results_old.MXL.bhat) && ... % MXL exists
-        (size(Results_old.MXL.bhat(:),1) == ((NVarA + sum(1:NVarA)) + Results_old.MXL.EstimOpt.NVarS)) &&  ... % MXL has correct no. of parameters
-        all(Results_old.MXL.EstimOpt.Dist == 0 | Results_old.MXL.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
+            (size(Results_old.MXL.bhat(:),1) == ((NVarA + sum(1:NVarA)) + Results_old.MXL.EstimOpt.NVarS)) &&  ... % MXL has correct no. of parameters
+            all(Results_old.MXL.EstimOpt.Dist == 0 | Results_old.MXL.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
         VC = tril(ones(NVarA));
         VC(VC == 1) = Results_old.MXL.bhat(NVarA+1:NVarA+sum(1:NVarA));
         VC = VC*VC';
         EstimOpt.Bounds = [Results_old.MXL.bhat(1:NVarA) - 2*sqrt(diag(VC)),Results_old.MXL.bhat(1:NVarA) + 2*sqrt(diag(VC))];
         EstimOpt.Bounds(Results_old.MXL.EstimOpt.Dist == 1) = exp(EstimOpt.Bounds(Results_old.MXL.EstimOpt.Dist == 1));
     elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && ~isempty(Results_old.MXL_d.bhat) && ... % MXL exists
-        (size(Results_old.MXL_d.bhat(:),1) == (NVarA*2 + Results_old.MXL_d.EstimOpt.NVarS)) && ... % MXL_d has correct no. of parameters
-        all(Results_old.MXL_d.EstimOpt.Dist == 0 | Results_old.MXL_d.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
+            (size(Results_old.MXL_d.bhat(:),1) == (NVarA*2 + Results_old.MXL_d.EstimOpt.NVarS)) && ... % MXL_d has correct no. of parameters
+            all(Results_old.MXL_d.EstimOpt.Dist == 0 | Results_old.MXL_d.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
         EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_oldMXL_dMXL.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
         EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1) = exp(EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1)); %  median, not mean
     else % run quick MXL_d and use mean +/- 2*s.d.
@@ -151,7 +151,7 @@ if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
 end
 
 disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal)'])
-if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)   
+if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf('Order of Legendre polynomial(s): ');
     cprintf('*blue',[num2str(EstimOpt.Order) ' ']);
     cprintf(' \n');
@@ -249,7 +249,7 @@ end
 if  isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
     if size(EstimOpt.BActive,2) ~= NV
-    	cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of constraints - ignoring \n')
+        cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of constraints - ignoring \n')
         EstimOpt.BActive = ones(1,length(b0));
     end
 else
@@ -320,8 +320,8 @@ GridMat = zeros(NVarA,NGrid);
 for i = 1:NVarA
     GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(NGrid-1)):EstimOpt.Bounds(i,2);
     err_mtx(i,:) = GridMat(i,err_mtx(i,:));
-%     err_mtx(i,:) = randsample(GridMat(i,:),NRep*NP,true);
-%     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
+    %     err_mtx(i,:) = randsample(GridMat(i,:),NRep*NP,true);
+    %     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
 end
 
 % [min(err_mtx,[],2), EstimOpt.Bounds(:,1)]
@@ -350,103 +350,84 @@ end
 
 % settings tests - to be updated later:
 
-% if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
-%     OptimOpt.GradObj = 'on';
-% end
-% 
-% % if EstimOpt.NVarS > 0 && EstimOpt.NumGrad == 0 && any(isnan(INPUT.Xa(:)))
-% % 	EstimOpt.NumGrad = 1;
-% %     OptimOpt.GradObj = 'off';
-% % 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
-% % end
-% 
-% if any(EstimOpt.Dist > 1) && EstimOpt.NumGrad == 0
-%     EstimOpt.NumGrad = 1;
-%     OptimOpt.GradObj = 'off';
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally or lognormally distributed parameters only \n')
-% end
-% 
-% 
-% % This is not necessary any more (?)
-% % if any(var(NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
-% %     EstimOpt.NumGrad = 1;
-% %     OptimOpt.GradObj = 'off';
-% %     cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - analytical gradient not available when the number of alternatives differs and WTP_space > 1  \n')
-% % end
-% 
-% if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
-%     EstimOpt.NumGrad = 1;
-%     OptimOpt.GradObj = 'on';
-% end
-% 
-% % if EstimOpt.NVarNLT > 0 && EstimOpt.NLTType == 2 && EstimOpt.NumGrad == 0
-% % 	EstimOpt.NumGrad = 1;
-% % 	if EstimOpt.Display ~= 0
-% %         cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient to numerical - Yeo-Johnston transformation not supported by analytical gradient \n')
-% % 	end
-% % end
-% 
-% if (isfield(EstimOpt,'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
-%     OptimOpt.Hessian = 'off';
-% end
-% 
-% if EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian only available if analythical gradient on \n')
-%     EstimOpt.ApproxHess = 1;
-% end
-% 
+if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
+    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
+    OptimOpt.GradObj = 'on';
+end
+
+
+if (isfield(EstimOpt,'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
+    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
+    OptimOpt.Hessian = 'off';
+end
+
+if EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
+    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian only available if analythical gradient on \n')
+    EstimOpt.ApproxHess = 1;
+end
+
 % if EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if any(EstimOpt.Dist ~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
 %     EstimOpt.ApproxHess = 1;
 %     EstimOpt.HessEstFix = 0;
 % end
-% 
+%
 % if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
 %     INPUT.W = ones(NP,1);
 %     cprintf(rgb('DarkOrange'),'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
 % end
-% 
-% if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
-%     EstimOpt.RobustStd = 0;
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
-% end
-% 
+
+if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
+    EstimOpt.RobustStd = 0;
+    cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
+end
+
 % if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) && EstimOpt.NVarM ~= 0
 %     error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
 % end
+
+fprintf('\n')
+cprintf('Optimization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
+
+if strcmp(OptimOpt.GradObj,'on')
+    if EstimOpt.NumGrad == 0
+        cprintf('Gradient: '); cprintf('*Black','user-supplied, analytical \n')
+    else
+        cprintf('Gradient: '); cprintf('*Black',['user-supplied, numerical, ' OptimOpt.FinDiffType '\n'])
+    end
+else
+    cprintf('Gradient: '); cprintf('*Black',['built-in, ' OptimOpt.FinDiffType '\n'])
+end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')
     cprintf('Hessian: '); cprintf('*Black','off, ')
@@ -525,14 +506,14 @@ b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep
 
 LLfun = @(B) LL_lml_MATlike(GridProbs,b_mtx,INPUT.W,EstimOpt,OptimOpt,B);
 
-if EstimOpt.ConstVarActive == 0    
+if EstimOpt.ConstVarActive == 0
     if EstimOpt.HessEstFix == 0
         [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
     else
         [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
     end
-%     options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e3,'TolFun',1e-6,'TolX',1e-6,'OutputFcn',@outputf);
-%     [Results.beta,LL,Results.exitf,Results.output] = fminsearch(LLfun,b0,options_tmp);
+    %     options_tmp = optimset('MaxFunEvals',1e100,'MaxIter',1e3,'TolFun',1e-6,'TolX',1e-6,'OutputFcn',@outputf);
+    %     [Results.beta,LL,Results.exitf,Results.output] = fminsearch(LLfun,b0,options_tmp);
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
     EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:) = [];
