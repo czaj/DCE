@@ -1,5 +1,13 @@
 function [f,g,h] = LL_mxl(YY,XXa,XXm,Xs,err,EstimOpt,b0)
 
+%     YY = gpuArray(YY);
+%     XXa = gpuArray(XXa);
+%     XXm = gpuArray(XXm);
+%     Xs = gpuArray(Xs);
+%     err = gpuArray(err);
+%     b0 = gpuArray(b0);
+
+
 % save LL_mxl
 % return
 
@@ -211,6 +219,8 @@ end
 
 b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
 p0 = zeros(NP,1);
+% p0 = zeros([NP,1],'gpuArray');
+
 
 %% main loop
 
@@ -268,7 +278,9 @@ if nargout == 1 % function value only
             p0(n) = mean(prod(U_selected./U_sum,1));
         end
     end
+    
 elseif nargout == 2 %% function value + gradient
+   
     if NVarS > 0
         Xs_sliced = reshape(Xs,[NAlt*NCT,NP,NVarS]);
         Xs_sliced = permute(Xs_sliced(1:NAlt:end,:,:),[1,3,2]); % NCT x NVarS x NP
@@ -277,11 +289,15 @@ elseif nargout == 2 %% function value + gradient
         Xs_sliced = permute(Xs_sliced,[1,3,2]);
     end
     if FullCov == 0
+%         g = zeros([NP,2*NVarA+NVarNLT+NVarS],'gpuArray');
         g = zeros(NP,2*NVarA+NVarNLT+NVarS);
-        VC2 = reshape(err,[NVarA,NRep,NP]);
-        VC2f = zeros(0,0,NP);
-    else
-        g = zeros(NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS);
+        VC2 = reshape(err,[NVarA,NRep,NP,]);
+%         VC2f = zeros([0,0,NP],'gpuArray');
+        VC2f = zeros([0,0,NP]);
+    else        
+%         g = zeros([NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS],'gpuArray');
+        g = zeros([NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS]);
+%         VC2 = zeros(0,0,NP,'gpuArray');
         VC2 = zeros(0,0,NP);
         VC2f = reshape(err,[NVarA,NRep,NP]);
     end
@@ -560,8 +576,7 @@ elseif nargout == 2 %% function value + gradient
         else
             g = [g(:,1:NVarA*(NVarA/2+1.5)),gm,g(:,NVarA*(NVarA/2+1.5)+1:end)];
         end
-    end
-    
+    end  
     
 elseif nargout == 3 % function value + gradient + hessian
     
@@ -686,6 +701,8 @@ elseif nargout == 3 % function value + gradient + hessian
     end
     h = g'*g - sum(hx1 + hx2,3);
 end
+
+% p0 = gather(p0);
 
 if RealMin == 1
     f = -log(max(p0,realmin));
