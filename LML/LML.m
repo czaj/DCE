@@ -89,13 +89,27 @@ else
     end
 end
 
-disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal)'])
+if ~isfield(EstimOpt, 'NOrder')
+    EstimOpt.NOrder = 3;
+end
+
+disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Spline'])
 if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf('Order of Legendre polynomial(s): ');
-    cprintf('*blue',[num2str(EstimOpt.Order) ' ']);
+    cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
+    cprintf(' \n');
+end
+if any(EstimOpt.Dist == 4)
+    cprintf('Order of step function(s): ');
+    cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
     cprintf(' \n');
 end
 
+if any(EstimOpt.Dist == 4)
+    cprintf('Order of spline(s): ');
+    cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
+    cprintf(' \n');
+end
 
 if EstimOpt.WTP_space > 0 && sum(EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==1 | EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==3) > 0 && any(mean(INPUT.Xa(:,end-EstimOpt.WTP_space+1:end)) >= 0)
     cprintf(rgb('DarkOrange'), 'WARNING: Cost attributes with log-normally distributed parameters should enter utility function with a ''-'' sign \n')
@@ -126,10 +140,6 @@ if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
     NGrid = 1000; % Train uses 1000
 end
 
-if ~isfield(EstimOpt, 'Order')
-    EstimOpt.Order = 3;
-end
-
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
     EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
@@ -143,7 +153,7 @@ gcp;
 %% Starting values
 
 
-NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.Order,2);
+NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2);
 
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
@@ -277,7 +287,7 @@ else
 end
 
 if any(EstimOpt.Bounds(EstimOpt.Dist == 1 | EstimOpt.Dist == 3,1) <= 0)
-    cprintf(rgb('DarkOrange'),'WARNING: Lower bound of approximate log-normally distributed parameters must be  >= 0. Adjusting offendig lower Bound(s) to 0. \n')
+    cprintf(rgb('DarkOrange'),'WARNING: Lower bound of approximate log-normally distributed parameters must be  > 0. Adjusting offendig lower Bound(s) to realmin. \n')
     EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1) = max(realmin,EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1));
 end
 
@@ -331,13 +341,11 @@ for i = 1:NVarA
     %     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
 end
 
-% How many grid points? How many draws? Use permutations?
+% TODO: How many grid points? How many draws? Use permutations?
 
 
 %% Display Options
 
-
-% settings tests - to be updated later:
 
 if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -354,55 +362,10 @@ if EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
     EstimOpt.ApproxHess = 1;
 end
 
-% if EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if any(EstimOpt.Dist ~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
-%     EstimOpt.ApproxHess = 1;
-%     EstimOpt.HessEstFix = 0;
-% end
-%
-% if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
-%     INPUT.W = ones(NP,1);
-%     cprintf(rgb('DarkOrange'),'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
-% end
-
 if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
     EstimOpt.RobustStd = 0;
     cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
 end
-
-% if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) && EstimOpt.NVarM ~= 0
-%     error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
-% end
 
 fprintf('\n')
 cprintf('Optimization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
@@ -472,11 +435,16 @@ cprintf('Conducting pre-estimation calculations for ');
 cprintf('*blue',[num2str(NGrid) ' ']);
 cprintf('grid points. \n');
 tocnote_00 = toc;
-b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
 
 if EstimOpt.WTP_space > 0
-    b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
+    err_mtx(1:end-EstimOpt.WTP_space,:) = err_mtx(1:end-EstimOpt.WTP_space,:).*err_mtx(EstimOpt.WTP_matrix,:);
 end
+
+b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
+
+% if EstimOpt.WTP_space > 0
+%     b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
+% end
 
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
@@ -562,3 +530,4 @@ disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(6
 disp(' ');
 Results.clocknote = clocknote;
 Results.tocnote = clocknote;
+
