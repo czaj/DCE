@@ -89,6 +89,142 @@ else
     end
 end
 
+disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal)'])
+if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
+    cprintf('Order of Legendre polynomial(s): ');
+    cprintf('*blue',[num2str(EstimOpt.Order) ' ']);
+    cprintf(' \n');
+end
+
+
+if EstimOpt.WTP_space > 0 && sum(EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==1 | EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==3) > 0 && any(mean(INPUT.Xa(:,end-EstimOpt.WTP_space+1:end)) >= 0)
+    cprintf(rgb('DarkOrange'), 'WARNING: Cost attributes with log-normally distributed parameters should enter utility function with a ''-'' sign \n')
+end
+
+if EstimOpt.WTP_space > 0
+    if isfield(EstimOpt, 'WTP_matrix') == 0
+        WTP_att = (NVarA-EstimOpt.WTP_space)/EstimOpt.WTP_space;
+        if rem(WTP_att,1) ~= 0
+            error('EstimOpt.WTP_matrix associating attributes with cost parameters not provided')
+        else
+            if EstimOpt.WTP_space > 1
+                disp(['EstimOpt.WTP_matrix associating attributes with cost parameters not provided - assuming equal shares for each of the ',num2str(EstimOpt.WTP_space),' monetary attributes'])
+            end
+            EstimOpt.WTP_matrix = NVarA - EstimOpt.WTP_space + kron(1:EstimOpt.WTP_space,ones(1,WTP_att));
+            %         tic; EstimOpt.WTP_matrix = 1:EstimOpt.WTP_space;...
+            %         EstimOpt.WTP_matrix = EstimOpt.WTP_matrix(floor((0:size(EstimOpt.WTP_matrix,2)*WTP_att-1)/WTP_att)+1); toc
+        end
+        %     elseif ~isequal(size(EstimOpt.WTP_matrix),[NVarA-EstimOpt.WTP_space,EstimOpt.WTP_space])
+    elseif size(EstimOpt.WTP_matrix,2) ~= NVarA - EstimOpt.WTP_space
+        error('Dimensions of EstimOpt.WTP_matrix not correct - for each non-monetary attribute provide no. of attribute to multiply it with')
+    else
+        EstimOpt.WTP_matrix = EstimOpt.WTP_matrix(:)';
+    end
+end
+
+if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
+    NGrid = 1000; % Train uses 1000
+end
+
+if ~isfield(EstimOpt, 'Order')
+    EstimOpt.Order = 3;
+end
+
+if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
+    EstimOpt.NamesA = (1:NVarA)';
+    EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
+elseif size(EstimOpt.NamesA,1) ~= NVarA
+    EstimOpt.NamesA = EstimOpt.NamesA';
+end
+
+gcp;
+
+
+%% Starting values
+
+
+NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.Order,2);
+
+if EstimOpt.FullCov == 0
+    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
+    elseif isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'b0') % starting values provided
+        Results_old.LML_d.b0_old = Results_old.LML_d.b0(:);
+        Results_old.LML_d = rmfield(Results_old.LML_d,'b0');
+        if length(Results_old.LML_d.b0_old) ~= NVar
+            cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
+            Results_old.LML_d = rmfield(Results_old.LML_d,'b0_old');
+        else
+            b0 = Results_old.LML_d.b0_old(:);
+        end
+    end
+    if  ~exist('b0','var')
+        b0 = zeros(NVar,1);
+    end
+else
+    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar + NVarA*(NVarA-1)/2
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
+    elseif isfield(Results_old,'LML') && isfield(Results_old.LML,'b0') % starting values provided
+        Results_old.LML.b0_old = Results_old.LML.b0(:);
+        Results_old.LML = rmfield(Results_old.LML,'b0');
+        if length(Results_old.LML.b0_old) ~= NVar + NVarA*(NVarA-1)/2
+            cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
+            Results_old.LML = rmfield(Results_old.LML,'b0_old');
+        else
+            b0 = Results_old.LML.b0_old(:);
+        end
+    end
+    if  ~exist('b0','var')
+        if isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'bhat') % starting values provided
+            b0 = [Results_old.LML_d.bhat; zeros(NVarA*(NVarA-1)/2,1)];
+        else
+            b0 = zeros(NVar+ NVarA*(NVarA-1)/2,1);
+        end
+    end
+end
+
+
+%% Optimization Options
+
+
+if  isfield(EstimOpt,'BActive')
+    EstimOpt.BActive = EstimOpt.BActive(:)';
+    if size(EstimOpt.BActive,2) ~= NVar
+        cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of constraints - ignoring \n')
+        EstimOpt.BActive = ones(1,length(b0));
+    end
+else
+    EstimOpt.BActive = ones(1,length(b0));
+end
+
+if EstimOpt.ConstVarActive == 1
+    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
+        error('Are there any constraints on model parameters (EstimOpt.ConstVarActive)? Constraints not provided (EstimOpt.BActive).')
+    elseif length(b0) ~= length(EstimOpt.BActive)
+        error('Check no. of constraints')
+    end
+    disp(['Initial values: ' mat2str(b0',2)])
+    disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
+else
+    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
+        EstimOpt.BActive = ones(1,length(b0));
+        disp(['Initial values: ' mat2str(b0',2)])
+    else
+        if length(b0) ~= length(EstimOpt.BActive)
+            error('Check no. of constraints')
+        else
+            disp(['Initial values: ' mat2str(b0',2)])
+            disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
+        end
+    end
+end
+
+
+%% Bounds
+
+
 if ~(isfield(EstimOpt,'Bounds') == 0 || isempty(EstimOpt.Bounds))
     if size(EstimOpt.Bounds,1) == 1 && size(EstimOpt.Bounds,2) == 2
         EstimOpt.Bounds = EstimOpt.Bounds(ones(1,NVarA),:);
@@ -134,148 +270,19 @@ else
         OptimOpt_tmp.StepTolerance = 1e-3;
         Results_old.MXL_d = MXL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);
         EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
+        disp(' ');
+        disp('__________________________________________________________________________________________________________________');
+        disp(' ');
     end
 end
 
 if any(EstimOpt.Bounds(EstimOpt.Dist == 1 | EstimOpt.Dist == 3,1) <= 0)
     cprintf(rgb('DarkOrange'),'WARNING: Lower bound of approximate log-normally distributed parameters must be  >= 0. Adjusting offendig lower Bound(s) to 0. \n')
-    EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1) = max(0,EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1));
+    EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1) = max(realmin,EstimOpt.Bounds((EstimOpt.Dist == 1 | EstimOpt.Dist == 3),1));
 end
 
 if any(EstimOpt.Bounds(:,1) >= EstimOpt.Bounds(:,2))
     error('Lower Bound(s) greater than upper Bound(s).')
-end
-
-if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
-    NGrid = 1000; % Train uses 1000
-end
-
-disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal)'])
-if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
-    cprintf('Order of Legendre polynomial(s): ');
-    cprintf('*blue',[num2str(EstimOpt.Order) ' ']);
-    cprintf(' \n');
-end
-
-
-if EstimOpt.WTP_space > 0 && sum(EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==1 | EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==3) > 0 && any(mean(INPUT.Xa(:,end-EstimOpt.WTP_space+1:end)) >= 0)
-    cprintf(rgb('DarkOrange'), 'WARNING: Cost attributes with log-normally distributed parameters should enter utility function with a ''-'' sign \n')
-end
-
-if EstimOpt.WTP_space > 0
-    if isfield(EstimOpt, 'WTP_matrix') == 0
-        WTP_att = (NVarA-EstimOpt.WTP_space)/EstimOpt.WTP_space;
-        if rem(WTP_att,1) ~= 0
-            error('EstimOpt.WTP_matrix associating attributes with cost parameters not provided')
-        else
-            if EstimOpt.WTP_space > 1
-                disp(['EstimOpt.WTP_matrix associating attributes with cost parameters not provided - assuming equal shares for each of the ',num2str(EstimOpt.WTP_space),' monetary attributes'])
-            end
-            EstimOpt.WTP_matrix = NVarA - EstimOpt.WTP_space + kron(1:EstimOpt.WTP_space,ones(1,WTP_att));
-            %         tic; EstimOpt.WTP_matrix = 1:EstimOpt.WTP_space;...
-            %         EstimOpt.WTP_matrix = EstimOpt.WTP_matrix(floor((0:size(EstimOpt.WTP_matrix,2)*WTP_att-1)/WTP_att)+1); toc
-        end
-        %     elseif ~isequal(size(EstimOpt.WTP_matrix),[NVarA-EstimOpt.WTP_space,EstimOpt.WTP_space])
-    elseif size(EstimOpt.WTP_matrix,2) ~= NVarA - EstimOpt.WTP_space
-        error('Dimensions of EstimOpt.WTP_matrix not correct - for each non-monetary attribute provide no. of attribute to multiply it with')
-    else
-        EstimOpt.WTP_matrix = EstimOpt.WTP_matrix(:)';
-    end
-end
-
-if ~isfield(EstimOpt, 'Order')
-    EstimOpt.Order = 3;
-end
-
-if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
-    EstimOpt.NamesA = (1:NVarA)';
-    EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
-elseif size(EstimOpt.NamesA,1) ~= NVarA
-    EstimOpt.NamesA = EstimOpt.NamesA';
-end
-
-gcp;
-
-
-%% Starting values
-
-
-NV = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.Order,2);
-
-if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NV
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'b0') % starting values provided
-        Results_old.LML_d.b0_old = Results_old.LML_d.b0(:);
-        Results_old.LML_d = rmfield(Results_old.LML_d,'b0');
-        if length(Results_old.LML_d.b0_old) ~= NV
-            cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
-            Results_old.LML_d = rmfield(Results_old.LML_d,'b0_old');
-        else
-            b0 = Results_old.LML_d.b0_old(:);
-        end
-    end
-    if  ~exist('b0','var')
-        b0 = zeros(NV,1);
-    end
-else
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NV + NVarA*(NVarA-1)/2
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LML') && isfield(Results_old.LML,'b0') % starting values provided
-        Results_old.LML.b0_old = Results_old.LML.b0(:);
-        Results_old.LML = rmfield(Results_old.LML,'b0');
-        if length(Results_old.LML.b0_old) ~= NV + NVarA*(NVarA-1)/2
-            cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
-            Results_old.LML = rmfield(Results_old.LML,'b0_old');
-        else
-            b0 = Results_old.LML.b0_old(:);
-        end
-    end
-    if  ~exist('b0','var')
-        if isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'bhat') % starting values provided
-            b0 = [Results_old.LML_d.bhat; zeros(NVarA*(NVarA-1)/2,1)];
-        else
-            b0 = zeros(NV+ NVarA*(NVarA-1)/2,1);
-        end
-    end
-end
-
-
-%% Optimization Options
-
-
-if  isfield(EstimOpt,'BActive')
-    EstimOpt.BActive = EstimOpt.BActive(:)';
-    if size(EstimOpt.BActive,2) ~= NV
-        cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of constraints - ignoring \n')
-        EstimOpt.BActive = ones(1,length(b0));
-    end
-else
-    EstimOpt.BActive = ones(1,length(b0));
-end
-
-if EstimOpt.ConstVarActive == 1
-    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
-        error('Are there any constraints on model parameters (EstimOpt.ConstVarActive)? Constraints not provided (EstimOpt.BActive).')
-    elseif length(b0) ~= length(EstimOpt.BActive)
-        error('Check no. of constraints')
-    end
-    disp(['Initial values: ' mat2str(b0',2)])
-    disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
-else
-    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
-        EstimOpt.BActive = ones(1,length(b0));
-        disp(['Initial values: ' mat2str(b0',2)])
-    else
-        if length(b0) ~= length(EstimOpt.BActive)
-            error('Check no. of constraints')
-        else
-            disp(['Initial values: ' mat2str(b0',2)])
-            disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
-        end
-    end
 end
 
 
@@ -324,24 +331,6 @@ for i = 1:NVarA
     %     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
 end
 
-% [min(err_mtx,[],2), EstimOpt.Bounds(:,1)]
-% [max(err_mtx,[],2), EstimOpt.Bounds(:,2)]
-% for i = 1:NVarA
-%     tmp(:,i) = any(ismember(err_mtx(i,:),GridMat(i,:))==0);
-% end
-% tmp
-% for i = 1:NVarA
-%     tmp(:,i) = any(ismember(GridMat(i,:),err_mtx(i,:))==0);
-% end
-% tmp
-
-% Train does this: Grid = 1000, NRep = 2000
-% BETAS=randi(NGridPts,[NP,NV,NDRAWS]); %BETAS go from 1 to NGridPts
-% BETAS=(BETAS-1)./(NGridPts-1);   %Now BETAS go from zero to 1 inclusive
-% for r=1:NV
-%   BETAS(:,r,:)=COEF(r,1)+(COEF(r,2)-COEF(r,1)).*BETAS(:,r,:);  %Now BETAS go from lower limit to upper limit for each coefficient
-% end;
-
 % How many grid points? How many draws? Use permutations?
 
 
@@ -354,7 +343,6 @@ if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) ||
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
     OptimOpt.GradObj = 'on';
 end
-
 
 if (isfield(EstimOpt,'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && isequal(OptimOpt.Algorithm,'quasi-newton') && isequal(OptimOpt.Hessian,'user-supplied')
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied Hessian off - quasi-newton algorithm does not use it anyway \n')
@@ -485,10 +473,17 @@ cprintf('*blue',[num2str(NGrid) ' ']);
 cprintf('grid points. \n');
 tocnote_00 = toc;
 b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
+
+if EstimOpt.WTP_space > 0
+    b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
+end
+
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
-parfor n = 1:NP
-    U = reshape(INPUT.XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);
+XXa = INPUT.XXa;
+parfor n = 1:NP    
+%     U = reshape(INPUT.XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
+    U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
     U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
     U_sum = reshape(sum(U,1),[NCT,NRep]);
     YYy_n = YYy(:,n);
