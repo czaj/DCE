@@ -13,6 +13,7 @@ NOrder = EstimOpt.NOrder;
 FullCov = EstimOpt.FullCov;
 Bounds = EstimOpt.Bounds;
 
+
 NVarAApprox = sum(Dist == 0 | Dist == 1);
 NVarAPoly = sum(Dist == 2 | Dist == 3);
 NVarAStep = sum(Dist == 4);
@@ -76,7 +77,7 @@ if NVarASpline > 0
     end
 end
 
-b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]); 
+b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]); % NVarA * NOrder+1, NRep*NP
 % b_mtx = reshape(permute(b_mtx,[3,1,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]); % train's Z is ordered by NOrder first and NV later, like this
 
 % Correlations
