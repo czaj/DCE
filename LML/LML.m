@@ -18,7 +18,7 @@ NRep = EstimOpt.NRep;
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
 NCT = EstimOpt.NCT;
-NGrid = EstimOpt.NGrid;
+
 
 
 %% Check data and inputs
@@ -136,9 +136,25 @@ if EstimOpt.WTP_space > 0
     end
 end
 
-if isfield(EstimOpt,'NGrid') == 0 || isempty(NGrid)
+if isfield(EstimOpt,'NGrid') == 0 
     NGrid = 1000; % Train uses 1000
+    EstimOpt.NGrid = NGrid;
+else
+    NGrid = EstimOpt.NGrid;
 end
+
+if isfield(EstimOpt, 'StepFun') == 1
+    EstimOpt.StepVar = size(EstimOpt.StepFun(ones(EstimOpt.NVarA,1)),1);
+    cprintf(rgb('DarkOrange'), 'Adding step function defined by user \n')
+else
+    EstimOpt.StepVar = 0;
+end
+
+if isfield(EstimOpt, 'PlotIndx') == 0
+    EstimOpt.PlotIndx = 0; % Do not draws a plot
+end
+    
+
 
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
@@ -156,7 +172,8 @@ gcp;
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
-    (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2);
+    (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2) + ...
+    EstimOpt.StepVar;
 
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
@@ -465,8 +482,9 @@ tocnote_01 = toc-tocnote_00;
 cprintf(['Pre-estimation completed in ' num2str(tocnote_01) ' seconds ('  num2str(floor(tocnote_01/(60*60))) ' hours ' num2str(floor(rem(tocnote_01,60*60)/60)) ' minutes ' num2str(rem(tocnote_01,60)) ' seconds).\n\n']);
 
 b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep
-
-
+if EstimOpt.StepVar > 0
+    b_mtx = [b_mtx; EstimOpt.StepFun(err_mtx)];
+end
 %% Estimation
 
 
@@ -493,6 +511,47 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+%% Hessian calculations
+
+LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
+
+if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
+    try
+        [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+    catch % theErrorInfo
+        Results.LLdetailed = LLfun2(Results.bhat);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+    end
+elseif EstimOpt.HessEstFix == 1
+    if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
+        [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+    else
+        Results.LLdetailed = LLfun2(Results.bhat);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+    end
+elseif EstimOpt.HessEstFix == 2
+    Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
+elseif EstimOpt.HessEstFix == 3
+    Results.LLdetailed = LLfun2(Results.bhat);
+    Results.hess = hessian(@(B) sum(INPUT.W.*LLfun2(B)),Results.bhat);
+elseif EstimOpt.HessEstFix == 4
+
+end
+R2 = mean(exp(-Results.LLdetailed/EstimOpt.NCT),1);
+Results.LLdetailed = Results.LLdetailed.*INPUT.W;
+
+if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
+    Results.hess = Results.jacobian'*Results.jacobian;
+end
+EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
+EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
+Results.ihess = inv(Results.hess);
+Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
+Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
 %% Output
 
@@ -501,26 +560,34 @@ end
 % return
 
 Results.LL = -LL;
+Results.Z = b_mtx;
+Results.Grid = GridMat;
 
-Results.P = evalProbs(b_mtx, EstimOpt, Results.bhat);
-Tmp =  reshape(err_mtx,NVarA,NRep,NP);
-Results.B = Tmp(:,:,1);
+EstimOpt_tmp = EstimOpt;
+EstimOpt_tmp.NRep = NGrid;
+EstimOpt_tmp.NP = 1;
 
-Results.P_sort = zeros(NVarA, NRep);
-Results.B_sort = zeros(NVarA, NRep);
-for i = 1:NVarA
-    [Results.B_sort(i,:),I] = sort(Results.B(i,:));
-    Results.P_sort(i,:) = Results.P(I);
+b_GridMat = B_lml(GridMat,EstimOpt_tmp); % NV x NGrid
+if EstimOpt.StepVar > 0
+    b_GridMat = [b_GridMat; EstimOpt.StepFun(GridMat)];
 end
-Results.P2_sort = sum(reshape(Results.P_sort, [NVarA, 10, NRep/10] ),2);
-Results.P2_sort = reshape(Results.P2_sort, [NVarA, NRep/10]);
 
-Results.B2_sort = mean(reshape(Results.B_sort, [NVarA, 10, NRep/10] ),2);
-Results.B2_sort = reshape(Results.B2_sort, [NVarA, NRep/10]);
+[Results.P, Results.M]  = evalProbs(b_GridMat,GridMat, EstimOpt, Results.bhat, Results.ihess);
 
-Results.Means = sum(Results.P(:,ones(NVarA,1))'.*Results.B,2);
-Results.Stds = sqrt(sum(Results.P(:,ones(NVarA,1))'.*Results.B.^2,2) - Results.Means.^2);
 
+if EstimOpt.PlotIndx > 0
+    EstimOpt.Plot = figure;
+    for i = 1:NVarA
+        Grid_i = mean(reshape(GridMat(i,:), [10, NGrid/10]),1); 
+        P_tmp = sum(reshape(Results.P, [10, NGrid/10]),1); 
+        subplot(NVarA, 1, i);
+        bar(Grid_i, P_tmp)
+        title(EstimOpt.NamesA(i))
+    end
+end
+
+EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
+Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
 
 %File Output
 Results.EstimOpt = EstimOpt;
@@ -528,15 +595,116 @@ Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist);
 
-disp(' ')
-disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])
-disp(' ');
-clocknote = clock;
-tocnote = toc;
-[~,DayName] = weekday(now,'long');
-disp(['Estimation completed on ' DayName ', ' num2str(clocknote(1)) '-' sprintf('%02.0f',clocknote(2)) '-' sprintf('%02.0f',clocknote(3)) ' at ' sprintf('%02.0f',clocknote(4)) ':' sprintf('%02.0f',clocknote(5)) ':' sprintf('%02.0f',clocknote(6))])
-disp(['Estimation took ' num2str(tocnote) ' seconds ('  num2str(floor(tocnote/(60*60))) ' hours ' num2str(floor(rem(tocnote,60*60)/60)) ' minutes ' num2str(rem(tocnote,60)) ' seconds).']);
-disp(' ');
-Results.clocknote = clocknote;
-Results.tocnote = clocknote;
+%% Output
+Results.DetailsA = Results.M.Mean;
+Results.DetailsV = Results.M.Std;
+Template1 = {'DetailsA','DetailsV'};
+Template2 = {'DetailsA','DetailsV'};
+Names.DetailsA = EstimOpt.NamesA;
+Heads.DetailsA = {'Means';'tc'};
+Heads.DetailsV = {'Standard Deviations';'lb'};
+ST = {};
+
+%% Tworzenie naglowka
+
+
+Head = cell(1,2);
+if EstimOpt.FullCov == 0
+    Head(1,1) = {'LML_d'};
+else
+    Head(1,1) = {'LML'};
+end
+
+if EstimOpt.WTP_space > 0
+    Head(1,2) = {'in WTP-space'};
+else
+    Head(1,2) = {'in preference-space'};
+end
+
+
+%% Tworzenie stopki
+
+
+Tail = cell(17,2);
+Tail(2,1) = {'Model diagnostics'};
+Tail(3:17,1) = {'LL at convergence';'LL at constant(s) only';strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178));'AIC/n';'BIC/n';'n (observations)';'r (respondents)';'k (parameters)';'';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
+
+if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
+    Tail(3:11,2) = num2cell(Results.stats);
+end
+
+if any(INPUT.W ~= 1)
+    Tail(13,2) = {'weighted simulated maximum likelihood'};
+else
+    Tail(13,2) = {'simulated maximum likelihood'};
+end
+
+switch EstimOpt.Draws
+    case 1
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+    case 2
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+    case  3
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+    case 4
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+    case 5
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+    case 6
+        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+end
+
+Tail(15,2) = {OptimOpt.Algorithm;};
+
+if strcmp(OptimOpt.GradObj,'on')
+    if EstimOpt.NumGrad == 0
+        Tail(16,2) = {'user-supplied, analytical'};
+    else
+        Tail(16,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+    end
+else
+    Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
+end
+
+if isequal(OptimOpt.Algorithm,'quasi-newton')
+    outHessian='off, ';
+    switch EstimOpt.HessEstFix
+        case 0
+            outHessian = [outHessian,'retained from optimization'];
+        case 1
+            outHessian = [outHessian,'ex-post calculated using BHHH'];
+        case 2
+            outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
+        case 3
+            outHessian = [outHessian,'ex-post calculated numerically'];
+        case 4
+            outHessian = [outHessian,'ex-post calculated analytically'];
+    end
+else
+    if strcmp(OptimOpt.Hessian,'user-supplied')
+        if EstimOpt.ApproxHess == 1
+            outHessian = 'user-supplied, BHHH, ';
+        else
+            outHessian = 'user-supplied, analytical, ';
+        end
+    else
+        outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+    end
+    switch EstimOpt.HessEstFix
+        case 0
+            outHessian = [outHessian,'retained from optimization'];
+        case 1
+            outHessian = [outHessian,'ex-post calculated using BHHH'];
+        case 2
+            outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
+        case 3
+            outHessian = [outHessian,'ex-post calculated numerically'];
+        case 4
+            outHessian = [outHessian,'ex-post calculated analytically'];
+    end
+end
+Tail(17,2) = {outHessian};
+
+
+Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 
