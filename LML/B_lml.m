@@ -1,9 +1,9 @@
 function b_mtx = B_lml(err_mtx,EstimOpt)
 
-% save tmp_B_lml
+save tmp_B_lml
 % return
 
-% TODO: make NOrder NVarA specific
+% TODO: make NOrder NVarA-specific
 
 NP = EstimOpt.NP;
 NRep = EstimOpt.NRep;
@@ -22,7 +22,7 @@ if FullCov == 1 && any(Dist == 3)
     err_mtx_old = err_mtx;
 end
 
-b_mtx = NaN([NVarA,NP*NRep,NOrder]);
+b_mtx = NaN([NVarA,NP*NRep,NOrder+1]); % to be cut later
 
 % Approximate normal and lognormal:
 if NVarAApprox > 0
@@ -52,7 +52,7 @@ if NVarAStep > 0
     BoundsStep = EstimOpt.Bounds(Dist == 4,:);
     Thresholds = zeros(NVarAStep,NOrder+1);
     for i = 1:NVarAStep
-        Thresholds(i,:) = BoundsStep(i,1) : (BoundsStep(i,2) - BoundsStep(i,1))./(NOrder) : BoundsStep(i,2);
+        Thresholds(i,:) = BoundsStep(i,1) : (BoundsStep(i,2) - BoundsStep(i,1))/(NOrder) : BoundsStep(i,2); % this is marginally different than train's
     end
     for i = 1:NOrder-1 % the last level is the reference
         b_mtx(Dist == 4,:,i) = (err_mtx(Dist == 4,:) >= Thresholds(:,i)) & (err_mtx(Dist == 4,:) < Thresholds(:,i+1)); % NVarAStep x NRep*NP x NOrder
@@ -61,10 +61,23 @@ end
 
 % Splines:
 if NVarASpline > 0
-    
+    BoundsKnots = EstimOpt.Bounds(Dist == 5,:);
+    Knots = zeros(NVarASpline,NOrder+2);
+    for i = 1:NVarASpline
+        Knots(i,:) = BoundsKnots(i,1) : (BoundsKnots(i,2) - BoundsKnots(i,1))/(NOrder+1) : BoundsKnots(i,2); % this is marginally different than train's
+    end
+    b_mtx(Dist == 5,:,1:NOrder+1) = 0;
+    for i = 1:NOrder+1 % the last level is the reference
+        segment_idx = (err_mtx(Dist == 5,:) >= Knots(:,i)) & (err_mtx(Dist == 5,:) < Knots(:,i+1)); % NVarAStep x NRep*NP
+        b_mtx(Dist == 5,:,i) = b_mtx(Dist == 5,:,i) + segment_idx.*(1 - (err_mtx(Dist == 5,:) - Knots(:,i))./(Knots(:,i+1)-Knots(:,i))); % NVarASpline x NRep*NP x NOrder         
+        if i < NOrder+1
+            b_mtx(Dist == 5,:,i+1) = segment_idx.*((err_mtx(Dist == 5,:) - Knots(:,i))./(Knots(:,i+1)-Knots(:,i))); % NVarASpline x NRep*NP x NOrder
+        end
+    end
 end
 
-b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]);
+b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]); 
+% b_mtx = reshape(permute(b_mtx,[3,1,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2)]); % train's Z is ordered by NOrder first and NV later, like this
 
 % Correlations
 if FullCov == 1

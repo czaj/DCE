@@ -100,14 +100,14 @@ if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf(' \n');
 end
 if any(EstimOpt.Dist == 4)
-    cprintf('Order of step function(s): ');
+    cprintf('Number of step function segments: ');
     cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
     cprintf(' \n');
 end
 
-if any(EstimOpt.Dist == 4)
-    cprintf('Order of spline(s): ');
-    cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
+if any(EstimOpt.Dist == 5)
+    cprintf('Number of spline knots (including bounds): ');
+    cprintf('*blue',[num2str(EstimOpt.NOrder+2) ' ']);
     cprintf(' \n');
 end
 
@@ -153,7 +153,10 @@ gcp;
 %% Starting values
 
 
-NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2);
+NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + ...
+    (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
+    (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
+    (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2);
 
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
@@ -215,17 +218,17 @@ if EstimOpt.ConstVarActive == 1
     elseif length(b0) ~= length(EstimOpt.BActive)
         error('Check no. of constraints')
     end
-    disp(['Initial values: ' mat2str(b0',2)])
+    disp(['Starting values: ' mat2str(b0',2)])
     disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
 else
     if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
         EstimOpt.BActive = ones(1,length(b0));
-        disp(['Initial values: ' mat2str(b0',2)])
+        disp(['Starting values: ' mat2str(b0',2)])
     else
         if length(b0) ~= length(EstimOpt.BActive)
             error('Check no. of constraints')
         else
-            disp(['Initial values: ' mat2str(b0',2)])
+            disp(['Starting values: ' mat2str(b0',2)])
             disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
         end
     end
@@ -515,9 +518,15 @@ Results.P2_sort = reshape(Results.P2_sort, [NVarA, NRep/10]);
 Results.B2_sort = mean(reshape(Results.B_sort, [NVarA, 10, NRep/10] ),2);
 Results.B2_sort = reshape(Results.B2_sort, [NVarA, NRep/10]);
 
-
 Results.Means = sum(Results.P(:,ones(NVarA,1))'.*Results.B,2);
 Results.Stds = sqrt(sum(Results.P(:,ones(NVarA,1))'.*Results.B.^2,2) - Results.Means.^2);
+
+
+%File Output
+Results.EstimOpt = EstimOpt;
+Results.OptimOpt = OptimOpt;
+Results.INPUT = INPUT;
+Results.Dist = transpose(EstimOpt.Dist);
 
 disp(' ')
 disp(['LL at convergence: ',num2str(Results.LL,'%8.4f')])
