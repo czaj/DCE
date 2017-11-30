@@ -5,6 +5,9 @@
 %ZTYPE determines the kind of variables to create
 % 1=polynomial, 2= step function, 3=spline
 
+% save tmp1
+% return
+
 NZ_Original=NZ;
 
 if ZTYPE==1;  %Polynomial

@@ -93,7 +93,7 @@ if ~isfield(EstimOpt, 'NOrder')
     EstimOpt.NOrder = 3;
 end
 
-disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Spline'])
+disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Linear Spline, 6 - Cubic Spline, 7 - Piece-wise Cubic Spline, 8 - Piece-wise Cubic Hermite Interpolating Spline'])
 if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf('Order of Legendre polynomial(s): ');
     cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
@@ -105,7 +105,7 @@ if any(EstimOpt.Dist == 4)
     cprintf(' \n');
 end
 
-if any(EstimOpt.Dist == 5)
+if any(EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)
     cprintf('Number of spline knots (including bounds): ');
     cprintf('*blue',[num2str(EstimOpt.NOrder+2) ' ']);
     cprintf(' \n');
@@ -172,7 +172,7 @@ gcp;
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
-    (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2) + ...
+    (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),2) + ...
     EstimOpt.StepVar;
 
 if EstimOpt.FullCov == 0
