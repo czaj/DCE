@@ -1,4 +1,4 @@
-function [P,DistStats] = P_lml(bhat,b_GridMat,varargin)
+function [P,DistStats] = P_lml(b_GridMat,bhat,varargin)
 
 P = mnlquick(b_GridMat,bhat); % Calculate probabilities 1xNGrid
 
@@ -26,11 +26,13 @@ if nargout > 1
     M.Std = [h(bhat),zeros(EstimOpt.NVarA,1),sqrt(diag(H*iHess*H')),pv(h(bhat),sqrt(diag(H*iHess*H')))];
     
     P_cumsum = cumsum(P,2);
-    M.Quantile = GridMat(:,find(P_cumsum > 0.1,1));
+    M.Quantile = GridMat(:,find(P_cumsum > 0.025,1));
+    M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.1,1))];
     M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.25,1))];
     M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.5,1))];
     M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.75,1))];
     M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.9,1))];
+    M.Quantile = [M.Quantile,GridMat(:,find(P_cumsum > 0.975,1))];
     
     if KR == 1 % using K&R (simulates s.e. and 95% c.i.)
         bhat_mtx = mvnrnd(bhat,iHess,EstimOpt.NSdSim);
@@ -52,7 +54,7 @@ if nargout > 1
     DistStats(:,1,2) = M.Mean(:,3); % s.e.
     DistStats(:,2,1) = M.Std(:,1); % point estimates
     DistStats(:,2,2) = M.Std(:,3); % s.e.
-    DistStats(:,3:7,1) = M.Quantile;
+    DistStats(:,3:9,1) = M.Quantile; % 
     
 end
 

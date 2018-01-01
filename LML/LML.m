@@ -356,9 +356,9 @@ for i = 1:NVarA
     GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(NGrid-1)):EstimOpt.Bounds(i,2);
 end
 
-if EstimOpt.WTP_space > 0
-    GridMat(1:end-EstimOpt.WTP_space,:) = GridMat(1:end-EstimOpt.WTP_space,:).*GridMat(EstimOpt.WTP_matrix,:);
-end
+% if EstimOpt.WTP_space > 0
+%     GridMat(1:end-EstimOpt.WTP_space,:) = GridMat(1:end-EstimOpt.WTP_space,:).*GridMat(EstimOpt.WTP_matrix,:);
+% end
 
 b_GridMat = B_lml(GridMat,EstimOpt); % NV x NGrid
 % b_mtx = zeros(NVarA,NP*NRep);
@@ -370,11 +370,13 @@ b_GridMat = B_lml(GridMat,EstimOpt); % NV x NGrid
 for i = 1:NVarA
     err_mtx(i,:) = GridMat(i,err_mtx(i,:));
 end
+b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep % this is very fast too, so using elements from b_GridMat does not help much
+% if EstimOpt.WTP_space > 0
+%     err_mtx(1:end-EstimOpt.WTP_space,:) = err_mtx(1:end-EstimOpt.WTP_space,:).*err_mtx(EstimOpt.WTP_matrix,:);
+% end
 if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
     Results.err = err_mtx;
 end
-
-b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep % this is very fast too, so using elements from b_GridMat does not help much
 
 if EstimOpt.StepVar > 0
     b_mtx = [b_mtx; EstimOpt.StepFun(err_mtx)];
@@ -470,6 +472,9 @@ cprintf('grid points. \n');
 tocnote_00 = toc;
 
 b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
+if EstimOpt.WTP_space > 0
+    b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
+end
 
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
@@ -560,7 +565,7 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 %% Output
 
 
-% save tmp1
+% save tmp11
 % return
 
 Results.LL = -LL;
@@ -572,7 +577,7 @@ if EstimOpt.StepVar > 0
 end
 
 % Results.P = P_lml(Results.bhat,b_GridMat);
-[Results.P,Results.DistStats] = P_lml(Results.bhat,b_GridMat,GridMat,Results.ihess,EstimOpt);
+[Results.P,Results.DistStats] = P_lml(b_GridMat,Results.bhat,GridMat,Results.ihess,EstimOpt);
 
 EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
@@ -607,9 +612,10 @@ disp(reshape([Results.bhat,sqrt(diag(Results.ihess))],[NVarA,size(Results.bhat,1
 disp(' ')
 
 % distribution statistics
-R_out_tmp = {'l.bound','u.bound','mean','s.e.','s.d.','s.e.','q0.1','q0.25','q0.5','q0.75','q0.9'};
+R_out_tmp = {'l.bound','u.bound','mean','s.e.','s.d.','s.e.','q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
 R_out_tmp(2:NVarA+1,:) = num2cell([EstimOpt.Bounds,Results.DistStats(:,1,1),Results.DistStats(:,1,2),Results.DistStats(:,2,1),Results.DistStats(:,2,2),Results.DistStats(:,3:end,1)]);
 disp(R_out_tmp)
+
 
 
 
