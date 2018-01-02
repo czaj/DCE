@@ -726,6 +726,7 @@ elseif EstimOpt.HessEstFix == 1
         Results.jacobian = Results.jacobian.*INPUT.W;
     end
 elseif EstimOpt.HessEstFix == 2
+    Results.LLdetailed = LLfun2(Results.bhat);
     Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.LLdetailed = LLfun2(Results.bhat);
