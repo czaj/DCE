@@ -710,21 +710,23 @@ LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
     try
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+        Results.jacobian = Results.jacobian.*INPUT.W;
     catch % theErrorInfo
         Results.LLdetailed = LLfun2(Results.bhat);
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian2 = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian2 = Results.jacobian2.*INPUT.W;
     end
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian = Results.jacobian.*INPUT.W;
     else
         Results.LLdetailed = LLfun2(Results.bhat);
         Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian = Results.jacobian.*INPUT.W;
     end
 elseif EstimOpt.HessEstFix == 2
+    Results.LLdetailed = LLfun2(Results.bhat);
     Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.LLdetailed = LLfun2(Results.bhat);

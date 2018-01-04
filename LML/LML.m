@@ -93,7 +93,7 @@ if ~isfield(EstimOpt, 'NOrder')
     EstimOpt.NOrder = 3;
 end
 
-disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Spline'])
+disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Linear Spline, 6 - Cubic Spline, 7 - Piece-wise Cubic Spline, 8 - Piece-wise Cubic Hermite Interpolating Spline'])
 if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf('Order of Legendre polynomial(s): ');
     cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
@@ -105,7 +105,7 @@ if any(EstimOpt.Dist == 4)
     cprintf(' \n');
 end
 
-if any(EstimOpt.Dist == 5)
+if any(EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)
     cprintf('Number of spline knots (including bounds): ');
     cprintf('*blue',[num2str(EstimOpt.NOrder+2) ' ']);
     cprintf(' \n');
@@ -153,8 +153,6 @@ end
 if isfield(EstimOpt, 'PlotIndx') == 0
     EstimOpt.PlotIndx = 0; % Do not draws a plot
 end
-    
-
 
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
@@ -172,7 +170,7 @@ gcp;
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
-    (EstimOpt.Dist == 5)*(EstimOpt.NOrder+1),2) + ...
+    (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),2) + ...
     EstimOpt.StepVar;
 
 if EstimOpt.FullCov == 0
@@ -330,7 +328,7 @@ if EstimOpt.Draws == 1
     err_mtx = rand(NP*NRep,NVarA);
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
-    err_mtx=lhsnorm(zeros((NVarA)*NP,1),diag(ones((NVarA)*NP,1)),NRep);
+    err_mtx = lhsnorm(zeros((NVarA)*NP,1),diag(ones((NVarA)*NP,1)),NRep);
     err_mtx = reshape(err_mtx, NRep*NP, NVarA);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
@@ -356,12 +354,33 @@ err_mtx = floor((NGrid).*err_mtx)' + 1;
 GridMat = zeros(NVarA,NGrid);
 for i = 1:NVarA
     GridMat(i,:) = EstimOpt.Bounds(i,1):((EstimOpt.Bounds(i,2) - EstimOpt.Bounds(i,1))/(NGrid-1)):EstimOpt.Bounds(i,2);
-    err_mtx(i,:) = GridMat(i,err_mtx(i,:));
-    %     err_mtx(i,:) = randsample(GridMat(i,:),NRep*NP,true);
-    %     err_mtx(i,:) = GridMat(i,1) + (GridMat(i,end) - GridMat(i,1)).*err_mtx(i,:);
 end
 
-% TODO: How many grid points? How many draws? Use permutations?
+% if EstimOpt.WTP_space > 0
+%     GridMat(1:end-EstimOpt.WTP_space,:) = GridMat(1:end-EstimOpt.WTP_space,:).*GridMat(EstimOpt.WTP_matrix,:);
+% end
+
+b_GridMat = B_lml(GridMat,EstimOpt); % NV x NGrid
+% b_mtx = zeros(NVarA,NP*NRep);
+% for i = 1:size(b_GridMat,1)
+%     mod(i,NVarA)
+% %     b_mtx(i,:) = b_GridMat(i,err_mtx(mod(i,NVarA),:)); % NV x NP*NRep 
+% end
+
+for i = 1:NVarA
+    err_mtx(i,:) = GridMat(i,err_mtx(i,:));
+end
+b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep % this is very fast too, so using elements from b_GridMat does not help much
+% if EstimOpt.WTP_space > 0
+%     err_mtx(1:end-EstimOpt.WTP_space,:) = err_mtx(1:end-EstimOpt.WTP_space,:).*err_mtx(EstimOpt.WTP_matrix,:);
+% end
+if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
+    Results.err = err_mtx;
+end
+
+if EstimOpt.StepVar > 0
+    b_mtx = [b_mtx; EstimOpt.StepFun(err_mtx)];
+end
 
 
 %% Display Options
@@ -447,30 +466,20 @@ INPUT.XXa = reshape(INPUT.Xa,[NAlt*NCT,NP,NVarA]);
 INPUT.XXa = permute(INPUT.XXa, [1,3,2]);
 INPUT.YY = reshape(INPUT.Y,[NAlt*NCT,NP]);
 
-if isfield(EstimOpt, 'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
-    Results.err = err_mtx;
-end
-
 cprintf('Conducting pre-estimation calculations for ');
 cprintf('*blue',[num2str(NGrid) ' ']);
 cprintf('grid points. \n');
 tocnote_00 = toc;
 
-if EstimOpt.WTP_space > 0
-    err_mtx(1:end-EstimOpt.WTP_space,:) = err_mtx(1:end-EstimOpt.WTP_space,:).*err_mtx(EstimOpt.WTP_matrix,:);
-end
-
 b_gird = reshape(err_mtx,[NVarA,NRep,NP]);
-
-% if EstimOpt.WTP_space > 0
-%     b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
-% end
+if EstimOpt.WTP_space > 0
+    b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
+end
 
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
 parfor n = 1:NP    
-%     U = reshape(INPUT.XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
     U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
     U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
     U_sum = reshape(sum(U,1),[NCT,NRep]);
@@ -481,10 +490,7 @@ end
 tocnote_01 = toc-tocnote_00;
 cprintf(['Pre-estimation completed in ' num2str(tocnote_01) ' seconds ('  num2str(floor(tocnote_01/(60*60))) ' hours ' num2str(floor(rem(tocnote_01,60*60)/60)) ' minutes ' num2str(rem(tocnote_01,60)) ' seconds).\n\n']);
 
-b_mtx = B_lml(err_mtx,EstimOpt); % NV x NP*NRep
-if EstimOpt.StepVar > 0
-    b_mtx = [b_mtx; EstimOpt.StepFun(err_mtx)];
-end
+
 %% Estimation
 
 
@@ -511,7 +517,9 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+
 %% Hessian calculations
+
 
 LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
 
@@ -553,38 +561,23 @@ Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
+
 %% Output
 
 
-% save tmp1
+% save tmp11
 % return
 
 Results.LL = -LL;
-Results.Z = b_mtx;
-Results.Grid = GridMat;
+Results.b_mtx = b_mtx;
+Results.GridMat = GridMat;
 
-EstimOpt_tmp = EstimOpt;
-EstimOpt_tmp.NRep = NGrid;
-EstimOpt_tmp.NP = 1;
-
-b_GridMat = B_lml(GridMat,EstimOpt_tmp); % NV x NGrid
 if EstimOpt.StepVar > 0
     b_GridMat = [b_GridMat; EstimOpt.StepFun(GridMat)];
 end
 
-[Results.P, Results.M]  = evalProbs(b_GridMat,GridMat, EstimOpt, Results.bhat, Results.ihess);
-
-
-if EstimOpt.PlotIndx > 0
-    EstimOpt.Plot = figure;
-    for i = 1:NVarA
-        Grid_i = mean(reshape(GridMat(i,:), [10, NGrid/10]),1); 
-        P_tmp = sum(reshape(Results.P, [10, NGrid/10]),1); 
-        subplot(NVarA, 1, i);
-        bar(Grid_i, P_tmp)
-        title(EstimOpt.NamesA(i))
-    end
-end
+% Results.P = P_lml(Results.bhat,b_GridMat);
+[Results.P,Results.DistStats] = P_lml(b_GridMat,Results.bhat,GridMat,Results.ihess,EstimOpt);
 
 EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
@@ -593,17 +586,49 @@ Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL
 Results.EstimOpt = EstimOpt;
 Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
-Results.Dist = transpose(EstimOpt.Dist);
+Results.Dist = EstimOpt.Dist';
+
+
+if EstimOpt.PlotIndx > 0
+    EstimOpt.Plot = figure;
+    for i = 1:NVarA
+%         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1); 
+%         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1); 
+        subplot(NVarA,1,i);
+%         bar(Grid_i,P_tmp)
+        tmp = sortrows([GridMat(i,:)',Results.P'])';
+        plot(tmp(1,:),tmp(2,:))
+        title(EstimOpt.NamesA(i))
+    end
+end
+
 
 %% Output
-Results.DetailsA = Results.M.Mean;
-Results.DetailsV = Results.M.Std;
-Template1 = {'DetailsA','DetailsV'};
-Template2 = {'DetailsA','DetailsV'};
-Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'Means';'tc'};
-Heads.DetailsV = {'Standard Deviations';'lb'};
-ST = {};
+
+% this is temporary
+
+% betas:
+disp(reshape([Results.bhat,sqrt(diag(Results.ihess))],[NVarA,size(Results.bhat,1)*2/NVarA]))
+disp(' ')
+
+% distribution statistics
+R_out_tmp = {'l.bound','u.bound','mean','s.e.','s.d.','s.e.','q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
+R_out_tmp(2:NVarA+1,:) = num2cell([EstimOpt.Bounds,Results.DistStats(:,1,1),Results.DistStats(:,1,2),Results.DistStats(:,2,1),Results.DistStats(:,2,2),Results.DistStats(:,3:end,1)]);
+disp(R_out_tmp)
+
+
+
+
+
+% Results.DetailsA = Results.Stats(M.Mean;
+% Results.DetailsV = Results.M.Std;
+% Template1 = {'DetailsA','DetailsV'};
+% Template2 = {'DetailsA','DetailsV'};
+% Names.DetailsA = EstimOpt.NamesA;
+% Heads.DetailsA = {'Means';'tc'};
+% Heads.DetailsV = {'Standard Deviations';'lb'};
+% ST = {};
+
 
 %% Tworzenie naglowka
 
@@ -706,5 +731,5 @@ end
 Tail(17,2) = {outHessian};
 
 
-Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
+% Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 
