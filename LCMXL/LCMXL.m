@@ -165,7 +165,9 @@ if EstimOpt.NVarS > 0
     end
 end
 
+
 %% Starting values
+
 
 EstimOpt.jitter1 = 0.8; % Jittering parameter (relative) for MNL or MXL starting values (attributes)
 EstimOpt.jitter2 = 0.3; % Jittering parameter (absolute) for class probabilities starting values
@@ -229,13 +231,19 @@ else % EstimOpt.FullCov == 1
         if isfield(Results_old,'LCMXL_d') && isfield(Results_old.LCMXL_d,'bhat')
             disp('Using LCMXL_d coefficients for starting values')
             Results_old.LCMXL_d.bhat = Results_old.LCMXL_d.bhat(:);
-            b0 = zeros(2*(EstimOpt.NVarA+sum(1:EstimOpt.NVarA))+EstimOpt.NVarC*(EstimOpt.NClass-1),1);
-            b0(1:EstimOpt.NVarA*EstimOpt.NClass) = Results_old.LCMXL_d.bhat(1:EstimOpt.NVarA*EstimOpt.NClass);
-            b0(EstimOpt.NClass*(EstimOpt.NVarA+sum(1:EstimOpt.NVarA))+1:end) = Results_old.LCMXL_d.bhat(2*EstimOpt.NVarA*EstimOpt.NClass+1:end);
+%             b0 = zeros(2*(EstimOpt.NVarA+sum(1:EstimOpt.NVarA))+EstimOpt.NVarC*(EstimOpt.NClass-1),1);
+%             b0(EstimOpt.NClass*(EstimOpt.NVarA+sum(1:EstimOpt.NVarA))+1:end) = Results_old.LCMXL_d.bhat(2*EstimOpt.NVarA*EstimOpt.NClass+1:end);
+%             for i = 1:EstimOpt.NClass
+%                 vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*EstimOpt.NVarA:EstimOpt.NVarA*EstimOpt.NClass+i*EstimOpt.NVarA));
+%                 b0(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*sum(1:EstimOpt.NVarA):EstimOpt.NVarA*EstimOpt.NClass+i*sum(1:EstimOpt.NVarA)) = vc_tmp(tril(ones(size(vc_tmp))) == 1);
+%             end
+            b0 = Results_old.LCMXL_d.bhat(1:EstimOpt.NVarA*EstimOpt.NClass); 
             for i = 1:EstimOpt.NClass
-                vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*EstimOpt.NVarA:EstimOpt.NVarA*EstimOpt.NClass+i*EstimOpt.NVarA));
-                b0(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*sum(1:EstimOpt.NVarA):EstimOpt.NVarA*EstimOpt.NClass+i*sum(1:EstimOpt.NVarA)) = vc_tmp(tril(ones(size(vc_tmp))) == 1);
+                vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+(i-1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NClass+(i-1)+1)));
+                vc_tmp(EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3,EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3) = vc_tmp(EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3,EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3).^2;
+                b0 = [b0;vc_tmp(tril(ones(size(vc_tmp))) == 1)]; %#ok<AGROW>
             end
+            b0 = [b0;Results_old.LCMXL_d.bhat(EstimOpt.NVarA*(EstimOpt.NClass+(EstimOpt.NClass-1)+1)+1:end)];            
         elseif isfield(Results_old,'LC') && isfield(Results_old.LC,'bhat')
             disp('Using LC coefficients for starting values')
             Results_old.LC.bhat = Results_old.LC.bhat(:);
@@ -259,6 +267,7 @@ end
 
 
 %% Optimization Options
+
 
 if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
@@ -305,7 +314,9 @@ if ~isfield(EstimOpt,'BActiveClass') || isempty(EstimOpt.BActiveClass) || sum(Es
     EstimOpt.BActiveClass = ones(EstimOpt.NVarA,1);
 end
 
+
 %% Generate pseudo-random Draws
+
 
 if isfield(EstimOpt,'Seed1') == 1
     rng(EstimOpt.Seed1);
@@ -445,7 +456,9 @@ else
     end
 end
 
+
 %% Rescructure data
+
 
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 
@@ -482,7 +495,9 @@ if EstimOpt.NumGrad == 0 && EstimOpt.FullCov == 1
     end
 end
 
+
 %% Estimation
+
 
 LLfun = @(B) LL_lcmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXc,INPUT.Xs,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0
@@ -505,7 +520,9 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+
 %% Output
+
 
 Results.LL = -LL;
 Results.LLdetailed = LL_lcmxl(INPUT.YY,INPUT.XXa,INPUT.XXc,INPUT.Xs,err_sliced,EstimOpt,Results.bhat);
@@ -650,7 +667,9 @@ end
 %Results.R = [Results.DetailsA; Results.DetailsV; Results.DetailsC; [Results.PClass',zeros(size(Results.PClass')),zeros(size(Results.PClass'))]];
 Results.stats = [Results.LL;Results_old.MNL0.LL;1 - Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params - 2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
 
+
 %% Header
+
 
 Head = cell(1,2);
 if EstimOpt.FullCov == 0
@@ -665,7 +684,10 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
+
 %% Results
+
+
 Template1 = {};
 Template2 = {};
 for i = 1:EstimOpt.NClass
@@ -710,6 +732,13 @@ for i = 1:EstimOpt.NClass
     ST = [ST,{['DetailsC',num2str(i)]}];%#ok<AGROW>
 end
 
+if size(Template1,2) < size(Temp,2)
+    Template1{1,size(Temp,2)} = [];
+end
+if size(Template2,2) < size(Temp,2)
+    Template2{1,size(Temp,2)} = [];
+end
+    
 Template1 = [Template1;Temp];
 Template2 = [Template2;Temp];
 
@@ -732,7 +761,9 @@ Heads.PClass1(1,1) = {'Average class probabilities'};
 Heads.DetailsC1(2,:) = {'lc','tc'};
 Heads.PClass1(2,:) = {'lc','tc'};
 
+
 %% Footer
+
 
 Tail = cell(17,2);
 Tail(2,1) = {'Model diagnostics'};
@@ -816,11 +847,14 @@ end
 
 Tail(17,2) = {outHessian};
 
+
 %%  Print to screen and .xls
+
 
 if EstimOpt.Display ~= 0
     Results.Dist = transpose(EstimOpt.Dist);
     Results.R_out = genOutput_LCMXL(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+
 
 end

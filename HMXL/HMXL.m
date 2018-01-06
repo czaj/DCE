@@ -427,15 +427,19 @@ end
 %INPUT.YY = reshape(INPUT.Y,EstimOpt.NAlt,EstimOpt.NCT,1,EstimOpt.NP);
 %INPUT.YY = INPUT.YY(:,:,ones(1,1,EstimOpt.NRep,1),:); % NAlt x NCT x NRep x NP
 
-INPUT.YYY = reshape(INPUT.Y,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP]);
-idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP])) == EstimOpt.NAlt;
-INPUT.YYY(idx == 1) = NaN; % replace YYY in missing choice-tasks with NaN
-INPUT.YY = reshape(INPUT.YYY,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+% INPUT.YYY = reshape(INPUT.Y,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP]);
+% idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT,EstimOpt.NP])) == EstimOpt.NAlt;
+% INPUT.YYY(idx == 1) = NaN; % replace YYY in missing choice-tasks with NaN
+% INPUT.YY = reshape(INPUT.YYY,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+% 
+% 
+% INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
+% INPUT.XXa = reshape(INPUT.Xa',[EstimOpt.NVarA,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+% INPUT.XXa = permute(INPUT.XXa,[2 1 3]); % NAlt*NCT x NVarA x NP
 
-
-INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
-INPUT.XXa = reshape(INPUT.Xa',[EstimOpt.NVarA,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-INPUT.XXa = permute(INPUT.XXa,[2 1 3]); % NAlt*NCT x NVarA x NP
+INPUT.XXa = reshape(INPUT.Xa,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP,EstimOpt.NVarA]);
+INPUT.XXa = permute(INPUT.XXa,[1 3 2]);
+INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 
 INPUT.Xstr = double(INPUT.Xstr(1:EstimOpt.NAlt*EstimOpt.NCT:end,:));
 % normalize explanatory variables for structural equations:

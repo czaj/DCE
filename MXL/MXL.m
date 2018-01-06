@@ -1,6 +1,5 @@
 function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 
-
 % save tmp_MXL
 % return
 
@@ -230,36 +229,48 @@ if EstimOpt.FullCov == 0
         end
     end
     if ~exist('b0','var')
-        if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT)
-            disp('Using MNL results as starting values')
-            Results_old.MNL.bhat = Results_old.MNL.bhat(:);
-            b0 = [Results_old.MNL.bhat(1:NVarA);max(1,abs(Results_old.MNL.bhat(1:NVarA)));Results_old.MNL.bhat(NVarA+1:end)];
-            if sum(EstimOpt.Dist == 1) > 0
-                if any(b0(EstimOpt.Dist == 1) < 0)
-                    cprintf(rgb('DarkOrange'),'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
-                    b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
-                end
-                b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
+        disp('Using MNL results as starting values')
+        if ~(isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT))
+            EstimOpt_tmp = EstimOpt;
+            EstimOpt_tmp.Display = 0;
+            OptimOpt_tmp = optimoptions('fminunc');
+            OptimOpt_tmp.Algorithm = 'quasi-newton';
+            OptimOpt_tmp.GradObj = 'off';
+            OptimOpt_tmp.Hessian = 'off';
+            OptimOpt_tmp.Display = 'off';
+            OptimOpt_tmp.FunValCheck= 'off';
+            OptimOpt_tmp.Diagnostics = 'off';
+            Results_old.MNL = MNL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);            
+        end        
+        Results_old.MNL.bhat = Results_old.MNL.bhat(:);
+        b0 = [Results_old.MNL.bhat(1:NVarA);max(1,abs(Results_old.MNL.bhat(1:NVarA)));Results_old.MNL.bhat(NVarA+1:end)];
+        if sum(EstimOpt.Dist == 1) > 0
+            if any(b0(EstimOpt.Dist == 1) < 0)
+                cprintf(rgb('DarkOrange'),'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
+                b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
             end
-            if sum(EstimOpt.Dist == 3) > 0 % Triangular
-                indx = find(EstimOpt.Dist == 3);
-                b0([indx;indx+NVarA]) = [log(b0(indx) - EstimOpt.Triang');log(b0(indx) - EstimOpt.Triang')];
-            end
-            if sum(EstimOpt.Dist == 4) > 0 % Weibull
-                indx = find(EstimOpt.Dist == 4);
-                b0([indx;indx+NVarA]) = [log(b0(indx));zeros(length(indx),1)];
-            end
-            if sum(EstimOpt.Dist >= 5) > 0 % Johnson
-                indx = find(EstimOpt.Dist >= 5);
-                tmp = [b0(indx);log(b0(indx+NVarA))];
-                b0([indx;indx+NVarA]) = [zeros(length(indx),1),ones(length(indx),1)];
-                b0 = [b0;tmp];
-            end
-        else
-            error('No starting values available - run MNL first')
+            b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
         end
+        if sum(EstimOpt.Dist == 3) > 0 % Triangular
+            indx = find(EstimOpt.Dist == 3);
+            b0([indx;indx+NVarA]) = [log(b0(indx) - EstimOpt.Triang');log(b0(indx) - EstimOpt.Triang')];
+        end
+        if sum(EstimOpt.Dist == 4) > 0 % Weibull
+            indx = find(EstimOpt.Dist == 4);
+            b0([indx;indx+NVarA]) = [log(b0(indx));zeros(length(indx),1)];
+        end
+        if sum(EstimOpt.Dist >= 5) > 0 % Johnson
+            indx = find(EstimOpt.Dist >= 5);
+            tmp = [b0(indx);log(b0(indx+NVarA))];
+            b0([indx;indx+NVarA]) = [zeros(length(indx),1),ones(length(indx),1)];
+            b0 = [b0;tmp];
+        end
+%         else
+%             error('No starting values available - run MNL first')
     end
+    
 else % EstimOpt.FullCov == 1
+
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVarA*(1+EstimOpt.NVarM) + sum(1:NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
         b0 = B_backup(:);
         disp('Using the starting values from Backup')
@@ -285,8 +296,20 @@ else % EstimOpt.FullCov == 1
                 vc_tmp = (diag(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))).^2;
             end
             b0 = [Results_old.MXL_d.bhat(1:NVarA);vc_tmp(tril(ones(size(vc_tmp))) == 1);Results_old.MXL_d.bhat(NVarA*2+1:end)];
-        elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
+        else
             disp('Using MNL results as starting values')
+            if ~(isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == (NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT))
+                EstimOpt_tmp = EstimOpt;
+                EstimOpt_tmp.Display = 0;         
+                OptimOpt_tmp = optimoptions('fminunc');
+                OptimOpt_tmp.Algorithm = 'quasi-newton';
+                OptimOpt_tmp.GradObj = 'off';
+                OptimOpt_tmp.Hessian = 'off';
+                OptimOpt_tmp.Display = 'off';
+                OptimOpt_tmp.FunValCheck= 'off';
+                OptimOpt_tmp.Diagnostics = 'off';
+                Results_old.MNL = MNL(INPUT,Results_old,EstimOpt_tmp,OptimOpt_tmp);
+            end
             Results_old.MNL.bhat = Results_old.MNL.bhat(:);
             b0 = [Results_old.MNL.bhat(1:NVarA);zeros(sum(1:NVarA),1);Results_old.MNL.bhat(NVarA+1:end)];
             if sum(EstimOpt.Dist == 1) > 0
@@ -308,8 +331,8 @@ else % EstimOpt.FullCov == 1
                 b0(indx) = zeros(length(indx),1);
                 b0 = [b0;tmp;zeros(length(indx),1)];
             end
-        else
-            error('No starting values available')
+%         else
+%             error('No starting values available')
         end
     end
 end
@@ -412,7 +435,9 @@ end
 
 err_mtx(:,EstimOpt.Dist == -1) = 0;
 
+
 %% Display Options
+
 
 if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -567,6 +592,7 @@ fprintf('\n')
 
 %% Rescructure data
 
+
 INPUT.XXa = reshape(INPUT.Xa,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP,NVarA]);
 INPUT.XXa = permute(INPUT.XXa,[1 3 2]);
 INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
@@ -632,7 +658,9 @@ end
 
 % end
 
+
 %% Estimation
+
 
 LLfun = @(B) LL_mxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,INPUT.W,EstimOpt,OptimOpt,B);
 
@@ -656,7 +684,7 @@ if EstimOpt.ConstVarActive == 0
 
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
-    EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:)=[];
+    EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:) = [];
     EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
     %     EstimOpt.CONS1 = sparse(EstimOpt.CONS1);
     %     EstimOpt.CONS2 = sparse(EstimOpt.CONS2);
@@ -667,7 +695,9 @@ elseif EstimOpt.ConstVarActive == 1 % equality constraints
     end
 end
 
+
 %% Output
+
 
 % save tmp1
 % return
@@ -680,21 +710,23 @@ LLfun2 = @(B) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,B);
 if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
     try
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+        Results.jacobian = Results.jacobian.*INPUT.W;
     catch % theErrorInfo
         Results.LLdetailed = LLfun2(Results.bhat);
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian2 = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian2 = Results.jacobian2.*INPUT.W;
     end
 elseif EstimOpt.HessEstFix == 1
     if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
         [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian = Results.jacobian.*INPUT.W;
     else
         Results.LLdetailed = LLfun2(Results.bhat);
         Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        Results.jacobian = Results.jacobian.*INPUT.W;
     end
 elseif EstimOpt.HessEstFix == 2
+    Results.LLdetailed = LLfun2(Results.bhat);
     Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.LLdetailed = LLfun2(Results.bhat);
@@ -705,17 +737,6 @@ elseif EstimOpt.HessEstFix == 4
 end
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 
-if EstimOpt.RobustStd == 1
-    if EstimOpt.NumGrad == 0
-        [~,Results.jacobian] = LLfun2(Results.bhat);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
-    else
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-    end
-    RobustHess = Results.jacobian'*Results.jacobian;
-    Results.ihess = Results.ihess*RobustHess*Results.ihess;
-end
-
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
@@ -725,6 +746,19 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+if EstimOpt.RobustStd == 1
+    if ~isfield(Results,'jacobian')
+        if EstimOpt.NumGrad == 0
+            [~,Results.jacobian] = LLfun2(Results.bhat);
+            Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        else
+            Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        end
+    end
+    RobustHess = Results.jacobian'*Results.jacobian;
+    Results.ihess = Results.ihess*RobustHess*Results.ihess;
+end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
@@ -1014,7 +1048,9 @@ Results.INPUT = INPUT;
 Results.Dist = transpose(EstimOpt.Dist);
 EstimOpt.JSNVariables = find(EstimOpt.Dist > 4 & EstimOpt.Dist <= 7);
 
+
 %% Tworzebnie templatek do printu
+
 
 Template1 = {'DetailsA','DetailsV'};
 Template2 = {'DetailsA','DetailsV'};
@@ -1063,7 +1099,10 @@ if EstimOpt.NVarS > 0
     ST = {'DetailsS'};
 end
 
+
 %% Tworzenie naglowka
+
+
 Head = cell(1,2);
 if EstimOpt.FullCov == 0
     Head(1,1) = {'MXL_d'};
@@ -1077,7 +1116,9 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
+
 %% Tworzenie stopki
+
 
 Tail = cell(17,2);
 Tail(2,1) = {'Model diagnostics'};
@@ -1159,9 +1200,13 @@ else
 end
 Tail(17,2) = {outHessian};
 
+
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+
 
 if EstimOpt.Display~=0
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+
+
 end
