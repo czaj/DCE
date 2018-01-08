@@ -151,7 +151,7 @@ else
 end
 
 if isfield(EstimOpt, 'PlotIndx') == 0
-    EstimOpt.PlotIndx = 0; % Do not draws a plot
+    EstimOpt.PlotIndx = 0; % Do not draw a plot
 end
 
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
@@ -572,12 +572,16 @@ Results.LL = -LL;
 Results.b_mtx = b_mtx;
 Results.GridMat = GridMat;
 
-if EstimOpt.StepVar > 0
-    b_GridMat = [b_GridMat; EstimOpt.StepFun(GridMat)];
-end
+
 
 % Results.P = P_lml(Results.bhat,b_GridMat);
-[Results.P,Results.DistStats] = P_lml(b_GridMat,Results.bhat,GridMat,Results.ihess,EstimOpt);
+ err_tmp = unique(err_mtx', 'rows')';
+ b_tmp = B_lml(err_tmp,EstimOpt);
+if EstimOpt.StepVar > 0
+    b_tmp = [b_tmp; EstimOpt.StepFun(err_tmp)];
+end
+
+[Results.P,Results.DistStats, Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
 
 EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
@@ -596,8 +600,9 @@ if EstimOpt.PlotIndx > 0
 %         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1); 
         subplot(NVarA,1,i);
 %         bar(Grid_i,P_tmp)
-        tmp = sortrows([GridMat(i,:)',Results.P'])';
-        plot(tmp(1,:),tmp(2,:))
+%         tmp = sortrows([GridMat(i,:)',Results.P'])';
+%         plot(tmp(1,:),tmp(2,:))
+        plot(Results.GridPlot{i}',Results.P{i}')
         title(EstimOpt.NamesA(i))
     end
 end
