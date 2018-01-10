@@ -1,4 +1,4 @@
-function [P_t,DistStats, Grid_t] = P_lml(b_GridMat,bhat,varargin)
+function [P_t,DistStats,Grid_t] = P_lml(b_GridMat,bhat,varargin)
 
 P = mnlquick(b_GridMat,bhat); % Calculate probabilities 1xNGrid
 
@@ -23,7 +23,7 @@ if nargout > 1
     h = @(b) sqrt(sum(mnlquick(b_GridMat,b).*(GridMat.^2),2) - sum(mnlquick(b_GridMat,b).*GridMat,2).^2); % Calculates Std. Dev
     H = jacobianest(h,bhat);
     M.Std = [h(bhat),zeros(EstimOpt.NVarA,1),sqrt(diag(H*iHess*H')),pv(h(bhat),sqrt(diag(H*iHess*H')))];
-    [P_t, Grid_t] = P_transform(P, GridMat, EstimOpt.NVarA);
+    [P_t,Grid_t] = P_transform(P,GridMat,EstimOpt.NVarA);
     M.Quantile = zeros(EstimOpt.NVarA,7);
     Quantiles = [0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975];
     for i = 1:EstimOpt.NVarA
@@ -70,7 +70,7 @@ function PX = mnlquick(b_GridMat,bhat)
     PX = (Fit./Fit_sum)';
 end
 
-function [P_t, Grid_t]  = P_transform(P, Grid, NVarA)
+function [P_t,Grid_t] = P_transform(P,Grid,NVarA)
     P_t = cell(NVarA,1);
     Grid_t = cell(NVarA,1);
     for i = 1:NVarA
