@@ -610,33 +610,22 @@ end
 
 %% Output
 
-% this is temporary
+Results.std = sqrt(diag(Results.ihess));
+Results.Details(1:NVar,1) = Results.bhat;
+Results.Details(1:NVar,3:4) = [Results.std,pv(Results.bhat,Results.std)];
 
-% betas:
-disp(reshape([Results.bhat,sqrt(diag(Results.ihess))],[NVarA,size(Results.bhat,1)*2/NVarA]))
-disp(' ')
+%% Template filling
 
-% distribution statistics
-R_out_tmp = {'l.bound','u.bound','mean','s.e.','s.d.','s.e.','q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
-R_out_tmp(2:NVarA+1,:) = num2cell([EstimOpt.Bounds,Results.DistStats(:,1,1),Results.DistStats(:,1,2),Results.DistStats(:,2,1),Results.DistStats(:,2,2),Results.DistStats(:,3:end,1)]);
-disp(R_out_tmp)
-
-
-
-
-
-% Results.DetailsA = Results.Stats(M.Mean;
-% Results.DetailsV = Results.M.Std;
-% Template1 = {'DetailsA','DetailsV'};
-% Template2 = {'DetailsA','DetailsV'};
-% Names.DetailsA = EstimOpt.NamesA;
-% Heads.DetailsA = {'Means';'tc'};
-% Heads.DetailsV = {'Standard Deviations';'lb'};
-% ST = {};
-
+Template1 = {'Details'};
+Template2 = {'Details'};
+% for i=1:EstimOpt.NOrder
+%    EstimOpt.Names(:,i) = strcat(EstimOpt.NamesA,' (',repmat(num2str(i),[size(EstimOpt.NamesA,1),1]),')');
+% end
+Names.Details = repmat(EstimOpt.NamesA,[EstimOpt.NOrder+1,1]);
+Heads.Details = {'Mean';'tb'};
+ST = {};
 
 %% Tworzenie naglowka
-
 
 Head = cell(1,2);
 if EstimOpt.FullCov == 0
@@ -651,13 +640,11 @@ else
     Head(1,2) = {'in preference-space'};
 end
 
-
 %% Tworzenie stopki
 
-
-Tail = cell(17,2);
+Tail = cell(18,2);
 Tail(2,1) = {'Model diagnostics'};
-Tail(3:17,1) = {'LL at convergence';'LL at constant(s) only';strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178));'AIC/n';'BIC/n';'n (observations)';'r (respondents)';'k (parameters)';'';'Estimation method';'Simulation with';'Optimization method';'Gradient';'Hessian'};
+Tail(3:18,1) = {'LL at convergence';'LL at constant(s) only';strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178));'AIC/n';'BIC/n';'n (observations)';'r (respondents)';'k (parameters)';'';'Estimation method';'Simulation with';'Grid points';'Optimization method';'Gradient';'Hessian'};
 
 if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
     Tail(3:11,2) = num2cell(Results.stats);
@@ -684,16 +671,17 @@ switch EstimOpt.Draws
         Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
 end
 
-Tail(15,2) = {OptimOpt.Algorithm;};
+Tail(15,2) = {num2str(NGrid)};
+Tail(16,2) = {OptimOpt.Algorithm};
 
 if strcmp(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
-        Tail(16,2) = {'user-supplied, analytical'};
+        Tail(17,2) = {'user-supplied, analytical'};
     else
-        Tail(16,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
+        Tail(17,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
     end
 else
-    Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
+    Tail(17,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')
@@ -733,8 +721,23 @@ else
             outHessian = [outHessian,'ex-post calculated analytically'];
     end
 end
-Tail(17,2) = {outHessian};
+Tail(18,2) = {outHessian};
+
+%% Statistics
+
+Statistics.Bounds = EstimOpt.Bounds;
+Statistics.Quantile = Results.DistStats(:,3:end,1);
+Statistics.Mean(:,1) = Results.DistStats(:,1,1);
+Statistics.Mean(:,3:4) = [Results.DistStats(:,1,2),pv(Results.DistStats(:,1,1),Results.DistStats(:,1,2))];
+Statistics.Sd(:,1) = Results.DistStats(:,2,1);
+Statistics.Sd(:,3:4) = [Results.DistStats(:,2,2),pv(Results.DistStats(:,2,1),Results.DistStats(:,2,2))];
+
+Names.Statistics = EstimOpt.NamesA;
+Heads.StatisticsQ = {'q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
 
 
-% Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
+if EstimOpt.Display~=0
+    Results.Dist = repmat(EstimOpt.Dist',[EstimOpt.NOrder+1,1]);
+    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST, 'lml', Statistics);
+end
 
