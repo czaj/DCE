@@ -89,11 +89,16 @@ else
     end
 end
 
-if ~isfield(EstimOpt, 'NOrder')
+if ~isfield(EstimOpt,'NOrder')
     EstimOpt.NOrder = 3;
 end
 
 disp(['Random parameters distributions: ', num2str(EstimOpt.Dist),' (0 - approximate normal, 1 - approximate lognormal, 2 - Legendre polynomial (normal), 3 - Legendre polynomial (log-normal), 4 - Step function, 5 - Linear Spline, 6 - Cubic Spline, 7 - Piece-wise Cubic Spline, 8 - Piece-wise Cubic Hermite Interpolating Spline'])
+if any(EstimOpt.Dist == 0 | EstimOpt.Dist == 1)
+    cprintf('Order of approximation for normal / lognormal distribution(s): ');
+    cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
+    cprintf(' \n');
+end
 if any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
     cprintf('Order of Legendre polynomial(s): ');
     cprintf('*blue',[num2str(EstimOpt.NOrder) ' ']);
@@ -167,11 +172,15 @@ gcp;
 %% Starting values
 
 
-NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*2 + ...
+NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
     (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),2) + ...
     EstimOpt.StepVar;
+
+if exist('B_backup','var') && ~isempty(B_backup) && isvector(B_backup)
+    B_backup = B_backup(:);
+end
 
 if EstimOpt.FullCov == 0
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
@@ -572,16 +581,14 @@ Results.LL = -LL;
 Results.b_mtx = b_mtx;
 Results.GridMat = GridMat;
 
-
-
 % Results.P = P_lml(Results.bhat,b_GridMat);
- err_tmp = unique(err_mtx', 'rows')';
- b_tmp = B_lml(err_tmp,EstimOpt);
+err_tmp = unique(err_mtx','rows')';
+b_tmp = B_lml(err_tmp,EstimOpt);
 if EstimOpt.StepVar > 0
     b_tmp = [b_tmp; EstimOpt.StepFun(err_tmp)];
 end
 
-[Results.P,Results.DistStats, Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
+[Results.P,Results.DistStats,Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
 
 EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
@@ -592,6 +599,7 @@ Results.OptimOpt = OptimOpt;
 Results.INPUT = INPUT;
 Results.Dist = EstimOpt.Dist';
 
+% return
 
 if EstimOpt.PlotIndx > 0
     EstimOpt.Plot = figure;
@@ -737,7 +745,9 @@ Heads.StatisticsQ = {'q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
 
 
 if EstimOpt.Display~=0
-    Results.Dist = repmat(EstimOpt.Dist',[EstimOpt.NOrder+1,1]);
+%     Results.Dist = repmat(EstimOpt.Dist',[EstimOpt.NOrder+1,1]);
+    % This only works for similar types of distributions for all attributes:
+    Results.Dist = repmat(EstimOpt.Dist',[sum((EstimOpt.Dist(1) <= 3)*EstimOpt.NOrder + (EstimOpt.Dist(1) == 4)*(EstimOpt.NOrder-1) + (EstimOpt.Dist(1) > 4)*(EstimOpt.NOrder+1)),1]);
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST, 'lml', Statistics);
 end
 
