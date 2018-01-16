@@ -629,7 +629,10 @@ Template2 = {'Details'};
 % for i=1:EstimOpt.NOrder
 %    EstimOpt.Names(:,i) = strcat(EstimOpt.NamesA,' (',repmat(num2str(i),[size(EstimOpt.NamesA,1),1]),')');
 % end
-Names.Details = repmat(EstimOpt.NamesA,[EstimOpt.NOrder+1,1]);
+% Names.Details = repmat(EstimOpt.NamesA,[EstimOpt.NOrder+1,1]);
+    % This only works for similar types of distributions for all attributes:
+Names.Details = repmat(EstimOpt.NamesA,[((EstimOpt.Dist(1) <= 3)*EstimOpt.NOrder + (EstimOpt.Dist(1) == 4)*(EstimOpt.NOrder-1) + (EstimOpt.Dist(1) > 4)*(EstimOpt.NOrder+1)),1]);
+
 Heads.Details = {'Mean';'tb'};
 ST = {};
 
