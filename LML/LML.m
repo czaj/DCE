@@ -217,7 +217,7 @@ else
         if isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'bhat') % starting values provided
             b0 = [Results_old.LML_d.bhat; zeros(NVarA*(NVarA-1)/2,1)];
         else
-            b0 = zeros(NVar+ NVarA*(NVarA-1)/2,1);
+            b0 = zeros(NVar + NVarA*(NVarA-1)/2,1);
         end
     end
 end
@@ -616,11 +616,13 @@ if EstimOpt.PlotIndx > 0
 end
 
 
+% save tmp2
+
 %% Output
 
 Results.std = sqrt(diag(Results.ihess));
-Results.Details(1:NVar,1) = Results.bhat;
-Results.Details(1:NVar,3:4) = [Results.std,pv(Results.bhat,Results.std)];
+Results.Details(1:NVar,1) = Results.bhat(1:NVar);
+Results.Details(1:NVar,3:4) = [Results.std(1:NVar),pv(Results.bhat(1:NVar),Results.std(1:NVar))];
 
 %% Template filling
 
