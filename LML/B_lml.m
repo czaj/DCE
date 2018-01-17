@@ -34,6 +34,10 @@ if NVarAApprox > 0
     b_mtx(Dist == 1,:,1) = log(GridMat(Dist == 1,:));
     b_mtx(Dist == 0,:,2) = GridMat(Dist == 0,:).^2;
     b_mtx(Dist == 1,:,2) = log(GridMat(Dist == 1,:)).^2;
+    for i = 3:NOrder
+        b_mtx(Dist == 0,:,i) = GridMat(Dist == 0,:).^i;
+        b_mtx(Dist == 1,:,i) = log(GridMat(Dist == 1,:)).^i;
+    end
 end
 
 % Polynomials:

@@ -7,7 +7,7 @@ if nargout > 1
         GridMat = varargin{1};
         iHess = varargin{2};
         EstimOpt = varargin{3};
-        KR = 0;
+%         KR_idx = 0;
         if nargin == 6
             KR_idx = varargin{4};
         else
@@ -33,7 +33,7 @@ if nargout > 1
             M.Quantile(i,j) = Grid_i(:,find(P_cumsum > Quantiles(j),1));
         end
     end
-    if KR == 1 % using K&R (simulates s.e. and 95% c.i.)
+    if KR_idx == 1 % using K&R (simulates s.e. and 95% c.i.)
         bhat_mtx = mvnrnd(bhat,iHess,EstimOpt.NSdSim);
         Stats_mtx = zeros(EstimOpt.NVarA,7,EstimOpt.NSdSim);
         for i = 1:EstimOpt.NSdSim
