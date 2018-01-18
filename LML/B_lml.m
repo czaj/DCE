@@ -34,6 +34,10 @@ if NVarAApprox > 0
     b_mtx(Dist == 1,:,1) = log(GridMat(Dist == 1,:));
     b_mtx(Dist == 0,:,2) = GridMat(Dist == 0,:).^2;
     b_mtx(Dist == 1,:,2) = log(GridMat(Dist == 1,:)).^2;
+    for i = 3:NOrder
+        b_mtx(Dist == 0,:,i) = GridMat(Dist == 0,:).^i;
+        b_mtx(Dist == 1,:,i) = log(GridMat(Dist == 1,:)).^i;
+    end
 end
 
 % Polynomials:
@@ -43,7 +47,9 @@ if NVarAPoly > 0
     GridMat(Dist == 3,:) = (GridMat(Dist == 3,:) - Bounds(Dist == 3,1))./(Bounds(Dist == 3,2) - Bounds(Dist == 3,1));
     b_mtx(Dist == 2 | Dist == 3,:,1) = GridMat(Dist == 2 | Dist == 3,:);
     b_mtx(Dist == 2 | Dist == 3,:,2) = ((2*2-1)/2)*GridMat(Dist == 2 | Dist == 3,:).*b_mtx(Dist == 2 | Dist == 3,:,1)-(2-1)/2;
-    b_mtx(Dist == 2 | Dist == 3,:,3) = ((2*3-1)/3)*GridMat(Dist == 2 | Dist == 3,:).*b_mtx(Dist == 2 | Dist == 3,:,2)-((3-1)/3)*b_mtx(Dist == 2 | Dist == 3,:,1);
+    if NOrder >= 3
+        b_mtx(Dist == 2 | Dist == 3,:,3) = ((2*3-1)/3)*GridMat(Dist == 2 | Dist == 3,:).*b_mtx(Dist == 2 | Dist == 3,:,2)-((3-1)/3)*b_mtx(Dist == 2 | Dist == 3,:,1);
+    end
     if NOrder > 3
         for i = 4:NOrder
             b_mtx(Dist == 2 | Dist == 3,:,i) = ((2*i-1)/i)*GridMat(Dist == 2 | Dist == 3,:).*b_mtx(Dist == 2 | Dist == 3,:,i-1)-((i-1)/i)*b_mtx(Dist == 2 | Dist == 3,:,i-2);
