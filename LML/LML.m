@@ -604,21 +604,35 @@ end
 
 
 %% Output
-
-Results.std = sqrt(diag(Results.ihess));
-Results.Details(1:NVar,1) = Results.bhat;
-Results.Details(1:NVar,3:4) = [Results.std,pv(Results.bhat,Results.std)];
-
-%% Template filling
-
 Template1 = {'Details'};
 Template2 = {'Details'};
-% for i=1:EstimOpt.NOrder
-%    EstimOpt.Names(:,i) = strcat(EstimOpt.NamesA,' (',repmat(num2str(i),[size(EstimOpt.NamesA,1),1]),')');
-% end
-Names.Details = repmat(EstimOpt.NamesA,[EstimOpt.NOrder+1,1]);
-Heads.Details = {'Mean';'tb'};
 ST = {};
+Results.std = sqrt(diag(Results.ihess));
+% for i=1:length(Results.bhat)/EstimOpt.NVarA
+%     Results.(strcat('Details',num2str(i)))(1:NVarA,1) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
+%     Results.(strcat('Details',num2str(i)))(1:NVarA,3:4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
+%     Template1 = [Template1,{strcat('Details',num2str(i))}];
+%     Template2 = [Template2,{strcat('Details',num2str(i))}];
+%     Names.(strcat('Details',num2str(i))) = EstimOpt.NamesA;
+%     if i == 1 && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tc'};
+%     elseif i<length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lc'};
+%     elseif i == length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lb'};
+%     else
+%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tb'};
+%     end
+% end
+Heads.Details = {};
+for i=1:length(Results.bhat)/EstimOpt.NVarA
+    Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
+    Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
+    Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i))}];
+end
+Heads.Details = [Heads.Details;{'tb'}];
+
+Names.Details = EstimOpt.NamesA;
 
 %% Tworzenie naglowka
 
@@ -729,10 +743,10 @@ Statistics.Sd(:,3:4) = [Results.DistStats(:,2,2),pv(Results.DistStats(:,2,1),Res
 
 Names.Statistics = EstimOpt.NamesA;
 Heads.StatisticsQ = {'q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
-
+EstimOpt.StatTypes = ['b','b','m','m','m','m','m','m','m','m','q','q','q','q','q','q','q'];
 
 if EstimOpt.Display~=0
-    Results.Dist = repmat(EstimOpt.Dist',[EstimOpt.NOrder+1,1]);
+    Results.Dist = EstimOpt.Dist;
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST, 'lml', Statistics);
 end
 
