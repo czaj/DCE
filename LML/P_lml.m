@@ -16,13 +16,13 @@ if nargout > 1
     else
         error('Simulating distribution statistics requires providing GridMat, iHess, EstimOpt as inputs');
     end
-    
+    [H,H2] = jacobian1(b_GridMat,GridMat,bhat);
     h = @(b) sum(mnlquick(b_GridMat,b).*GridMat,2); % Calculates Mean
-    H = jacobianest(h,bhat);
+    %H = jacobianest(h,bhat);
     M.Mean = [h(bhat),zeros(EstimOpt.NVarA,1),sqrt(diag(H*iHess*H')),pv(h(bhat),sqrt(diag(H*iHess*H')))];
     h = @(b) sqrt(sum(mnlquick(b_GridMat,b).*(GridMat.^2),2) - sum(mnlquick(b_GridMat,b).*GridMat,2).^2); % Calculates Std. Dev
-    H = jacobianest(h,bhat);
-    M.Std = [h(bhat),zeros(EstimOpt.NVarA,1),sqrt(diag(H*iHess*H')),pv(h(bhat),sqrt(diag(H*iHess*H')))];
+    %H = jacobianest(h,bhat);
+    M.Std = [h(bhat),zeros(EstimOpt.NVarA,1),sqrt(diag(H2*iHess*H2')),pv(h(bhat),sqrt(diag(H2*iHess*H2')))];
     [P_t,Grid_t] = P_transform(P,GridMat,EstimOpt.NVarA);
     M.Quantile = zeros(EstimOpt.NVarA,7);
     Quantiles = [0.025, 0.1, 0.25, 0.5, 0.75, 0.9, 0.975];
@@ -84,4 +84,21 @@ function [P_t,Grid_t] = P_transform(P,Grid,NVarA)
        P_t{i} = P_i';
        Grid_t{i} = U;
     end
+end
+
+function [J1, J2] = jacobian1(b_GridMat,GridMat,bhat) % calculates jacobian for means and variance
+    P = mnlquick(b_GridMat,bhat); % 1 x NGrid
+    PBG = P.*b_GridMat; % Var x NGrid
+    sumPBG = sum(PBG,2);
+    Tmp = PBG - P.*sumPBG; % Var x NGrid
+    Tmp = reshape(Tmp, [size(Tmp,1), 1, size(Tmp,2)]);
+    Grid = reshape(GridMat, [1, size(GridMat,1),size(GridMat,2)]);
+    J1 = sum(Tmp.*Grid,3)'; % NVarA x Var
+    
+    
+    Meanx = sum(P.*GridMat,2);
+    Stdx = sqrt(sum(P.*(GridMat.^2),2) - Meanx.^2);
+    J2_1 = sum(Tmp.*(Grid.^2),3)'; % NVarA x Var
+    J2_2 = 2*Meanx.*J1;
+    J2 = (J2_1 - J2_2)./(2*Stdx);
 end
