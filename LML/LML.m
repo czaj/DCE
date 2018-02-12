@@ -166,7 +166,7 @@ elseif size(EstimOpt.NamesA,1) ~= NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
 
-gcp;
+ gcp;
 
 
 %% Starting values
@@ -602,17 +602,22 @@ Results.Dist = EstimOpt.Dist';
 % return
 
 if EstimOpt.PlotIndx > 0
-    EstimOpt.Plot = figure;
+    EstimOpt.Plot = figure('units','normalized','outerposition',[0 0 1 1]);
     for i = 1:NVarA
 %         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1); 
-%         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1); 
-        subplot(NVarA,1,i);
+%         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1);
+        if rem(NVarA,2) == 0
+            subplot(NVarA/2,2,i);
+        else
+            subplot(NVarA,1,i);
+        end
 %         bar(Grid_i,P_tmp)
 %         tmp = sortrows([GridMat(i,:)',Results.P'])';
 %         plot(tmp(1,:),tmp(2,:))
         plot(Results.GridPlot{i}',Results.P{i}')
         title(EstimOpt.NamesA(i))
     end
+    EstimOpt.Plot2 = gcf;
 end
 
 
