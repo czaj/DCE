@@ -22,7 +22,7 @@ NVarACSpline = sum(Dist == 6); % Cubic (with bounds extension)
 NVarAPCSpline = sum(Dist == 7); % Piece-wise Cubic (with bounds extension)
 NVarAPCHISpline = sum(Dist == 8); % Piece-wise Cubic Hermite Interpolating (with bounds extension)
 
-if FullCov == 1 && any(Dist == 3)
+if FullCov == 1 && any(Dist == 3 | Dist == 1)
     GridMat_old = GridMat;
 end
 
@@ -30,13 +30,24 @@ b_mtx = NaN([NVarA,size(GridMat,2),NOrder+1]); % to be cut later
 
 % Approximate normal and lognormal:
 if NVarAApprox > 0
-    b_mtx(Dist == 0,:,1) = GridMat(Dist == 0,:);
-    b_mtx(Dist == 1,:,1) = log(GridMat(Dist == 1,:));
-    b_mtx(Dist == 0,:,2) = GridMat(Dist == 0,:).^2;
-    b_mtx(Dist == 1,:,2) = log(GridMat(Dist == 1,:)).^2;
+    GridMat(Dist == 0,:) = (GridMat(Dist == 0,:) - Bounds(Dist == 0,1))./(Bounds(Dist == 0,2) - Bounds(Dist == 0,1));
+    GridMat(Dist == 1,:) = log(GridMat(Dist == 1,:));
+    GridMat(Dist == 1,:) = (GridMat(Dist == 1,:) - log(Bounds(Dist == 1,1)))./(log(Bounds(Dist == 1,2)) - log(Bounds(Dist == 1,1)));
+    b_mtx(Dist == 0 | Dist == 1,:,1) = GridMat(Dist == 0 | Dist == 1,:);
+    b_mtx(Dist == 0 | Dist == 1,:,2) = GridMat(Dist == 0 | Dist == 1,:).^2;
+   % GridMat(Dist == 0 | Dist == 1,:) = 10*GridMat(Dist == 0 | Dist == 1,:)./max(GridMat(Dist == 0 | Dist == 1,:),[],2);
+%     b_mtx(Dist == 0,:,1) = GridMat(Dist == 0,:);
+%     b_mtx(Dist == 1,:,1) = log(GridMat(Dist == 1,:));
+%  %   b_mtx(Dist == 1 | Dist == 0,:,1) = 10*b_mtx(Dist == 1 | Dist == 0,:,1)./max(b_mtx(Dist == 1 | Dist == 0,:,1),[],2);
+%     b_mtx(Dist == 0,:,2) = GridMat(Dist == 0,:).^2;
+%     b_mtx(Dist == 1,:,2) = log(GridMat(Dist == 1,:)).^2;
+%  %   b_mtx(Dist == 1 | Dist == 0,:,2) = 10*b_mtx(Dist == 1 | Dist == 0,:,2)./max(b_mtx(Dist == 1 | Dist == 0,:,2),[],2);
     for i = 3:NOrder
-        b_mtx(Dist == 0,:,i) = GridMat(Dist == 0,:).^i;
-        b_mtx(Dist == 1,:,i) = log(GridMat(Dist == 1,:)).^i;
+        b_mtx(Dist == 0 | Dist == 1,:,i) = GridMat(Dist == 0 | Dist == 1,:).^i;
+%         b_mtx(Dist == 0,:,i) = GridMat(Dist == 0,:).^i;
+%         b_mtx(Dist == 1,:,i) = log(GridMat(Dist == 1,:)).^i;
+ %       b_mtx(Dist == 1 | Dist == 0,:,i) = 10*b_mtx(Dist == 1 | Dist == 0,:,i)./max(b_mtx(Dist == 1 | Dist == 0,:,i),[],2);
+
     end
 end
 
@@ -44,7 +55,8 @@ end
 if NVarAPoly > 0
     GridMat(Dist == 2,:) = (GridMat(Dist == 2,:) - Bounds(Dist == 2,1))./(Bounds(Dist == 2,2) - Bounds(Dist == 2,1));
     GridMat(Dist == 3,:) = log(GridMat(Dist == 3,:));
-    GridMat(Dist == 3,:) = (GridMat(Dist == 3,:) - Bounds(Dist == 3,1))./(Bounds(Dist == 3,2) - Bounds(Dist == 3,1));
+    % GridMat(Dist == 3,:) = (GridMat(Dist == 3,:) - Bounds(Dist == 3,1))./(Bounds(Dist == 3,2) - Bounds(Dist == 3,1));
+    GridMat(Dist == 3,:) = (GridMat(Dist == 3,:) - log(Bounds(Dist == 3,1)))./(log(Bounds(Dist == 3,2)) - log(Bounds(Dist == 3,1)));
     b_mtx(Dist == 2 | Dist == 3,:,1) = GridMat(Dist == 2 | Dist == 3,:);
     b_mtx(Dist == 2 | Dist == 3,:,2) = ((2*2-1)/2)*GridMat(Dist == 2 | Dist == 3,:).*b_mtx(Dist == 2 | Dist == 3,:,1)-(2-1)/2;
     if NOrder >= 3
@@ -195,7 +207,7 @@ b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2
 
 % Correlations
 if FullCov == 1
-    if any(Dist == 3)
+    if any(Dist == 3 | Dist == 1)
         GridMat = GridMat_old;
     end
     indx1 = tril(repmat(1:NVarA,[NVarA,1])',-1);
