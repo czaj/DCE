@@ -22,7 +22,7 @@ NVarACSpline = sum(Dist == 6); % Cubic (with bounds extension)
 NVarAPCSpline = sum(Dist == 7); % Piece-wise Cubic (with bounds extension)
 NVarAPCHISpline = sum(Dist == 8); % Piece-wise Cubic Hermite Interpolating (with bounds extension)
 
-if FullCov == 1 && any(Dist == 3 | Dist == 1)
+if FullCov == 1
     GridMat_old = GridMat;
 end
 
@@ -207,9 +207,10 @@ b_mtx = reshape(permute(b_mtx,[1,3,2]),[size(b_mtx,1)*size(b_mtx,3),size(b_mtx,2
 
 % Correlations
 if FullCov == 1
-    if any(Dist == 3 | Dist == 1)
+   % if any(Dist == 3 | Dist == 1)
         GridMat = GridMat_old;
-    end
+   % end
+    GridMat = (GridMat - Bounds(:,1))./(Bounds(:,2) - Bounds(:,1));
     indx1 = tril(repmat(1:NVarA,[NVarA,1])',-1);
     indx1 = indx1(indx1~=0);
     indx2 = tril(repmat(1:NVarA,[NVarA,1]),-1);

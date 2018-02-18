@@ -159,6 +159,11 @@ if isfield(EstimOpt, 'PlotIndx') == 0
     EstimOpt.PlotIndx = 0; % Do not draw a plot
 end
 
+if isfield(EstimOpt, 'NoOutput') == 0
+    EstimOpt.NoOutput = 0; % Do not draw a plot
+end
+
+
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
     EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
@@ -393,7 +398,10 @@ end
 
 
 %% Display Options
-
+if EstimOpt.NoOutput == 1
+    cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    EstimOpt.HessEstFix = 1;
+end
 
 if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient on - otherwise parameters'' constraints will be ignored - switch to constrained optimization instead (EstimOpt.ConstVarActive = 1) \n')
@@ -529,248 +537,256 @@ end
 
 %% Hessian calculations
 
+if EstimOpt.NoOutput == 0
+    
+    LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
 
-LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
-
-if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
-    try
-        [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-    catch % theErrorInfo
-        Results.LLdetailed = LLfun2(Results.bhat);
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
-    end
-elseif EstimOpt.HessEstFix == 1
-    if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
-        [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
-    else
-        Results.LLdetailed = LLfun2(Results.bhat);
-        Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
-    end
-elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
-elseif EstimOpt.HessEstFix == 3
-    Results.LLdetailed = LLfun2(Results.bhat);
-    Results.hess = hessian(@(B) sum(INPUT.W.*LLfun2(B)),Results.bhat);
-elseif EstimOpt.HessEstFix == 4
-
-end
-R2 = mean(exp(-Results.LLdetailed/EstimOpt.NCT),1);
-Results.LLdetailed = Results.LLdetailed.*INPUT.W;
-
-if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
-    Results.hess = Results.jacobian'*Results.jacobian;
-end
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
-Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
-Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
-Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
-
-
-%% Output
-
-
-% save tmp11
-% return
-
-Results.LL = -LL;
-Results.b_mtx = b_mtx;
-Results.GridMat = GridMat;
-
-% Results.P = P_lml(Results.bhat,b_GridMat);
-err_tmp = unique(err_mtx','rows')';
-b_tmp = B_lml(err_tmp,EstimOpt);
-if EstimOpt.StepVar > 0
-    b_tmp = [b_tmp; EstimOpt.StepFun(err_tmp)];
-end
-
-[Results.P,Results.DistStats,Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
-
-EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
-Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
-
-%File Output
-Results.EstimOpt = EstimOpt;
-Results.OptimOpt = OptimOpt;
-Results.INPUT = INPUT;
-Results.Dist = EstimOpt.Dist';
-
-% return
-
-if EstimOpt.PlotIndx > 0
-    EstimOpt.Plot = figure('units','normalized','outerposition',[0 0 1 1]);
-    for i = 1:NVarA
-%         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1); 
-%         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1);
-        if rem(NVarA,2) == 0
-            subplot(NVarA/2,2,i);
-        else
-            subplot(NVarA,1,i);
+    if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
+        try
+            [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+        catch % theErrorInfo
+            Results.LLdetailed = LLfun2(Results.bhat);
+            Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+            Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
         end
-%         bar(Grid_i,P_tmp)
-%         tmp = sortrows([GridMat(i,:)',Results.P'])';
-%         plot(tmp(1,:),tmp(2,:))
-        plot(Results.GridPlot{i}',Results.P{i}')
-        title(EstimOpt.NamesA(i))
-    end
-    EstimOpt.Plot2 = gcf;
-end
-
-
-% save tmp2
-
-%% Output
-
-Template1 = {'Details'};
-Template2 = {'Details'};
-
-ST = {};
-Results.std = sqrt(diag(Results.ihess));
-% for i=1:length(Results.bhat)/EstimOpt.NVarA
-%     Results.(strcat('Details',num2str(i)))(1:NVarA,1) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
-%     Results.(strcat('Details',num2str(i)))(1:NVarA,3:4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
-%     Template1 = [Template1,{strcat('Details',num2str(i))}];
-%     Template2 = [Template2,{strcat('Details',num2str(i))}];
-%     Names.(strcat('Details',num2str(i))) = EstimOpt.NamesA;
-%     if i == 1 && length(Results.bhat)/EstimOpt.NVarA ~= 1 
-%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tc'};
-%     elseif i<length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
-%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lc'};
-%     elseif i == length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
-%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lb'};
-%     else
-%         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tb'};
-%     end
-% end
-Heads.Details = {};
-for i=1:length(Results.bhat)/EstimOpt.NVarA
-    Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
-    Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
-    Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i))}];
-end
-Heads.Details = [Heads.Details;{'tb'}];
-
-Names.Details = EstimOpt.NamesA;
-
-%% Tworzenie naglowka
-
-Head = cell(1,2);
-if EstimOpt.FullCov == 0
-    Head(1,1) = {'LML_d'};
-else
-    Head(1,1) = {'LML'};
-end
-
-if EstimOpt.WTP_space > 0
-    Head(1,2) = {'in WTP-space'};
-else
-    Head(1,2) = {'in preference-space'};
-end
-
-%% Tworzenie stopki
-
-Tail = cell(18,2);
-Tail(2,1) = {'Model diagnostics'};
-Tail(3:18,1) = {'LL at convergence';'LL at constant(s) only';strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178));'AIC/n';'BIC/n';'n (observations)';'r (respondents)';'k (parameters)';'';'Estimation method';'Simulation with';'Grid points';'Optimization method';'Gradient';'Hessian'};
-
-if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
-    Tail(3:11,2) = num2cell(Results.stats);
-end
-
-if any(INPUT.W ~= 1)
-    Tail(13,2) = {'weighted simulated maximum likelihood'};
-else
-    Tail(13,2) = {'simulated maximum likelihood'};
-end
-
-switch EstimOpt.Draws
-    case 1
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
-    case 2
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
-    case  3
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
-    case 4
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
-    case 5
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
-    case 6
-        Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
-end
-
-Tail(15,2) = {num2str(NGrid)};
-Tail(16,2) = {OptimOpt.Algorithm};
-
-if strcmp(OptimOpt.GradObj,'on')
-    if EstimOpt.NumGrad == 0
-        Tail(17,2) = {'user-supplied, analytical'};
-    else
-        Tail(17,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
-    end
-else
-    Tail(17,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
-end
-
-if isequal(OptimOpt.Algorithm,'quasi-newton')
-    outHessian='off, ';
-    switch EstimOpt.HessEstFix
-        case 0
-            outHessian = [outHessian,'retained from optimization'];
-        case 1
-            outHessian = [outHessian,'ex-post calculated using BHHH'];
-        case 2
-            outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
-        case 3
-            outHessian = [outHessian,'ex-post calculated numerically'];
-        case 4
-            outHessian = [outHessian,'ex-post calculated analytically'];
-    end
-else
-    if strcmp(OptimOpt.Hessian,'user-supplied')
-        if EstimOpt.ApproxHess == 1
-            outHessian = 'user-supplied, BHHH, ';
+    elseif EstimOpt.HessEstFix == 1
+        if isequal(OptimOpt.GradObj,'on') && EstimOpt.NumGrad == 0
+            [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+            Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
         else
-            outHessian = 'user-supplied, analytical, ';
+            Results.LLdetailed = LLfun2(Results.bhat);
+            Results.jacobian = numdiff(@(B) INPUT.W.*LLfun2(B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+            Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
+        end
+    elseif EstimOpt.HessEstFix == 2
+        Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
+    elseif EstimOpt.HessEstFix == 3
+        Results.LLdetailed = LLfun2(Results.bhat);
+        Results.hess = hessian(@(B) sum(INPUT.W.*LLfun2(B)),Results.bhat);
+    elseif EstimOpt.HessEstFix == 4
+
+    end
+    R2 = mean(exp(-Results.LLdetailed/EstimOpt.NCT),1);
+    Results.LLdetailed = Results.LLdetailed.*INPUT.W;
+
+    if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
+        Results.hess = Results.jacobian'*Results.jacobian;
+    end
+    EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
+    EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+    Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
+    Results.ihess = inv(Results.hess);
+    Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
+    Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+
+    %% Output
+
+
+    % save tmp11
+    % return
+
+    Results.LL = -LL;
+    Results.b_mtx = b_mtx;
+    Results.GridMat = GridMat;
+
+    % Results.P = P_lml(Results.bhat,b_GridMat);
+    err_tmp = unique(err_mtx','rows')';
+    b_tmp = B_lml(err_tmp,EstimOpt);
+    if EstimOpt.StepVar > 0
+        b_tmp = [b_tmp; EstimOpt.StepFun(err_tmp)];
+    end
+
+    [Results.P,Results.DistStats,Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
+
+    EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
+    Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
+
+    %File Output
+    Results.EstimOpt = EstimOpt;
+    Results.OptimOpt = OptimOpt;
+    Results.INPUT = INPUT;
+    Results.Dist = EstimOpt.Dist';
+
+    % return
+
+    if EstimOpt.PlotIndx > 0
+        EstimOpt.Plot = figure('units','normalized','outerposition',[0 0 1 1]);
+        for i = 1:NVarA
+    %         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1); 
+    %         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1);
+            if rem(NVarA,2) == 0
+                subplot(NVarA/2,2,i);
+            else
+                subplot(NVarA,1,i);
+            end
+    %         bar(Grid_i,P_tmp)
+    %         tmp = sortrows([GridMat(i,:)',Results.P'])';
+    %         plot(tmp(1,:),tmp(2,:))
+            plot(Results.GridPlot{i}',Results.P{i}')
+            title(EstimOpt.NamesA(i))
+        end
+        EstimOpt.Plot2 = gcf;
+    end
+
+
+    % save tmp2
+
+    %% Output
+
+    Template1 = {'Details'};
+    Template2 = {'Details'};
+
+    ST = {};
+    Results.std = sqrt(diag(Results.ihess));
+    % for i=1:length(Results.bhat)/EstimOpt.NVarA
+    %     Results.(strcat('Details',num2str(i)))(1:NVarA,1) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
+    %     Results.(strcat('Details',num2str(i)))(1:NVarA,3:4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
+    %     Template1 = [Template1,{strcat('Details',num2str(i))}];
+    %     Template2 = [Template2,{strcat('Details',num2str(i))}];
+    %     Names.(strcat('Details',num2str(i))) = EstimOpt.NamesA;
+    %     if i == 1 && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tc'};
+    %     elseif i<length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lc'};
+    %     elseif i == length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lb'};
+    %     else
+    %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tb'};
+    %     end
+    % end
+    Heads.Details = {};
+    for i=1:length(Results.bhat)/EstimOpt.NVarA
+        Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
+        Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
+        Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i))}];
+    end
+    Heads.Details = [Heads.Details;{'tb'}];
+
+    Names.Details = EstimOpt.NamesA;
+
+    %% Tworzenie naglowka
+
+    Head = cell(1,2);
+    if EstimOpt.FullCov == 0
+        Head(1,1) = {'LML_d'};
+    else
+        Head(1,1) = {'LML'};
+    end
+
+    if EstimOpt.WTP_space > 0
+        Head(1,2) = {'in WTP-space'};
+    else
+        Head(1,2) = {'in preference-space'};
+    end
+
+    %% Tworzenie stopki
+
+    Tail = cell(18,2);
+    Tail(2,1) = {'Model diagnostics'};
+    Tail(3:18,1) = {'LL at convergence';'LL at constant(s) only';strcat('McFadden''s pseudo-R',char(178));strcat('Ben-Akiva-Lerman''s pseudo-R',char(178));'AIC/n';'BIC/n';'n (observations)';'r (respondents)';'k (parameters)';'';'Estimation method';'Simulation with';'Grid points';'Optimization method';'Gradient';'Hessian'};
+
+    if isfield(Results_old,'MNL0') && isfield(Results_old.MNL0,'LL')
+        Tail(3:11,2) = num2cell(Results.stats);
+    end
+
+    if any(INPUT.W ~= 1)
+        Tail(13,2) = {'weighted simulated maximum likelihood'};
+    else
+        Tail(13,2) = {'simulated maximum likelihood'};
+    end
+
+    switch EstimOpt.Draws
+        case 1
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','pseudo-random draws']};
+        case 2
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Latin Hypercube Sampling draws']};
+        case  3
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+        case 4
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+        case 5
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+        case 6
+            Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+    end
+
+    Tail(15,2) = {num2str(NGrid)};
+    Tail(16,2) = {OptimOpt.Algorithm};
+
+    if strcmp(OptimOpt.GradObj,'on')
+        if EstimOpt.NumGrad == 0
+            Tail(17,2) = {'user-supplied, analytical'};
+        else
+            Tail(17,2) = {['user-supplied, numerical ',num2str(OptimOpt.FinDiffType)]};
         end
     else
-        outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+        Tail(17,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
     end
-    switch EstimOpt.HessEstFix
-        case 0
-            outHessian = [outHessian,'retained from optimization'];
-        case 1
-            outHessian = [outHessian,'ex-post calculated using BHHH'];
-        case 2
-            outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
-        case 3
-            outHessian = [outHessian,'ex-post calculated numerically'];
-        case 4
-            outHessian = [outHessian,'ex-post calculated analytically'];
+
+    if isequal(OptimOpt.Algorithm,'quasi-newton')
+        outHessian='off, ';
+        switch EstimOpt.HessEstFix
+            case 0
+                outHessian = [outHessian,'retained from optimization'];
+            case 1
+                outHessian = [outHessian,'ex-post calculated using BHHH'];
+            case 2
+                outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
+            case 3
+                outHessian = [outHessian,'ex-post calculated numerically'];
+            case 4
+                outHessian = [outHessian,'ex-post calculated analytically'];
+        end
+    else
+        if strcmp(OptimOpt.Hessian,'user-supplied')
+            if EstimOpt.ApproxHess == 1
+                outHessian = 'user-supplied, BHHH, ';
+            else
+                outHessian = 'user-supplied, analytical, ';
+            end
+        else
+            outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+        end
+        switch EstimOpt.HessEstFix
+            case 0
+                outHessian = [outHessian,'retained from optimization'];
+            case 1
+                outHessian = [outHessian,'ex-post calculated using BHHH'];
+            case 2
+                outHessian = [outHessian,'ex-post calculated using high-precision BHHH'];
+            case 3
+                outHessian = [outHessian,'ex-post calculated numerically'];
+            case 4
+                outHessian = [outHessian,'ex-post calculated analytically'];
+        end
     end
+    Tail(18,2) = {outHessian};
+
+    %% Statistics
+
+    Statistics.Bounds = EstimOpt.Bounds;
+    Statistics.Quantile = Results.DistStats(:,3:end,1);
+    Statistics.Mean(:,1) = Results.DistStats(:,1,1);
+    Statistics.Mean(:,3:4) = [Results.DistStats(:,1,2),pv(Results.DistStats(:,1,1),Results.DistStats(:,1,2))];
+    Statistics.Sd(:,1) = Results.DistStats(:,2,1);
+    Statistics.Sd(:,3:4) = [Results.DistStats(:,2,2),pv(Results.DistStats(:,2,1),Results.DistStats(:,2,2))];
+
+    Names.Statistics = EstimOpt.NamesA;
+    Heads.StatisticsQ = {'q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
+    EstimOpt.StatTypes = ['b','b','m','m','m','m','m','m','m','m','q','q','q','q','q','q','q'];
+
+    if EstimOpt.Display~=0
+
+        Results.Dist = EstimOpt.Dist;
+
+        Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST, 'lml', Statistics);
+    end
+else
+    Results.LL = -LL;
+    Results.b_mtx = b_mtx;
+    Results.GridMat = GridMat;
+    EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0); % This may need a correction (Does not work when BLimit is ~= 0)
+    Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;NaN;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
+
 end
-Tail(18,2) = {outHessian};
-
-%% Statistics
-
-Statistics.Bounds = EstimOpt.Bounds;
-Statistics.Quantile = Results.DistStats(:,3:end,1);
-Statistics.Mean(:,1) = Results.DistStats(:,1,1);
-Statistics.Mean(:,3:4) = [Results.DistStats(:,1,2),pv(Results.DistStats(:,1,1),Results.DistStats(:,1,2))];
-Statistics.Sd(:,1) = Results.DistStats(:,2,1);
-Statistics.Sd(:,3:4) = [Results.DistStats(:,2,2),pv(Results.DistStats(:,2,1),Results.DistStats(:,2,2))];
-
-Names.Statistics = EstimOpt.NamesA;
-Heads.StatisticsQ = {'q0.025','q0.1','q0.25','q0.5','q0.75','q0.9','q0.975'};
-EstimOpt.StatTypes = ['b','b','m','m','m','m','m','m','m','m','q','q','q','q','q','q','q'];
-
-if EstimOpt.Display~=0
-
-    Results.Dist = EstimOpt.Dist;
-
-    Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST, 'lml', Statistics);
-end
-
