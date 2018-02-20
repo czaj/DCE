@@ -656,10 +656,30 @@ if EstimOpt.NoOutput == 0
     %     end
     % end
     Heads.Details = {};
+    if any(EstimOpt.Dist == 0 | EstimOpt.Dist == 1)
+        type = ' (dist. approx.)';
+        CorNOrder = EstimOpt.NOrder;
+    elseif any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
+        type = ' (Legendre poly)';
+        CorNOrder = EstimOpt.NOrder;
+    elseif any(EstimOpt.Dist == 4)
+        type = ' (step function)';
+        CorNOrder = EstimOpt.NOrder-1;
+    elseif any(EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)
+        type = ' (spline knots)';
+        CorNOrder = EstimOpt.NOrder+1;
+    end
+        
     for i=1:length(Results.bhat)/EstimOpt.NVarA
         Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
         Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
-        Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i))}];
+        if i <= CorNOrder
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),type)}];
+        elseif isfield(EstimOpt,'StepFun') == 1
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),' (user''s step function)')}];
+        elseif EstimOpt.FullCov == 1
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),' (correlation)')}];
+        end
     end
     Heads.Details = [Heads.Details;{'tb'}];
 
