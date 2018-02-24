@@ -399,7 +399,9 @@ end
 
 %% Display Options
 if EstimOpt.NoOutput == 1
-    cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    if EstimOpt.HessEstFix ~= 1;
+        cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    end
     EstimOpt.HessEstFix = 1;
 end
 
