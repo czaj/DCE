@@ -35,7 +35,7 @@ if isfield(EstimOpt, 'StepFun') == 1
 else
     EstimOpt.StepVar = 0;
 end
-B0 = NaN(EstimOpt.LMLSearchNOrder,EstimOpt.NVarA.*(EstimOpt.NOrder+1) + EstimOpt.StepVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2,7,2);
+B0 = NaN(EstimOpt.LMLSearchNOrder,EstimOpt.NVarA.*(EstimOpt.LMLSearchNOrder+1) + EstimOpt.StepVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2,7,2);
 
 if nargin > 4
     B0_in = varargin{1}; % NOrder x NParams x NDist x 2 (FullCov = [0,1])   
