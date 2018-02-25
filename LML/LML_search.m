@@ -74,10 +74,10 @@ try
     for j = 1:7 % Loop over Dist
         if j == 1
             Dist = 0;
-            EstimOpt.Dist = [Dist * ones(11,1); Dist + EstimOpt.WTP_space==1]; % for WTP-space models cost (the last attribute) is always log-normal
+            EstimOpt.Dist = [Dist * ones(11,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
         elseif j == 2
             Dist = j;
-            EstimOpt.Dist = [Dist * ones(11,1); Dist + EstimOpt.WTP_space==1]; % for WTP-space models cost (the last attribute) is always log-normal
+            EstimOpt.Dist = [Dist * ones(11,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
         elseif j > 2
             Dist = j+1;
             EstimOpt.Dist = [Dist * ones(11,1); Dist];
