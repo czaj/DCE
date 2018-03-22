@@ -247,7 +247,8 @@ if EstimOpt.FullCov == 0
         if sum(EstimOpt.Dist == 1) > 0
             if any(b0(EstimOpt.Dist == 1) < 0)
                 cprintf(rgb('DarkOrange'),'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
-                b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
+                %b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
+                b0(b0(1:size(EstimOpt.Dist,2)) < 0 & EstimOpt.Dist' == 1) = 1.01;
             end
             b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
         end
@@ -315,7 +316,8 @@ else % EstimOpt.FullCov == 1
             if sum(EstimOpt.Dist == 1) > 0
                 if any(b0(EstimOpt.Dist == 1) < 0)
                     cprintf(rgb('DarkOrange'),'WARNING: MNL estimates of log-normally distributed parameters negative - using arbitrary starting values (this may not solve the problem - sign of the attribute may need to be reversed \n')
-                    b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
+                    %b0(EstimOpt.Dist == 1 & b0(EstimOpt.Dist == 1) < 0) = 1.01;
+                    b0(b0(1:size(EstimOpt.Dist,2)) < 0 & EstimOpt.Dist' == 1) = 1.01;
                 end
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
