@@ -399,7 +399,9 @@ end
 
 %% Display Options
 if EstimOpt.NoOutput == 1
-    cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    if EstimOpt.HessEstFix ~= 1;
+        cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    end
     EstimOpt.HessEstFix = 1;
 end
 
@@ -496,7 +498,8 @@ end
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
-parfor n = 1:NP    
+% parfor n = 1:NP    
+for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
     U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
     U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
     U_sum = reshape(sum(U,1),[NCT,NRep]);
