@@ -198,7 +198,12 @@ if any(EstimOpt.MeaSpecMatrix == 3 | EstimOpt.MeaSpecMatrix == 4 | EstimOpt.MeaS
         cprintf(rgb('DarkOrange'),['WARNING: Values of count data measurment equations are too high, they were censored to ',num2str(EstimOpt.CountCut),'\n'])
     end
 end
-
+if isfield(EstimOpt,'MissingIndMea') == 0
+    EstimOpt.MissingIndMea = zeros(EstimOpt.NP,size(INPUT.Xmea,2)) ;
+end
+if sum(any(EstimOpt.MissingIndMea == 1) & (EstimOpt.MeaSpecMatrix ~= 0 & EstimOpt.MeaSpecMatrix ~= 2),2) > 0
+    error('Missing Indicators possible only for OLS and Ordered Probit')
+end
 if EstimOpt.NLatent > 0
     if ~isfield(EstimOpt,'NamesLV') || isempty(EstimOpt.NamesLV) || length(EstimOpt.NamesLV) ~= EstimOpt.NLatent
         EstimOpt.NamesLV = {};
