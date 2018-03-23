@@ -136,8 +136,9 @@ try
                         Res.bhat(i-1,j,1,1,1:length(Results.LML_d.bhat)) = Results.LML_d.bhat;
                         Res.LL(i-1,j,1,1) = Results.LML_d.LL;
                         Res.stats(i-1,j,1,1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
-                    catch
+                    catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n']); 
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -156,7 +157,9 @@ try
                             Res.bhat(i-1,j,1,k+1,1:length(Results.LML_d.bhat)) = Results.LML_d.bhat;
                             Res.LL(i-1,j,1,k+1) = Results.LML_d.LL;
                             Res.stats(i-1,j,1,k+1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
-                        catch
+                        catch theErrorInfo
+                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                             rethrow(theErrorInfo)
                         end
                         
                     end
@@ -180,11 +183,12 @@ try
                         B_out(i-1,1:size(Results.LML.bhat,1),j,2) = Results.LML.bhat;
                         LL(i-1,j,2) = Results.LML_d.LL;
                         Summary(j + (i-2)*7,9:15) = [EstimOpt.NOrder,Dist,1,Results.LML.LL,Results.LML.stats(9,1),Results.LML.stats(5:6,1)'];
-                        Res.bhat(i-1,j,2,1,1:length(Results.LML_d.bhat)) = Results.LML.bhat;
+                        Res.bhat(i-1,j,2,1,1:length(Results.LML.bhat)) = Results.LML.bhat;
                         Res.LL(i-1,j,2,1) = Results.LML.LL;
-                        Res.stats(i-1,j,2,1,1:length(Results.LML_d.stats)) = Results.LML.stats;
-                    catch
-                        cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+                        Res.stats(i-1,j,2,1,1:length(Results.LML.stats)) = Results.LML.stats;
+                    catch theErrorInfo
+                        cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -199,11 +203,12 @@ try
                                 B_out(i-1,1:size(Results.LML.bhat,1),j,2) = Results.LML.bhat;
                                 Summary(j + (i-2)*7,9:15) = [EstimOpt.NOrder,Dist,1,Results.LML.LL,Results.LML.stats(9,1),Results.LML.stats(5:6,1)'];
                             end
-                            Res.bhat(i-1,j,2,k+1,1:length(Results.LML_d.bhat)) = Results.LML.bhat;
+                            Res.bhat(i-1,j,2,k+1,1:length(Results.LML.bhat)) = Results.LML.bhat;
                             Res.LL(i-1,j,2,k+1) = Results.LML.LL;
-                            Res.stats(i-1,j,2,k+1,1:length(Results.LML_d.stats)) = Results.LML.stats;
-                        catch
-                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+                            Res.stats(i-1,j,2,k+1,1:length(Results.LML.stats)) = Results.LML.stats;
+                        catch theErrorInfo
+                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                             rethrow(theErrorInfo)
                         end
                     end
                 end
@@ -242,8 +247,9 @@ try
                         Res.bhat(i-1,j,1,1,1:length(Results.LML_d.bhat)) = Results.LML_d.bhat;
                         Res.LL(i-1,j,1,1) = Results.LML_d.LL;
                         Res.stats(i-1,j,1,1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
-                    catch
+                    catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -267,8 +273,9 @@ try
                             Res.bhat(i-1,j,1,k+1,1:length(Results.LML_d.bhat)) = Results.LML_d.bhat;
                             Res.LL(i-1,j,1,k+1) = Results.LML_d.LL;
                             Res.stats(i-1,j,1,k+1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
-                        catch
-                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+                        catch theErrorInfo
+                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                             rethrow(theErrorInfo)
                         end
                         
                     end
@@ -296,11 +303,12 @@ try
                         B_out(i-1,1:size(Results.LML.bhat,1),j,2) = Results.LML.bhat;
                         LL(i-1,j,2) = Results.LML.LL;
                         Summary(j + (i-2)*7,9:15) = [EstimOpt.NOrder,Dist,1,Results.LML.LL,Results.LML.stats(9,1),Results.LML.stats(5:6,1)'];
-                        Res.bhat(i-1,j,2,1,1:length(Results.LML_d.bhat)) = Results.LML.bhat;
+                        Res.bhat(i-1,j,2,1,1:length(Results.LML.bhat)) = Results.LML.bhat;
                         Res.LL(i-1,j,2,1) = Results.LML.LL;
-                        Res.stats(i-1,j,2,1,1:length(Results.LML_d.stats)) = Results.LML.stats;
-                    catch
+                        Res.stats(i-1,j,2,1,1:length(Results.LML.stats)) = Results.LML.stats;
+                    catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -320,11 +328,12 @@ try
                                 B_out(i-1,1:size(Results.LML.bhat,1),j,2) = Results.LML.bhat;
                                 Summary(j + (i-2)*7,9:15) = [EstimOpt.NOrder,Dist,1,Results.LML.LL,Results.LML.stats(9,1),Results.LML.stats(5:6,1)'];
                             end
-                            Res.bhat(i-1,j,2,k+1,1:length(Results.LML_d.bhat)) = Results.LML.bhat;
+                            Res.bhat(i-1,j,2,k+1,1:length(Results.LML.bhat)) = Results.LML.bhat;
                             Res.LL(i-1,j,2,k+1) = Results.LML.LL;
-                            Res.stats(i-1,j,2,k+1,1:length(Results.LML_d.stats)) = Results.LML.stats;
-                        catch
-                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+                            Res.stats(i-1,j,2,k+1,1:length(Results.LML.stats)) = Results.LML.stats;
+                        catch theErrorInfo
+                            cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
+%                             rethrow(theErrorInfo)
                         end
                     end
                 end
@@ -344,8 +353,8 @@ try
     
 catch theErrorInfo
     
-    save LML_search_results % save current state in case of error
-    rethrow(theErrorInfo)
+%     save LML_search_results % save current state in case of error
+%     rethrow(theErrorInfo)
     
 end
 

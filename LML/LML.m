@@ -171,7 +171,7 @@ elseif size(EstimOpt.NamesA,1) ~= NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
 
- gcp;
+% gcp; % start paralell pool (commented out - we don't use it for now)
 
 
 %% Starting values
@@ -399,7 +399,7 @@ end
 
 %% Display Options
 if EstimOpt.NoOutput == 1
-    if EstimOpt.HessEstFix ~= 1;
+    if EstimOpt.HessEstFix ~= 1
         cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
     end
     EstimOpt.HessEstFix = 1;
