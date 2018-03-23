@@ -181,7 +181,8 @@ if sum(Dist == 3) > 0 % Triangular
     tmp2 = (b0triag_b - Triang).*(b0triag_c - Triang);
     bmtx_triang(tmp < Ftriang) = Triang(tmp < Ftriang)+ sqrt(tmp(tmp < Ftriang).*tmp2(tmp < Ftriang));
     tmp2 = (b0triag_b - Triang).*(b0triag_b-b0triag_c);
-    bmtx_triang(tmp >= Ftriang) = b0triag_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    %bmtx_triang(tmp >= Ftriang) = b0triag_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    bmtx_triang(tmp >= Ftriang) = b0triag_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
     b_mtx(Dist == 3,:) = bmtx_triang;
 end
 if sum(Dist == 4) > 0 % Weibull
