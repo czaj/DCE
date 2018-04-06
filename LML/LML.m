@@ -171,7 +171,7 @@ elseif size(EstimOpt.NamesA,1) ~= NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
 
- gcp;
+% gcp; % start paralell pool (commented out - we don't use it for now)
 
 
 %% Starting values
@@ -399,7 +399,9 @@ end
 
 %% Display Options
 if EstimOpt.NoOutput == 1
-    cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    if EstimOpt.HessEstFix ~= 1
+        cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
+    end
     EstimOpt.HessEstFix = 1;
 end
 
@@ -496,7 +498,8 @@ end
 YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
-parfor n = 1:NP    
+% parfor n = 1:NP    
+for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
     U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
     U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
     U_sum = reshape(sum(U,1),[NCT,NRep]);
@@ -656,10 +659,30 @@ if EstimOpt.NoOutput == 0
     %     end
     % end
     Heads.Details = {};
+    if any(EstimOpt.Dist == 0 | EstimOpt.Dist == 1)
+        type = ' (dist. approx.)';
+        CorNOrder = EstimOpt.NOrder;
+    elseif any(EstimOpt.Dist == 2 | EstimOpt.Dist == 3)
+        type = ' (Legendre poly)';
+        CorNOrder = EstimOpt.NOrder;
+    elseif any(EstimOpt.Dist == 4)
+        type = ' (step function)';
+        CorNOrder = EstimOpt.NOrder-1;
+    elseif any(EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)
+        type = ' (spline knots)';
+        CorNOrder = EstimOpt.NOrder+1;
+    end
+        
     for i=1:length(Results.bhat)/EstimOpt.NVarA
         Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
         Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];
-        Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i))}];
+        if i <= CorNOrder
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),type)}];
+        elseif isfield(EstimOpt,'StepFun') == 1
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),' (user''s step function)')}];
+        elseif EstimOpt.FullCov == 1
+            Heads.Details = [Heads.Details;{strcat('Segment ',num2str(i),' (correlation)')}];
+        end
     end
     Heads.Details = [Heads.Details;{'tb'}];
 
