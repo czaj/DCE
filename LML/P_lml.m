@@ -92,7 +92,7 @@ function [J1, J2] = jacobian1(b_GridMat,GridMat,bhat) % calculates jacobian for 
     sumPBG = sum(PBG,2);
     Tmp = PBG - P.*sumPBG; % Var x NGrid
     Tmp = reshape(Tmp, [size(Tmp,1), 1, size(Tmp,2)]);
-    Grid = reshape(GridMat, [1, size(GridMat,1),size(GridMat,2)]);
+    Grid = reshape(GridMat, [1, size(GridMat,1),size(GridMat,2)]);    
     J1 = sum(Tmp.*Grid,3)'; % NVarA x Var
     
     

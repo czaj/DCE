@@ -304,8 +304,7 @@ elseif nargout == 2 %% function value + gradient
     end
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
-        YYy = (YY == 1);
-               
+        YYy = (YY == 1);              
         parfor n = 1:NP
             F3sum = [];
             b_mtx_n = b_mtx(:,:,n);
@@ -328,7 +327,7 @@ elseif nargout == 2 %% function value + gradient
                     if NVarS > 0
                         FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
 %                         FScale = squeeze(sum(FScale,1));
-                        FScale = reshape(sum(FScale,1),[1,NRep]);
+%                         FScale = reshape(sum(FScale,1),[1,NRep]);
                         FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
                     end
                     sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
