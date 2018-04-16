@@ -626,7 +626,8 @@ if EstimOpt.NoOutput == 0
     %         bar(Grid_i,P_tmp)
     %         tmp = sortrows([GridMat(i,:)',Results.P'])';
     %         plot(tmp(1,:),tmp(2,:))
-            plot(Results.GridPlot{i}',Results.P{i}')
+            %plot(Results.GridPlot{i}',Results.P{i}')
+            plot(Results.GridPlot(i,~isnan(Results.GridPlot(i,:)))',Results.P(i,~isnan(Results.P(i,:)))')
             title(EstimOpt.NamesA(i))
         end
         EstimOpt.Plot2 = gcf;
