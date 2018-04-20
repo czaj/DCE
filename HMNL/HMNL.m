@@ -816,7 +816,8 @@ Results.DetailsL(1:EstimOpt.NVarA*EstimOpt.NLatent,3:4) = [Results.std(EstimOpt.
 if EstimOpt.NVarS > 0
     Results.DetailsScale(1:EstimOpt.NVarS,1) = Results.bhat(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS);
     Results.DetailsScale(1:EstimOpt.NVarS,3:4) = [Results.std(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS),pv(Results.bhat(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS),Results.std(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS))];
-    
+else
+    Results.DetailsScale = [];
 end
 
 if EstimOpt.NVarStr > 0
@@ -874,7 +875,7 @@ if EstimOpt.NVarS > 0
     Temp2(1,1) = {'DetailsScale'};
     Template2 = [Template2;Temp2];
     Names.DetailsScale = EstimOpt.NamesS;
-    Heads.DetailsS = {'Covariates of Scale';'tb'};
+    Heads.DetailsScale = {'Covariates of Scale';'tb'};
     ST = {'DetailsScale'};
 end
 
@@ -1048,6 +1049,8 @@ end
 Tail(17,2) = {outHessian};
 
 %%  Print to screen and .xls
+
+% save tmp2
 
 if EstimOpt.Display~=0
     Results.Dist = EstimOpt.Dist;
