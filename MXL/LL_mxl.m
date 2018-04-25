@@ -181,7 +181,8 @@ if sum(Dist == 3) > 0 % Triangular
     tmp2 = (b0triag_b - Triang).*(b0triag_c - Triang);
     bmtx_triang(tmp < Ftriang) = Triang(tmp < Ftriang)+ sqrt(tmp(tmp < Ftriang).*tmp2(tmp < Ftriang));
     tmp2 = (b0triag_b - Triang).*(b0triag_b-b0triag_c);
-    bmtx_triang(tmp >= Ftriang) = b0triag_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    %bmtx_triang(tmp >= Ftriang) = b0triag_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    bmtx_triang(tmp >= Ftriang) = b0triag_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
     b_mtx(Dist == 3,:) = bmtx_triang;
 end
 if sum(Dist == 4) > 0 % Weibull
@@ -303,8 +304,7 @@ elseif nargout == 2 %% function value + gradient
     end
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
-        YYy = (YY == 1);
-               
+        YYy = (YY == 1);              
         parfor n = 1:NP
             F3sum = [];
             b_mtx_n = b_mtx(:,:,n);
@@ -327,7 +327,7 @@ elseif nargout == 2 %% function value + gradient
                     if NVarS > 0
                         FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
 %                         FScale = squeeze(sum(FScale,1));
-                        FScale = reshape(sum(FScale,1),[1,NRep]);
+%                         FScale = reshape(sum(FScale,1),[1,NRep]);
                         FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
                     end
                     sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
