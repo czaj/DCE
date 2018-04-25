@@ -393,7 +393,7 @@ end
 %% Generate pseudo-random draws
 
 if isfield(EstimOpt,'Seed1') == 1
-    rng(EstimOpt.Seed1);
+ %   rng(EstimOpt.Seed1);
 end
 cprintf('Simulation with ');
 cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
@@ -850,8 +850,10 @@ if EstimOpt.FullCov == 0
         for i = 1:sum(EstimOpt.Dist == 3)
             stdx(i) = sqrt(g(i,:)*Results.ihess([indx(i),indx(i)+NVarA],[indx(i),indx(i)+NVarA])*g(i,:)');
         end
-        Results.DetailsV(EstimOpt.Dist == 3,1) = exp(btmp(EstimOpt.Dist == 3));
-        Results.DetailsV(EstimOpt.Dist == 3,3:4) = [stdx(EstimOpt.Dist == 3),pv(exp(btmp(EstimOpt.Dist == 3)),stdx(EstimOpt.Dist == 3))];
+        %Results.DetailsV(EstimOpt.Dist == 3,1) = exp(btmp(EstimOpt.Dist == 3));
+        Results.DetailsV(EstimOpt.Dist == 3,1) = exp(btmp(EstimOpt.Dist == 3)) + exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang';
+        %Results.DetailsV(EstimOpt.Dist == 3,3:4) = [stdx(EstimOpt.Dist == 3),pv(exp(btmp(EstimOpt.Dist == 3)),stdx(EstimOpt.Dist == 3))];
+        Results.DetailsV(EstimOpt.Dist == 3,3:4) = [stdx,pv(exp(btmp(EstimOpt.Dist == 3))+ exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang',stdx)];
     end
     if sum(EstimOpt.Dist == 4) > 0
         Results.DetailsA(EstimOpt.Dist == 4,1) = exp(Results.bhat(EstimOpt.Dist == 4));

@@ -171,7 +171,7 @@ elseif size(EstimOpt.NamesA,1) ~= NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
 
- gcp;
+% gcp; % start paralell pool (commented out - we don't use it for now)
 
 
 %% Starting values
@@ -399,7 +399,7 @@ end
 
 %% Display Options
 if EstimOpt.NoOutput == 1
-    if EstimOpt.HessEstFix ~= 1;
+    if EstimOpt.HessEstFix ~= 1
         cprintf(rgb('DarkOrange'),'WARNING: Setting HessEstFix to 1, output will not be generated anyway (EstimOpt.NoOutput = 1) \n')
     end
     EstimOpt.HessEstFix = 1;
@@ -626,7 +626,8 @@ if EstimOpt.NoOutput == 0
     %         bar(Grid_i,P_tmp)
     %         tmp = sortrows([GridMat(i,:)',Results.P'])';
     %         plot(tmp(1,:),tmp(2,:))
-            plot(Results.GridPlot{i}',Results.P{i}')
+            %plot(Results.GridPlot{i}',Results.P{i}')
+            plot(Results.GridPlot(i,~isnan(Results.GridPlot(i,:)))',Results.P(i,~isnan(Results.P(i,:)))')
             title(EstimOpt.NamesA(i))
         end
         EstimOpt.Plot2 = gcf;
