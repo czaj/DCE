@@ -969,12 +969,13 @@ elseif EstimOpt.FullCov == 1
     end
     l = l + EstimOpt.NVarM*EstimOpt.NVarA;
     if EstimOpt.NVarS > 0
-        Results.DetailsScale = Results.bhat(l+1:l+EstimOpt.NVarS);
-        Results.DetailsScale = [Results.std(l+1:l+EstimOpt.NVarS),pv(Results.bhat(l+1:l+EstimOpt.NVarS),Results.std(l+1:l+EstimOpt.NVarS))];
+        Results.DetailsScale(:,1) = Results.bhat(l+1:l+EstimOpt.NVarS);
+        Results.DetailsScale(:,3:4) = [Results.std(l+1:l+EstimOpt.NVarS),pv(Results.bhat(l+1:l+EstimOpt.NVarS),Results.std(l+1:l+EstimOpt.NVarS))];
     else
         Results.DetailsScale = [];
-    end
+    end    
     l = l + EstimOpt.NVarS;
+    
     Results.DetailsL(:,1) = Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NLatent);
     Results.DetailsL(:,3:4) = [Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NLatent),pv(Results.bhat(l+1:l+EstimOpt.NVarA*EstimOpt.NLatent),Results.std(l+1:l+EstimOpt.NVarA*EstimOpt.NLatent))];
     Results.DetailsS(:,1) = Results.bhat(l+EstimOpt.NVarA*EstimOpt.NLatent+1:l+(EstimOpt.NVarA+EstimOpt.NVarStr)*EstimOpt.NLatent);

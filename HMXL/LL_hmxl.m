@@ -199,7 +199,7 @@ if nargout == 1 % function value only
             l = l + size(X,2)*k; 
 
         elseif MeaSpecMatrix(i) == 2 % Ordered Probit
-            UniqueMea = unique(Xmea(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)));
+            UniqueMea = unique(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i));
             k = length(UniqueMea) - 1;
             if MeaExpMatrix(i) == 0
                 X = LV(MeaMatrix(:,i)' == 1,:)';
