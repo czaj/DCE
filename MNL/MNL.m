@@ -660,7 +660,7 @@ Tail(16,2) = {outHessian};
 
 %%  Print to screen and .xls
 
-if EstimOpt.Display~=0
+if EstimOpt.Display ~= 0
     Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
