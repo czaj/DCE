@@ -252,6 +252,10 @@ if EstimOpt.FullCov == 0
             end
             b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
         end
+        if sum(EstimOpt.Dist == -1) > 0 % Fixed
+            indx = find(EstimOpt.Dist == -1);
+            b0([indx+NVarA]) = 0;
+        end
         if sum(EstimOpt.Dist == 3) > 0 % Triangular
             indx = find(EstimOpt.Dist == 3);
             b0([indx;indx+NVarA]) = [log(b0(indx) - EstimOpt.Triang');log(b0(indx) - EstimOpt.Triang')];
@@ -320,6 +324,9 @@ else % EstimOpt.FullCov == 1
                     b0(b0(1:size(EstimOpt.Dist,2)) < 0 & EstimOpt.Dist' == 1) = 1.01;
                 end
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
+            end
+            if sum(EstimOpt.Dist == -1) > 0 % Fixed
+                b0(EstimOpt.Dist == -1) = 0;
             end
             if sum(EstimOpt.Dist == 3) > 0 % Triangular
                 b0(EstimOpt.Dist == 3) = log(b0(EstimOpt.Dist == 3) -EstimOpt.Triang');
