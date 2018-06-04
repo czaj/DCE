@@ -400,7 +400,7 @@ end
 %% Generate pseudo-random draws
 
 if isfield(EstimOpt,'Seed1') == 1
- %   rng(EstimOpt.Seed1);
+   rng(EstimOpt.Seed1);
 end
 cprintf('Simulation with ');
 cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
