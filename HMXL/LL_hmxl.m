@@ -479,11 +479,6 @@ else % function value + gradient
             end
         end
     else
-        if NVarS > 0 || ScaleLV == 1
-            YCT = reshape(sum(reshape(~isnan(Y),[NAlt,NCT,NP]),1) ~= 0,[NCT,NP]); 
-        else
-            YCT = zeros(0,NP);
-        end
         parfor n = 1:NP
             YnanInd = ~isnan(Y(:,n));
             Xa_n = Xa(:,:,n);
@@ -511,7 +506,7 @@ else % function value + gradient
                     X_hat1 = reshape(X_hat1,[NCTMiss(n),NVarA-WTP_space,NRep]); %NCT x NVarA-WTP_space x NRep   
                     if WTP_space == 1
                         pX = Xa_n(YnanInd,NVarA) + Xa_n(YnanInd,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:);
-                        X_hat2 = sum(reshape(reshape(U_prob).*pX,[NAltMiss(n),NCTMiss(n),WTP_space,NRep]),1);
+                        X_hat2 = sum(reshape(reshape(U_prob,[NAltMiss(n).*NCTMiss(n),NRep]).*pX,[NAltMiss(n),NCTMiss(n),WTP_space,NRep]),1);
                         X_hat2 = reshape(X_hat2,[NCTMiss(n),NRep]); %NCT x NRep
                     end
                 end

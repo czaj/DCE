@@ -408,11 +408,6 @@ else % function value + gradient
             end
         end
     else
-        if NVarS > 0 || ScaleLV == 1
-            YCT = reshape(sum(reshape(~isnan(Y),[NAlt,NCT,NP]),1) ~= 0,[NCT,NP]);
-        else
-            YCT = zeros(0,NP);
-        end
         parfor n = 1:NP
             YnanInd = ~isnan(Y(:,n));
             b_mtx_n = b_mtx_sliced(:,:,n);
@@ -425,18 +420,14 @@ else % function value + gradient
                 Xalpha = Xa_n(YnanInd,1:end-WTP_space).*b_mtx_wtp(:,WTP_matrix,:);
                 b_mtx_grad_n = b_mtx_grad(:,:,n);
             end
-            if WTP_space > 0
-                b_mtx_wtp = reshape(b_mtx_n,[1,NVarA,NRep]);
-                Xalpha = Xa_n(YnanInd,1:end-WTP_space).*b_mtx_wtp(:,WTP_matrix,:);
-                b_mtx_grad_n = b_mtx_grad(:,:,n);
-            end
+
             if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 
               U = reshape(Xa_n(YnanInd,:)*b_mtx_n,[NAltMiss(n),NCTMiss(n),NRep]); % NAlt x NCT x NRep
               U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
               U_sum = reshape(sum(U,1),[1,NCTMiss(n),NRep]);
               U_prob = U./U_sum; % NAlt x NCT x NRep
               probs(n,:) = prod(reshape(U_prob(Yy_n(YnanInd,ones(NRep,1))),[NCTMiss(n),NRep]),1); % 1 x NRep
-
+              U_prob = reshape(U_prob,[NAltMiss(n)*NCTMiss(n),1,NRep]); % NAlt*NCT x NVarA x NRep
               if WTP_space == 0
                     X_hat = sum(reshape(U_prob.*Xa_n(YnanInd,:),[NAltMiss(n),NCTMiss(n),NVarA,NRep]),1);
                     X_hat = reshape(X_hat,[NCTMiss(n),NVarA,NRep]); %NCT x NVarA x NRep                     
@@ -445,10 +436,10 @@ else % function value + gradient
                     X_hat1 = reshape(X_hat1,[NCTMiss(n),NVarA-WTP_space,NRep]); %NCT x NVarA-WTP_space x NRep   
                     if WTP_space == 1
                         pX = Xa_n(YnanInd,NVarA) + Xa_n(YnanInd,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:);
-                        X_hat2 = sum(reshape(reshape(U_prob).*pX,[NAltMiss(n),NCTMiss(n),WTP_space,NRep]),1);
+                        X_hat2 = sum(reshape(reshape(U_prob,[NAltMiss(n).*NCTMiss(n),NRep]).*pX,[NAltMiss(n),NCTMiss(n),WTP_space,NRep]),1);
                         X_hat2 = reshape(X_hat2,[NCTMiss(n),NRep]); %NCT x NRep
                     end
-                end
+               end
              else
                 NAltMissInd_n = NAltMissInd(:,n);
                 NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
