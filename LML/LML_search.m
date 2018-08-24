@@ -1,5 +1,7 @@
 function [B_out,Summary,Res] = LML_search(INPUT,Results,EstimOpt,OptimOpt,varargin)
 
+% save LML_search_out
+
 % INPUT:
 % EstimOpt.LMLSearchNOrder - maximum NOrder
 % EstimOpt.LMLSearchNTrials - number of search trials
@@ -13,6 +15,10 @@ function [B_out,Summary,Res] = LML_search(INPUT,Results,EstimOpt,OptimOpt,vararg
 % ISSUES / TODO
 % FullCov = 1 may not work correctly with EstimOpt.StepVar > 0
 
+if ~isfield(EstimOpt,'WTP_space')
+    EstimOpt.WTP_space = 0;
+end
+
 try
     
     global B_backup
@@ -23,10 +29,10 @@ try
         error('EstimOpt.LMLSearchNOrder cannot be < 2')
     end
     
-    if isfield(EstimOpt,'LMLSearchNEstimOpt.LMLSearchNTrials') == 0
-        EstimOpt.LMLSearchNEstimOpt.LMLSearchNTrials = 10;
-    elseif mod(EstimOpt.LMLSearchNEstimOpt.LMLSearchNTrials,1) ~= 0
-        error('EstimOpt.LMLSearchNEstimOpt.LMLSearchNTrials must be integer')
+    if isfield(EstimOpt,'LMLSearchNTrials') == 0
+        EstimOpt.LMLSearchNTrials = 10;
+    elseif mod(EstimOpt.LMLSearchNTrials,1) ~= 0
+        error('EstimOpt.LMLSearchNTrials must be integer')
     end
     
     % Prepare B0 matrix:
@@ -41,13 +47,13 @@ try
     
     if nargin > 4
         B0_in = varargin{1}; % NOrder x NParams x NDist x 2 (FullCov = [0,1])
-        %     save tmp1
+%             save tmp1
         %     EstimOpt.LMLSearchNOrder = EstimOpt.LMLSearchNOrder + 1; % an additional evaluation for the starting valuaes provided
         %     % test B0 size
         %     if ndims(B0_in) ~= 4
         %         cprintf(rgb('DarkOrange'), 'WARNING: incorrect number of dimensions of starting values matrix - must be 4'); % could be modified to work with uncorrelated LML only
         %     end
-        if any(size(B0_in) ~= size(B0))
+        if (ndims(B0_in) ~= ndims(B0)) || (any(size(B0_in) ~= size(B0)))
             B0_tmp = NaN(size(B0));
             B0_tmp(1:min(size(B0_in,1),size(B0,1)),1:min(size(B0_in,2),size(B0,2)),1:min(size(B0_in,3),size(B0,3)),1:min(size(B0_in,4),size(B0,4))) = B0_in(1:min(size(B0_in,1),size(B0,1)),1:min(size(B0_in,2),size(B0,2)),1:min(size(B0_in,3),size(B0,3)),1:min(size(B0_in,4),size(B0,4)));
             B0_in = B0_tmp; % Extend B0_in to match B0
@@ -97,13 +103,13 @@ try
     for j = 1:7 % Loop over Dist
         if j == 1
             Dist = 0;
-            EstimOpt.Dist = [Dist * ones(11,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
+            EstimOpt.Dist = [Dist * ones(size(INPUT.Xa,2)-1,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
         elseif j == 2
             Dist = j;
-            EstimOpt.Dist = [Dist * ones(11,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
+            EstimOpt.Dist = [Dist * ones(size(INPUT.Xa,2)-1,1); Dist + (EstimOpt.WTP_space==1)]; % for WTP-space models cost (the last attribute) is always log-normal
         elseif j > 2
             Dist = j+1;
-            EstimOpt.Dist = [Dist * ones(11,1); Dist];
+            EstimOpt.Dist = [Dist * ones(size(INPUT.Xa,2)-1,1); Dist];
         end
         
         for i = 2:EstimOpt.LMLSearchNOrder % Loop over NOrder
