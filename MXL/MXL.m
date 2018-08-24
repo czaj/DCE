@@ -797,6 +797,13 @@ if EstimOpt.FullCov == 0
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV(1:NVarA,1) = abs(Results.bhat(NVarA+1:NVarA*2));
     Results.DetailsV(1:NVarA,3:4) = [Results.std(NVarA+1:NVarA*2),pv(Results.bhat(NVarA+1:NVarA*2),Results.std(NVarA+1:NVarA*2))];
+    if EstimOpt.NVarM > 0
+        Results.DetailsM = [];
+        for i=1:EstimOpt.NVarM
+            Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i));
+            Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)),pv(Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i)),Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)))];
+        end
+    end
     
     %     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (delta):
     %         log_idx = find(EstimOpt.Dist==1);
@@ -817,29 +824,58 @@ if EstimOpt.FullCov == 0
     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
+        if EstimOpt.NVarM > 0
+            Results.DetailsM_underlying = Results.DetailsM;
+        end
         log_idx = find(EstimOpt.Dist==1);
         try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
-            bhat_sim = mvnrnd(Results.bhat(1:NVarA*2),Results.ihess(1:NVarA*2,1:NVarA*2),NSdSim)';
-            bhat_new = zeros(NSdSim,5*NVarA);
-            parfor i = 1:NSdSim
-                bhat_i = bhat_sim(:,i);
-                B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
-                %     b0v = bhat_i(NVarA+1:end)';
-                %     VC = tril(ones(NVarA));
-                %     VC(VC==1) = b0v;
-                %     VC = VC*VC';
-                %     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,sim2);
-                B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-                bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
+            bhat_sim = mvnrnd(Results.bhat(1:NVarA*(2+EstimOpt.NVarM)),Results.ihess(1:NVarA*(2+EstimOpt.NVarM),1:NVarA*(2+EstimOpt.NVarM)),NSdSim)';
+            if EstimOpt.NVarM > 0
+                BM_i = permute(reshape(bhat_sim(NVarA*2+1:NVarA*2+NVarA*EstimOpt.NVarM,:),[NVarA,EstimOpt.NVarM,NSdSim]),[3,1,2]);
+                bhat_new = zeros(NSdSim,5*NVarA);
+                bhatM_new = zeros(NSdSim,5*NVarA*EstimOpt.NVarM);
+                parfor i = 1:NSdSim
+                    bhat_i = bhat_sim(:,i);
+                    B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
+                    B0exp_i = B0_i;
+                    B0exp_i(:,log_idx) = exp(B0exp_i(:,log_idx));
+                    bhat_new(i,:) = [mean(B0exp_i),median(B0exp_i),std(B0exp_i),quantile(B0exp_i,0.025),quantile(B0exp_i,0.975)];
+                    
+                    B0M_i = BM_i;
+                    B0M_i(:,log_idx) = exp(B0M_i(:,log_idx) + B0_i(:,log_idx)) - B0exp_i(:,log_idx);                    
+                    bhatM_new(i,:) = [mean(B0M_i),median(B0M_i),std(B0M_i),quantile(B0M_i,0.025),quantile(B0M_i,0.975)];    
+                end
+            else
+                bhat_new = zeros(NSdSim,5*NVarA);
+                parfor i = 1:NSdSim
+                    bhat_i = bhat_sim(:,i);
+                    B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
+                    %     b0v = bhat_i(NVarA+1:end)';
+                    %     VC = tril(ones(NVarA));
+                    %     VC(VC==1) = b0v;
+                    %     VC = VC*VC';
+                    %     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,sim2);
+                    B0_i(:,log_idx) = exp(B0_i(:,log_idx));
+                    bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
+                end
             end
             Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
             Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
             Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
-            Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
+            Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);            
             Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
             Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
             Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
             Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
+            if EstimOpt.NVarM > 0
+                Results.DistStatsM_Coef = reshape(median(bhatM_new,1),[NVarA,5]);
+                Results.DistStatsM_Std = reshape(std(bhatM_new,[],1),[NVarA,5]);
+                Results.DistStatsM_Q025 = reshape(quantile(bhatM_new,0.025),[NVarA,5]);
+                Results.DistStatsM_Q975 = reshape(quantile(bhatM_new,0.975),[NVarA,5]);
+%                 Results.DetailsM(log_idx,1) = Results.DistStatsM_Coef(log_idx,1); 
+                Results.DetailsM(log_idx,1) = exp(Results.DetailsA_underlying(log_idx,1) + Results.DetailsM(log_idx,1) + Results.DetailsV_underlying(log_idx,1).^2./2) - Results.DetailsA(log_idx,1); % We use analytical formula instead of simulated moments
+                Results.DetailsM(log_idx,3:4) = [Results.DistStatsM_Std(log_idx,1),pv(Results.DetailsM(log_idx,1),Results.DistStatsM_Std(log_idx,1))];
+            end
         catch % theErrorInfo
             Results.DetailsA(log_idx,[1,3:4]) = NaN;
             Results.DetailsV(log_idx,[1,3:4]) = NaN;
@@ -872,11 +908,11 @@ if EstimOpt.FullCov == 0
     end
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
-        Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM
-            Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i));
-            Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)),pv(Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i)),Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)))];
-        end
+%         Results.DetailsM = [];
+%         for i=1:EstimOpt.NVarM
+%             Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i));
+%             Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)),pv(Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i)),Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)))];
+%         end
         Results.R = [Results.R,Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0
@@ -922,33 +958,76 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
     Results.DetailsV = [Results.DetailsV(:,1),zeros(NVarA,1),Results.DetailsV(:,2:3)];
+    if EstimOpt.NVarM > 0
+        Results.DetailsM = [];
+        for i=1:EstimOpt.NVarM
+            Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i));
+            Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),pv(Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)))];
+        end    
+    end
+    
     if isfield(EstimOpt,'EffectiveMoments') && EstimOpt.EffectiveMoments == 1
     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
         Results.DetailsA_underlying = Results.DetailsA;
         Results.DetailsV_underlying = Results.DetailsV;
+        if EstimOpt.NVarM > 0
+            Results.DetailsM_underlying = Results.DetailsM;
+        end
         log_idx = find(EstimOpt.Dist==1);
         try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
             bhat_sim = mvnrnd(Results.bhat,Results.ihess,NSdSim)';
-            bhat_new = zeros(NSdSim,5*NVarA);
-            parfor i = 1:NSdSim
-                bhat_i = bhat_sim(:,i);
-                %             B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
-                b0v = bhat_i(NVarA+1:NVarA+sum(1:NVarA))';
-                VC = tril(ones(NVarA));
-                VC(VC == 1) = b0v;
-                VC = VC*VC';
-                B0_i = mvnrnd(bhat_i(1:NVarA)',VC,NSdSim);
-                B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-                bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
+            if EstimOpt.NVarM > 0
+                BM_i = permute(reshape(bhat_sim(NVarA+sum(1:NVarA)+1:NVarA+sum(1:NVarA)+NVarA*EstimOpt.NVarM,:),[NVarA,EstimOpt.NVarM,NSdSim]),[3,1,2]);                
+                bhat_new = zeros(NSdSim,5*NVarA);
+                bhatM_new = zeros(NSdSim,5*NVarA*EstimOpt.NVarM);
+                parfor i = 1:NSdSim
+                    bhat_i = bhat_sim(:,i);
+                    b0v = bhat_i(NVarA+1:NVarA+sum(1:NVarA))';
+                    VC = tril(ones(NVarA));
+                    VC(VC == 1) = b0v;
+                    VC = VC*VC';
+                    B0_i = mvnrnd(bhat_i(1:NVarA)',VC,NSdSim);
+                    B0exp_i = B0_i;
+                    B0exp_i(:,log_idx) = exp(B0exp_i(:,log_idx));                                        
+                    bhat_new(i,:) = [mean(B0exp_i),median(B0exp_i),std(B0exp_i),quantile(B0exp_i,0.025),quantile(B0exp_i,0.975)];
+                    
+                    B0M_i = BM_i;
+                    B0M_i(:,log_idx) = exp(B0M_i(:,log_idx) + B0_i(:,log_idx)) - B0exp_i(:,log_idx);                    
+                    bhatM_new(i,:) = [mean(B0M_i),median(B0M_i),std(B0M_i),quantile(B0M_i,0.025),quantile(B0M_i,0.975)];                    
+                end
+            else
+                bhat_new = zeros(NSdSim,5*NVarA);
+                parfor i = 1:NSdSim
+                    bhat_i = bhat_sim(:,i);
+                    %             B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
+                    b0v = bhat_i(NVarA+1:NVarA+sum(1:NVarA))';
+                    VC = tril(ones(NVarA));
+                    VC(VC == 1) = b0v;
+                    VC = VC*VC';
+                    B0_i = mvnrnd(bhat_i(1:NVarA)',VC,NSdSim);
+                    B0_i(:,log_idx) = exp(B0_i(:,log_idx));
+                    bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
+                end
             end
+
             Results.DistStats_Coef = reshape(median(bhat_new,1),[NVarA,5]);
             Results.DistStats_Std = reshape(std(bhat_new,[],1),[NVarA,5]);
             Results.DistStats_Q025 = reshape(quantile(bhat_new,0.025),[NVarA,5]);
             Results.DistStats_Q975 = reshape(quantile(bhat_new,0.975),[NVarA,5]);
-            Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moment
+            Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2); % We use analytical formula instead of simulated moments
             Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
-            Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
+            Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moments
             Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
+            if EstimOpt.NVarM > 0
+                Results.DistStatsM_Coef = reshape(median(bhatM_new,1),[NVarA,5]);
+                Results.DistStatsM_Std = reshape(std(bhatM_new,[],1),[NVarA,5]);
+                Results.DistStatsM_Q025 = reshape(quantile(bhatM_new,0.025),[NVarA,5]);
+                Results.DistStatsM_Q975 = reshape(quantile(bhatM_new,0.975),[NVarA,5]);
+%                 Results.DetailsM(log_idx,1) = Results.DistStatsM_Coef(log_idx,1);
+                Results.DetailsM(log_idx,1) = exp(Results.DetailsA_underlying(log_idx,1) + Results.DetailsM(log_idx,1) + Results.DetailsV_underlying(log_idx,1).^2./2) - Results.DetailsA(log_idx,1); % We use analytical formula instead of simulated moments
+                Results.DetailsM(log_idx,3:4) = [Results.DistStatsM_Std(log_idx,1),pv(Results.DetailsM(log_idx,1),Results.DistStatsM_Std(log_idx,1))];
+            end
+            
         catch % theErrorInfo
             Results.DetailsA(log_idx,[1,3:4]) = NaN;
             Results.DetailsV(log_idx,[1,3:4]) = NaN;
@@ -991,11 +1070,11 @@ elseif EstimOpt.FullCov == 1
     end
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
-        Results.DetailsM = [];
-        for i=1:EstimOpt.NVarM
-            Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i));
-            Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),pv(Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)))];
-        end
+%         Results.DetailsM = [];
+%         for i=1:EstimOpt.NVarM
+%             Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i));
+%             Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),pv(Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)))];
+%         end
         Results.R = [Results.R,Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0
