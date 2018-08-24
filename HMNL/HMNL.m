@@ -136,6 +136,17 @@ EstimOpt.NVarStr = size(INPUT.Xstr,2);  % no. of variables in structural equatio
 EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurments without couting cutoffs, constants etc
 EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
+if isfield(EstimOpt,'MissingIndMea') == 0
+    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea)) ;
+end
+
+if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
+    error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
+end
+
+INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
+
+
 if isfield(INPUT,'Xm') == 0
     INPUT.Xm = zeros(size(INPUT.Y,1),0);
 end
