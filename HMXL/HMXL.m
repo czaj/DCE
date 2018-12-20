@@ -381,6 +381,10 @@ for i = 1:size(INPUT.Xmea,2)
     end
 end
 
+if isfield(EstimOpt,'Scores') == 0 || isempty(EstimOpt.Scores)
+    EstimOpt.Scores = 0;
+end
+
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= EstimOpt.NVarA
     EstimOpt.NamesA = (1:EstimOpt.NVarA)';
     EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
@@ -915,6 +919,15 @@ Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
 Results.std(EstimOpt.BLimit == 1) = 0;
 Results.std(imag(Results.std) ~= 0) = NaN;
+
+% save tmp1
+
+if EstimOpt.Scores ~= 0
+%     INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+%     INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
+
+    Results.Scores = BayesScoresHMXL(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,Results.bhat);                                    
+end
 
 if EstimOpt.FullCov == 0
     Results.DetailsA(:,1) = Results.bhat(1:EstimOpt.NVarA);

@@ -612,10 +612,12 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 %INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
 INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-INPUT.XXm = squeeze(INPUT.XXm(:,1,:));
-if EstimOpt.NVarM == 1
-    INPUT.XXm = INPUT.XXm';
-end
+% INPUT.XXm = squeeze(INPUT.XXm(:,1,:));
+% if EstimOpt.NVarM == 1
+%     INPUT.XXm = INPUT.XXm';
+% end
+INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
+
 
 err_mtx = err_mtx';
 % change err_mtx from NRep*NP x NVarA to NP*NRep x NVarA (incrasing the no. of draws only adds new draws for each respondent, does not change all draws per individual)
@@ -786,7 +788,7 @@ else
 end
 
 if EstimOpt.Scores ~= 0
-    Results.Scores = BayesScores(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
+    Results.Scores = BayesScoresMXL(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
 end
 
 % save out_MXL1
