@@ -137,7 +137,7 @@ EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurme
 EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
 if isfield(EstimOpt,'MissingIndMea') == 0
-    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea)) ;
+    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea));
 end
 
 if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
@@ -170,12 +170,21 @@ for i=1:size(EstimOpt.MeaMatrix,2)
     end
 end
 
-for i=1:EstimOpt.NVarStr
-    if sum(isnan(INPUT.Xstr(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains NaN values \n', i)
+% for i=1:EstimOpt.NVarStr
+%     if sum(isnan(INPUT.Xstr(INPUT.MissingInd==0 & (any(EstimOpt.MissingIndMea,2) == 0),i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains NaN values \n', i)
+%     end
+%     if sum(isinf(INPUT.Xstr(INPUT.MissingInd==0 & (any(EstimOpt.MissingIndMea,2) == 0),i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains Inf values \n', i)
+%     end
+% end
+
+for i = 1:EstimOpt.NVarStr
+    if sum(isnan(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains NaN values \n',i)
     end
-    if sum(isinf(INPUT.Xstr(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains Inf values \n', i)
+    if sum(isinf(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains Inf values \n',i)
     end
 end
 

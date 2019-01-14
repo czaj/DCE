@@ -220,14 +220,14 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
     end
 end
 
-for i = 1:EstimOpt.NVarStr
-    if sum(isnan(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains NaN values \n',i)
-    end
-    if sum(isinf(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains Inf values \n',i)
-    end
-end
+% for i = 1:EstimOpt.NVarStr
+%     if sum(isnan(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains NaN values \n',i)
+%     end
+%     if sum(isinf(INPUT.Xstr(INPUT.MissingInd == 0,i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING: Structural variable %d contains Inf values \n',i)
+%     end
+% end
 
 if EstimOpt.NVarMeaExp > 0
     if isfield(EstimOpt,'NamesMeaExp') == 0 || isempty(EstimOpt.NamesMeaExp) || length(EstimOpt.NamesMeaExp) ~= EstimOpt.NVarMeaExp
