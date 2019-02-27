@@ -1,6 +1,6 @@
 function Score = BayesScoresHMXL(Y,Xa,Xm,Xs,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 
-save BayesScoresHMXL
+% save BayesScoresHMXL
 % return
 
     NAlt = EstimOpt.NAlt;
