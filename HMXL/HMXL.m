@@ -1001,8 +1001,23 @@ elseif EstimOpt.FullCov == 1
     
     Results.DetailsM(:,1) = Results.bhat(l+1:end);
     Results.DetailsM(:,3:4) = [Results.std(l+1:end),pv(Results.bhat(l+1:end),Results.std(l+1:end))];
+      
+    Results.chol = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))];
+    Results.DetailsVcov = tril(ones(EstimOpt.NVarA));
+    choltmp = Results.chol(:,1);
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
+        choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5)) = 1;
+    end
+    Results.DetailsVcov(Results.DetailsVcov == 1) = choltmp;
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
+        choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:).^2,2));
+        Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:) = Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:)./choltmp(:,ones(1,EstimOpt.NVarA));
+    end
+    Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
+    Results.DetailsVcor = corrcov(Results.DetailsVcov);
 
 elseif EstimOpt.FullCov == 2
+    
     Results.DetailsA(:,1) = Results.bhat(1:EstimOpt.NVarA);
     Results.DetailsA(:,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
     %     VC = tril(ones(EstimOpt.NLatent+EstimOpt.NVarA));
@@ -1096,6 +1111,21 @@ elseif EstimOpt.FullCov == 2
         
         
     end
+    
+    Results.chol = [Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)),Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))];
+    Results.DetailsVcov = tril(ones(EstimOpt.NVarA));
+    choltmp = Results.chol(:,1);
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
+        choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5)) = 1;
+    end
+    Results.DetailsVcov(Results.DetailsVcov == 1) = choltmp;
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
+        choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:).^2,2));
+        Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:) = Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:)./choltmp(:,ones(1,EstimOpt.NVarA));
+    end
+    Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
+    Results.DetailsVcor = corrcov(Results.DetailsVcov);
+        
 end
 
 
