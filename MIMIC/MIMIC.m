@@ -701,14 +701,20 @@ Results.INPUT = INPUT;
 
 Head = cell(1,2);
 Head(1,1) = {'MIMIC'};
+if EstimOpt.NVarS > 0 
+    Template1 = {'DetailsS'};
+    Template2 = {'DetailsS'};
+    Names.DetailsS = EstimOpt.NamesStr;
+    Heads.DetailsS(:,2) = EstimOpt.NamesLV;
+    Heads.DetailsS(1:2,1) = {'Structural equations';'lc'};
+    Heads.DetailsS(EstimOpt.NLatent+1,2) = {'lb'};
+    ST = {'DetailsS'};
+else
+    Template1 = {};
+    Template2 = {};
+    ST = {};
+end
 
-Template1 = {'DetailsS'};
-Template2 = {'DetailsS'};
-Names.DetailsS = EstimOpt.NamesStr;
-Heads.DetailsS(:,2) = EstimOpt.NamesLV;
-Heads.DetailsS(1:2,1) = {'Structural equations';'lc'};
-Heads.DetailsS(EstimOpt.NLatent+1,2) = {'lb'};
-ST = {'DetailsS'};
 k = 0;
 
 if any(EstimOpt.MeaSpecMatrix == 2)

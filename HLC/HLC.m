@@ -680,9 +680,15 @@ for i = 1:EstimOpt.NClass
         Results.DetailsS(:,4*i-1:4*i)  = [Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),pv(Results.bhat(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr))];
         l = l + EstimOpt.NClass*EstimOpt.NVarStr;
     end
-    Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,1) = Results.bhat((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea);
-    Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,3:4) = [Results.std((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea),pv(Results.bhat((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea),Results.std((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea))];
+%     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,1) = Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea);
+%     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),pv(Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea))];
 end
+
+if sum(EstimOpt.CutMatrix) > 0
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),1) = Results.bhat(l+1:end);
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),3:4) = [Results.std(l+1:end),pv(Results.bhat(l+1:end), Results.std(l+1:end))];
+end
+
 Results.DetailsV = [Results.DetailsV,zeros(EstimOpt.NVarC+EstimOpt.NLatent,1),NaN(EstimOpt.NVarC+EstimOpt.NLatent,3)];
 Results.LL0 = Results.MIMIC0.LL + Results_old.MNL0.LL;
 EstimOpt.params = length(Results.bhat);
