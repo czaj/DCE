@@ -3,6 +3,7 @@ function f = LL_hmnl0(Xmea,EstimOpt,b)
 l = 0;
 L_mea = ones(EstimOpt.NP,1);
 LogFact = 0;
+
 for i = 1:size(Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 0 % OLS - might not work for MissingIndMea
         X = ones(EstimOpt.NP,1);

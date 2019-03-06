@@ -139,6 +139,26 @@ EstimOpt.NVarStr = size(INPUT.Xstr,2);  % no. of variables in structural equatio
 EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no. of parameters for Measurments without couting cutoffs, constants etc
 EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
+if isfield(EstimOpt,'MissingIndMea') == 0
+    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea));
+end
+
+if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
+    error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
+end
+
+INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
+
+
+if isfield(INPUT,'Xm') == 0
+    INPUT.Xm = zeros(size(INPUT.Y,1),0);
+end
+EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
+if isfield(INPUT,'Xs') == 0
+    INPUT.Xs = zeros(size(INPUT.Y,1),0);
+end
+EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
+
 for i = 1:size(EstimOpt.MeaMatrix,2)
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 10
@@ -333,6 +353,8 @@ if any(EstimOpt.StrNorm > 0)
 end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+EstimOpt.MissingIndMea = EstimOpt.MissingIndMea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 if EstimOpt.NVarMeaExp > 0
     INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
