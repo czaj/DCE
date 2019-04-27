@@ -131,17 +131,24 @@ EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 %     error('There must be more than one attitude for every Latent Variable for model identification')    
 % end
 
-for i=1:size(EstimOpt.MeaMatrix,2)
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
-            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n', i)
-        end
-    end
+for i = 1:size(EstimOpt.MeaMatrix,2)
     if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values \n', i)
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
+        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
     end
     if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values \n', i)
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
+        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
+    end    
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
+            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
+        end
+    end
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+        end
     end
 end
 

@@ -200,14 +200,14 @@ end
 INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
 
 for i = 1:size(EstimOpt.MeaMatrix,2)
-    if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
     end
-    if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
+    if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
-    end
+    end    
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
