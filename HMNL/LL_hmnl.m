@@ -320,7 +320,7 @@ else % function value + gradient
                 X_hat = sum(reshape(U_prob.*Xa_n,[NAlt,NCT,NVarA,NRep]),1);
                 F = Xa_n(Y(:,n)==1,:,:) - reshape(X_hat,[NCT,NVarA,NRep]); %NCT x NVarA x NRep
                 if NVarS > 0 || ScaleLV == 1
-                    bss = reshape(b_mtx_n,1,[NVarA,NRep]);
+                    bss = reshape(b_mtx_n,[1,NVarA,NRep]);
                     Fs = sum(F.*bss,2); % NCT x 1 x NRep
                     if ScaleLV == 1
                         LV_tmp = permute(LV_expand(n,:,:),[1 3 2]); % 1 x NLatent x NRep
