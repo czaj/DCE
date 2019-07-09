@@ -342,10 +342,10 @@ elseif nargout == 2 %% function value + gradient
                     F3sum = sum(F3,1); % 1  x NRep
                 elseif NVarNLT > 1
                     XXt_n = XXt(:,:,n);
-                    XXtt = XXt_n.*permute(b_mtx_n,[3,1,2]); %NAlt*NCT x NVarNLT x NRep
+                    XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3,1,2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
                     F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep
-                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep
+                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep                                        
                 end
             else % WTP_space > 0
                 Xalpha = XXa_n(:,1:end-WTP_space).*reshape(b_mtx_n(WTP_matrix,:),[1,NVarA-WTP_space,NRep]);
@@ -380,13 +380,15 @@ elseif nargout == 2 %% function value + gradient
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n*b_mtx_n(NLTVariables,:,:); %NAlt*NCT x NRep
                     X_hat_lam = sum(reshape(squeeze(U_prob(:,1,:)).*XXtt,[NAlt,NCT,NRep]),1);
-                    F3 = XXtt(YY(:,n) == 1,:) - squeeze(X_hat_lam) ; % CT x NRep
+%                     F3 = XXtt(YY(:,n) == 1,:) - squeeze(X_hat_lam) ; % CT x NRep
+                    F3 = XXtt(YY(:,n) == 1,:) - reshape(X_hat_lam,[NCT,NRep]) ; % CT x NRep                                        
                     F3sum = sum(F3,1); % 1  x NRep
                 elseif NVarNLT > 1
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3 1 2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
-                    F3 = XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
+%                     F3 = XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
+                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep                                        
                     F3sum = squeeze(sum(F3,1)); % NVarNLT  x NRep
                 end
             end
