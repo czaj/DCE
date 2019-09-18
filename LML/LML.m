@@ -177,6 +177,8 @@ end
 
 %% Starting values
 
+% save tmp2
+% return
 
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
