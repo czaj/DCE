@@ -410,7 +410,7 @@ elseif nargout == 2 %% function value + gradient
         end
         
     else % data has missing choices
-                
+        
         parfor n = 1:NP
             YYy_n = YY(:,n) == 1;
             YnanInd = ~isnan(YY(:,n));
@@ -581,10 +581,10 @@ elseif nargout == 2 %% function value + gradient
             end
             if NVarS > 0
                 gtmp = [gtmp;-mean(FScale.*U_prod,2)./p0(n)];
-            end            
+            end
             if NVarNLT > 0 % This is untested
                 gtmp = [gtmp;-mean(F3sum.*U_prod,2)./p0(n)];
-            end            
+            end
             g(n,:) = gtmp';
             
         end
