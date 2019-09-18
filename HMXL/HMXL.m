@@ -200,14 +200,14 @@ end
 INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
 
 for i = 1:size(EstimOpt.MeaMatrix,2)
-    if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
     end
-    if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
+    if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
-    end
+    end    
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
@@ -595,7 +595,7 @@ elseif EstimOpt.FullCov == 1
             disp('Using HMNL results as starting values')
             Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
             b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA,2),1);Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
-            if sum(EstimOpt.Dist == 1) > 0 && ~isfield(Results_old.HMNL.EstimOpt,'XDist')
+            if sum(EstimOpt.Dist == 1) > 0 %&& ~isfield(Results_old.HMNL.EstimOpt,'XDist')
                 b0(EstimOpt.Dist == 1) = log(abs(b0(EstimOpt.Dist == 1)));
             end
         else
