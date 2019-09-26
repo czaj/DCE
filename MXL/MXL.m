@@ -298,7 +298,7 @@ else % EstimOpt.FullCov == 1
                 vc_tmp(EstimOpt.Dist < 3) = vc_tmp(EstimOpt.Dist < 3).^2;
                 vc_tmp = diag(vc_tmp);
             else
-                vc_tmp = (diag(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))).^2;
+                vc_tmp = abs(diag(Results_old.MXL_d.bhat(NVarA+1:NVarA*2)));
             end
             b0 = [Results_old.MXL_d.bhat(1:NVarA);vc_tmp(tril(ones(size(vc_tmp))) == 1);Results_old.MXL_d.bhat(NVarA*2+1:end)];
         else

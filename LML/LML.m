@@ -163,7 +163,9 @@ end
 if isfield(EstimOpt, 'NoOutput') == 0
     EstimOpt.NoOutput = 0; % Do not draw a plot
 end
-
+if isfield(EstimOpt, 'FitCens') == 0
+    EstimOpt.FitCens = 0; % Do not censor fitted values in estimation process
+end
 
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
