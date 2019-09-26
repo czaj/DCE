@@ -18,7 +18,8 @@ NRep = EstimOpt.NRep;
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
 NCT = EstimOpt.NCT;
-
+NCTMiss = EstimOpt.NCTMiss;
+NAltMiss = EstimOpt.NAltMiss;
 
 
 %% Check data and inputs
@@ -176,6 +177,8 @@ end
 
 %% Starting values
 
+% save tmp2
+% return
 
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
@@ -495,17 +498,30 @@ if EstimOpt.WTP_space > 0
     b_gird(1:end-EstimOpt.WTP_space,:,:) = b_gird(1:end-EstimOpt.WTP_space,:,:).*b_gird(EstimOpt.WTP_matrix,:,:);
 end
 
-YYy = INPUT.YY==1;
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
 % parfor n = 1:NP    
-for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
-    U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
-    U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
-    U_sum = reshape(sum(U,1),[NCT,NRep]);
-    YYy_n = YYy(:,n);
-    U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
-    GridProbs(n,:) = prod(U_selected./U_sum,1);
+if any(isnan(XXa(:))) == 0 % faster version for complete dataset
+    YYy = INPUT.YY==1;
+    for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
+        U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
+        U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
+        U_sum = reshape(sum(U,1),[NCT,NRep]);
+        YYy_n = YYy(:,n);
+        U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
+        GridProbs(n,:) = prod(U_selected./U_sum,1);
+    end
+else   
+    for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
+        YnanInd = ~isnan(INPUT.YY(:,n));
+        XXa_n = XXa(:,:,n);
+        U = reshape(XXa_n(YnanInd,:)*b_gird(:,:,n),[NAltMiss(n),NCTMiss(n),NRep]);
+        U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
+        U_sum = reshape(sum(U,1),[NCTMiss(n),NRep]);
+        YYy_n = INPUT.YY(:,n)==1;
+        U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),[NCTMiss(n),NRep]);
+        GridProbs(n,:) = prod(U_selected./U_sum,1);
+    end
 end
 tocnote_01 = toc-tocnote_00;
 cprintf(['Pre-estimation completed in ' num2str(tocnote_01) ' seconds ('  num2str(floor(tocnote_01/(60*60))) ' hours ' num2str(floor(rem(tocnote_01,60*60)/60)) ' minutes ' num2str(rem(tocnote_01,60)) ' seconds).\n\n']);

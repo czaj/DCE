@@ -1,4 +1,4 @@
-function Score = BayesScores(YY,XXa,XXm,Xs,err,EstimOpt,b0)
+function Score = BayesScoresMXL(YY,XXa,XXm,Xs,err,EstimOpt,b0)
 
 % save LL_mxl
 % return

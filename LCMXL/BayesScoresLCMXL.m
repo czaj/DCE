@@ -85,38 +85,39 @@ PClass_i = reshape(p.*PClass./sum(p.*PClass,2),[1,NP,NClass]); %class probabilit
 % b_mtx_sliced = squeeze(mean(reshape(b_mtx,NVarA,NRep,NP,NClass),2)); ...
 % Betas_i = sum(b_mtx_sliced .* PClass_i(ones(NVarA,1,1),:,:),3)'; ...
 
-% get WTP-space parameters (clean):
-if WTP_space > 0
-    b_mtx = zeros(NVarA,NP*NRep,NClass);  
-    VC = zeros(NVarA); 
-    if FullCov == 0
-        for c = 1:NClass
-            b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,:) + diag(B(NVarA*NClass+(c-1)*NVarA+1:NVarA*(NClass+c)).^2)*err_sliced((c-1)*NVarA+1:c*NVarA,:); 
-            if sum(Dist(:,c) == 1) > 0  % lognormal
-                b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c)); 
-            elseif sum(Dist(:,c) == 2) > 0  % Spike
-                b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0);   
-            end
-%             if WTP_space > 0; 
-%                 b_mtx(1:end-WTP_space,:,c) = b_mtx(1:end-WTP_space,:,c).*b_mtx(WTP_matrix,:,c); 
-%             end; 
-        end
-    else 
-        VC_tmp = tril(ones(NVarA));
-        for c = 1:NClass
-            VC(VC_tmp == 1) = B(NVarA*NClass+(c-1)*sum(1:NVarA)+1:NVarA*NClass+c*sum(1:NVarA));
-            b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,ones(NP*NRep,1)) + VC*err_sliced((c-1)*NVarA+1:c*NVarA,:); 
-            if sum(Dist(:,c) == 1) > 0  % lognormal
-                b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c)); 
-            elseif sum(Dist(:,c) == 2) > 0  % Spike
-                b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0); 
-            end 
-%             if WTP_space > 0; 
-%                 b_mtx(1:end-WTP_space,:,c) = b_mtx(1:end-WTP_space,:,c).*b_mtx(WTP_matrix,:,c); 
-%             end; 
-        end
-    end
-end
+% why was it here? seems scores are not right with it. 
+% % get WTP-space parameters (clean): 
+% if WTP_space > 0
+%     b_mtx = zeros(NVarA,NP*NRep,NClass);  
+%     VC = zeros(NVarA); 
+%     if FullCov == 0
+%         for c = 1:NClass
+%             b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,:) + diag(B(NVarA*NClass+(c-1)*NVarA+1:NVarA*(NClass+c)).^2)*err_sliced((c-1)*NVarA+1:c*NVarA,:); 
+%             if sum(Dist(:,c) == 1) > 0  % lognormal
+%                 b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c)); 
+%             elseif sum(Dist(:,c) == 2) > 0  % Spike
+%                 b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0);   
+%             end
+% %             if WTP_space > 0; 
+% %                 b_mtx(1:end-WTP_space,:,c) = b_mtx(1:end-WTP_space,:,c).*b_mtx(WTP_matrix,:,c); 
+% %             end; 
+%         end
+%     else 
+%         VC_tmp = tril(ones(NVarA));
+%         for c = 1:NClass
+%             VC(VC_tmp == 1) = B(NVarA*NClass+(c-1)*sum(1:NVarA)+1:NVarA*NClass+c*sum(1:NVarA));
+%             b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,ones(NP*NRep,1)) + VC*err_sliced((c-1)*NVarA+1:c*NVarA,:); 
+%             if sum(Dist(:,c) == 1) > 0  % lognormal
+%                 b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c)); 
+%             elseif sum(Dist(:,c) == 2) > 0  % Spike
+%                 b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0); 
+%             end 
+% %             if WTP_space > 0; 
+% %                 b_mtx(1:end-WTP_space,:,c) = b_mtx(1:end-WTP_space,:,c).*b_mtx(WTP_matrix,:,c); 
+% %             end; 
+%         end
+%     end
+% end
 
 
 b_mtx_sliced = reshape(b_mtx,[NVarA,NRep,NP,NClass]);

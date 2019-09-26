@@ -139,17 +139,44 @@ EstimOpt.NVarStr = size(INPUT.Xstr,2);  % no. of variables in structural equatio
 EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no. of parameters for Measurments without couting cutoffs, constants etc
 EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
+if isfield(EstimOpt,'MissingIndMea') == 0
+    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea));
+end
+
+if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
+    error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
+end
+
+INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
+
+
+if isfield(INPUT,'Xm') == 0
+    INPUT.Xm = zeros(size(INPUT.Y,1),0);
+end
+EstimOpt.NVarM = size(INPUT.Xm,2); % Number of covariates of means of random parameters
+if isfield(INPUT,'Xs') == 0
+    INPUT.Xs = zeros(size(INPUT.Y,1),0);
+end
+EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
+
 for i = 1:size(EstimOpt.MeaMatrix,2)
+    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
+        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
+    end
+    if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
+        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
+    end    
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd==0,i))) > 10
-            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n', i)
+        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
+            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
         end
     end
-    if sum(isnan(INPUT.Xmea(INPUT.MissingInd == 0,i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values \n', i)
-    end
-    if sum(isinf(INPUT.Xmea(INPUT.MissingInd == 0,i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values \n', i)
+    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+        end
     end
 end
 
@@ -333,6 +360,8 @@ if any(EstimOpt.StrNorm > 0)
 end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+EstimOpt.MissingIndMea = EstimOpt.MissingIndMea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
 if EstimOpt.NVarMeaExp > 0
     INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
@@ -658,9 +687,15 @@ for i = 1:EstimOpt.NClass
         Results.DetailsS(:,4*i-1:4*i)  = [Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),pv(Results.bhat(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr))];
         l = l + EstimOpt.NClass*EstimOpt.NVarStr;
     end
-    Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,1) = Results.bhat((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea);
-    Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,3:4) = [Results.std((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea),pv(Results.bhat((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea),Results.std((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea))];
+%     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,1) = Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea);
+%     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),pv(Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea))];
 end
+
+if sum(EstimOpt.CutMatrix) > 0
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),1) = Results.bhat(l+1:end);
+    Results.DetailsM(1:sum(EstimOpt.CutMatrix),3:4) = [Results.std(l+1:end),pv(Results.bhat(l+1:end), Results.std(l+1:end))];
+end
+
 Results.DetailsV = [Results.DetailsV,zeros(EstimOpt.NVarC+EstimOpt.NLatent,1),NaN(EstimOpt.NVarC+EstimOpt.NLatent,3)];
 Results.LL0 = Results.MIMIC0.LL + Results_old.MNL0.LL;
 EstimOpt.params = length(Results.bhat);

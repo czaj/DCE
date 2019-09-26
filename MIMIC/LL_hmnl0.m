@@ -3,13 +3,14 @@ function f = LL_hmnl0(Xmea,EstimOpt,b)
 l = 0;
 L_mea = ones(EstimOpt.NP,1);
 LogFact = 0;
+
 for i = 1:size(Xmea,2)
-    if EstimOpt.MeaSpecMatrix(i) == 0 % OLS
+    if EstimOpt.MeaSpecMatrix(i) == 0 % OLS - might not work for MissingIndMea
         X = ones(EstimOpt.NP,1);
         bx = b(l+1:l+2);
         X_mea_n = Xmea(:,i);
         L = normpdf(X_mea_n,X*bx(1),exp(bx(2)));
-        L_mea = L_mea.*L;
+        L_mea(EstimOpt.MissingIndMea(:,i) == 0,:) = L_mea(EstimOpt.MissingIndMea(:,i) == 0,:).*L;
         l = l + 2;
     elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
         UniqueMea = unique(Xmea(:,i));
@@ -24,18 +25,18 @@ for i = 1:size(Xmea,2)
         end
         L_mea = L_mea.*L;
     elseif EstimOpt.MeaSpecMatrix(i) == 2 % Ordered Probit
-        UniqueMea = unique(Xmea(:,i));
+        UniqueMea = unique(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i));
         k = length(UniqueMea) - 1;
         bx = b(l+1:l+k);
         bx(2:end) = exp(bx(2:end));
         bx = cumsum(bx);
-        L = zeros(EstimOpt.NP,1);
-        L(Xmea(:,i) == min(UniqueMea)) = normcdf(bx(1));
-        L(Xmea(:,i) == max(UniqueMea)) = 1 - normcdf(bx(end));
+        L = zeros(sum(EstimOpt.MissingIndMea(:,i) == 0),1);
+        L(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i) == min(UniqueMea)) = normcdf(bx(1));
+        L(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i) == max(UniqueMea)) = 1 - normcdf(bx(end));
         for j = 2:k
-            L(Xmea(:,i) == UniqueMea(j)) = normcdf(bx(j)) - normcdf(bx(j-1));
+            L(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i) == UniqueMea(j)) = normcdf(bx(j)) - normcdf(bx(j-1));
         end
-        L_mea = L_mea.*L;
+        L_mea(EstimOpt.MissingIndMea(:,i) == 0,:) = L_mea(EstimOpt.MissingIndMea(:,i) == 0,:).*L;
         l = l + k;
     elseif EstimOpt.MeaSpecMatrix(i) == 3 % Poisson
         bx = b(l+1);
