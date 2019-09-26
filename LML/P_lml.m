@@ -78,6 +78,7 @@ end
 
 function PX = mnlquick(b_GridMat,bhat)
     Fit = b_GridMat'*bhat; % NGrid x 1
+    Fit(Fit > prctile(Fit,99)) = prctile(Fit,99); % censoring to account for extreme values
     Fit = exp(Fit - max(Fit));
     Fit_sum = sum(Fit);
     PX = (Fit./Fit_sum)';
