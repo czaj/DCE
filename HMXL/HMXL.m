@@ -595,7 +595,7 @@ elseif EstimOpt.FullCov == 1
             disp('Using HMNL results as starting values')
             Results_old.HMNL.bhat = Results_old.HMNL.bhat(:);
             b0 = [Results_old.HMNL.bhat(1:EstimOpt.NVarA);zeros(sum(1:EstimOpt.NVarA,2),1);Results_old.HMNL.bhat(EstimOpt.NVarA+1:end)];
-            if sum(EstimOpt.Dist == 1) > 0 && ~isfield(Results_old.HMNL.EstimOpt,'XDist')
+            if sum(EstimOpt.Dist == 1) > 0 %&& ~isfield(Results_old.HMNL.EstimOpt,'XDist')
                 b0(EstimOpt.Dist == 1) = log(abs(b0(EstimOpt.Dist == 1)));
             end
         else
