@@ -281,7 +281,7 @@ if nargout == 1 % function value only
     end
     
 elseif nargout == 2 %% function value + gradient
-   
+    
     if NVarS > 0
         Xs_sliced = reshape(Xs,[NAlt*NCT,NP,NVarS]);
         Xs_sliced = permute(Xs_sliced(1:NAlt:end,:,:),[1,3,2]); % NCT x NVarS x NP
@@ -290,21 +290,21 @@ elseif nargout == 2 %% function value + gradient
         Xs_sliced = permute(Xs_sliced,[1,3,2]);
     end
     if FullCov == 0
-%         g = zeros([NP,2*NVarA+NVarNLT+NVarS],'gpuArray');
+        %         g = zeros([NP,2*NVarA+NVarNLT+NVarS],'gpuArray');
         g = zeros(NP,2*NVarA+NVarNLT+NVarS);
         VC2 = reshape(err,[NVarA,NRep,NP,]);
-%         VC2f = zeros([0,0,NP],'gpuArray');
+        %         VC2f = zeros([0,0,NP],'gpuArray');
         VC2f = zeros([0,0,NP]);
-    else        
-%         g = zeros([NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS],'gpuArray');
+    else
+        %         g = zeros([NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS],'gpuArray');
         g = zeros([NP,2*NVarA+NVarA*(NVarA-1)/2+NVarNLT+NVarS]);
-%         VC2 = zeros(0,0,NP,'gpuArray');
+        %         VC2 = zeros(0,0,NP,'gpuArray');
         VC2 = zeros(0,0,NP);
         VC2f = reshape(err,[NVarA,NRep,NP]);
     end
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
-        YYy = (YY == 1);              
+        YYy = (YY == 1);
         parfor n = 1:NP
             F3sum = [];
             b_mtx_n = b_mtx(:,:,n);
@@ -323,14 +323,14 @@ elseif nargout == 2 %% function value + gradient
             U_prob = reshape(U_prob,[NAlt*NCT,1,NRep]);  % NAlt*NCT x NVarA x NRep
             if WTP_space == 0
                 X_hat = sum(reshape(U_prob.*XXa_n,[NAlt,NCT,NVarA,NRep]),1);
-                    F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
-                    if NVarS > 0
-                        FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
-%                         FScale = squeeze(sum(FScale,1));
-%                         FScale = reshape(sum(FScale,1),[1,NRep]);
-                        FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
-                    end
-                    sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
+                F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
+                if NVarS > 0
+                    FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
+                    %                         FScale = squeeze(sum(FScale,1));
+                    %                         FScale = reshape(sum(FScale,1),[1,NRep]);
+                    FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
+                end
+                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
                 if sum(Dist == 1) > 0
                     sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
                 end
@@ -345,7 +345,7 @@ elseif nargout == 2 %% function value + gradient
                     XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3,1,2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
                     F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep
-                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep                                        
+                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep
                 end
             else % WTP_space > 0
                 Xalpha = XXa_n(:,1:end-WTP_space).*reshape(b_mtx_n(WTP_matrix,:),[1,NVarA-WTP_space,NRep]);
@@ -380,15 +380,15 @@ elseif nargout == 2 %% function value + gradient
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n*b_mtx_n(NLTVariables,:,:); %NAlt*NCT x NRep
                     X_hat_lam = sum(reshape(squeeze(U_prob(:,1,:)).*XXtt,[NAlt,NCT,NRep]),1);
-%                     F3 = XXtt(YY(:,n) == 1,:) - squeeze(X_hat_lam) ; % CT x NRep
-                    F3 = XXtt(YY(:,n) == 1,:) - reshape(X_hat_lam,[NCT,NRep]) ; % CT x NRep                                        
+                    %                     F3 = XXtt(YY(:,n) == 1,:) - squeeze(X_hat_lam) ; % CT x NRep
+                    F3 = XXtt(YY(:,n) == 1,:) - reshape(X_hat_lam,[NCT,NRep]) ; % CT x NRep
                     F3sum = sum(F3,1); % 1  x NRep
                 elseif NVarNLT > 1
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3 1 2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
-%                     F3 = XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
-                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep                                        
+                    %                     F3 = XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
+                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep
                     F3sum = squeeze(sum(F3,1)); % NVarNLT  x NRep
                 end
             end
@@ -516,7 +516,7 @@ elseif nargout == 2 %% function value + gradient
             else
                 p0(n) = mean(U_prod);
             end
-                        
+            
             % calculations for gradient
             if WTP_space == 0
                 F = XXa_n(YYy_n,:) - X_hat;  %NCT x NVarA x NRep
@@ -530,6 +530,22 @@ elseif nargout == 2 %% function value + gradient
                 if sum(Dist == 1) > 0
                     sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
                 end
+                
+                if NVarNLT == 1 % This is untested, it probably will not work with varying number of alternatives per individual
+                    XXt_n = XXt(YnanInd,:,n);
+                    XXtt = XXt_n*b_mtx_n(NLTVariables,:); %NAlt*NCT x NRep
+                    X_hat_lam = sum(reshape(reshape(U_prob(:,1,:),[NAltMiss(n).*NCTMiss(n),NRep]).*XXtt,[NAltMiss(n),NCTMiss(n),NRep]),1);
+                    F3 = XXtt(YY(YnanInd,n) == 1,:) - reshape(X_hat_lam,[NCTMiss(n),NRep]); % CT x NRep
+                    F3sum = sum(F3,1); % 1  x NRep
+                elseif NVarNLT > 1 % This will probably not work at all - needs correcting for missing alternatives
+                    XXt_n = XXt(YnanInd,:,n);
+                    XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3,1,2]); %NAlt*NCT x NVarNLT x NRep
+                    X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
+                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep
+                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep
+                end
+                
+                
             else
                 F1 = Xalpha(YYy_n(YnanInd) == 1,:,:) - X_hat1;  %NCT x NVarA-WTP_space x NRep
                 % for cost variables
@@ -566,7 +582,9 @@ elseif nargout == 2 %% function value + gradient
             if NVarS > 0
                 gtmp = [gtmp;-mean(FScale.*U_prod,2)./p0(n)];
             end
-            
+            if NVarNLT > 0 % This is untested
+                gtmp = [gtmp;-mean(F3sum.*U_prod,2)./p0(n)];
+            end
             g(n,:) = gtmp';
             
         end
@@ -578,7 +596,7 @@ elseif nargout == 2 %% function value + gradient
         else
             g = [g(:,1:NVarA*(NVarA/2+1.5)),gm,g(:,NVarA*(NVarA/2+1.5)+1:end)];
         end
-    end  
+    end
     
 elseif nargout == 3 % function value + gradient + hessian
     
@@ -640,7 +658,7 @@ elseif nargout == 3 % function value + gradient + hessian
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
                 g(n,:) = -mean([sumFsqueezed.*U_prod;sumVC2tmp.*U_prod],2)./p0(n);
             end
-
+            
             % calculations for hessian
             % second term of hessian
             gtmp = [sumFsqueezed;sumVC2tmp];
@@ -665,7 +683,7 @@ elseif nargout == 3 % function value + gradient + hessian
                 VCxx(VCxx0 == 1) = sumFsqueezed.*VC3(:,:,n);
                 VCx_n = mmx('square',reshape(VC3(:,:,n)/2,[NVarA,1,NRep]),[]).*SIG;
                 hss = (mean(U_prod.*(hbbx.*VCx_n + VCxx),3) + ...
-                reshape(reshape(X_hat_U,[NCT,NRep,NVarA]).*VC2_n_tmp,[NCT*NRep,NVarA])'*X_hat_tmp_VC./NRep)./p0(n);
+                    reshape(reshape(X_hat_U,[NCT,NRep,NVarA]).*VC2_n_tmp,[NCT*NRep,NVarA])'*X_hat_tmp_VC./NRep)./p0(n);
             else
                 VC2_n_tmp = reshape(permute(VC2f(indx2,:,n),[2 1]),[1,NRep,NVarA*(NVarA-1)/2+NVarA]); % 1 x NRep x NVC
                 X_hat_tmp_VC = reshape(X_hat(:,:,indx1).*VC2_n_tmp,[NCT*NRep,NVarA*(NVarA-1)/2+NVarA]);
