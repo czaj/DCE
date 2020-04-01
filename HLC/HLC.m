@@ -1,4 +1,100 @@
 function Results = HLC(INPUT,Results_old,EstimOpt,OptimOpt)
+% HLC creates Hybrid Latent Class Model.
+%
+% Syntax:   HLC(INPUT,EstimOpt,OptimOpt)
+%           HLC(INPUT,Results_old,EstimOpt,OptimOpt)
+%
+% Inputs:
+%    INPUT - clean, updated INPUT data from DataCleanDCE
+%    EstimOpt - Estimation Options (check below)
+%    OptimOpt - Optimizer Options define how algorithms converges to the final result. They are set by default based on provided EstimOpt in DataCleanDCE, however, they are subject to change.
+%    Results_old - here one can provide old results to use as starting
+%    values
+%
+% EstimOpt Options:
+% Set them by e.g. Estimopt.DataFile = 'Project'
+%
+% HLC is LC that allows for hidden (latent) variable.
+% The user should define variables to structural and measurement equations by setting them in INPUT.Xstr and INPUT.Xmea accordingly.
+% •	MeaMatrix – matrix of measurement equations, by default model is assuming that every latent variable is in every measurement equation
+% •	MeaSpecMatrix - measurement specification matrix
+% •	NLatent = 1; number of latent variables
+% •	NClass = 2; number of latent classes
+% •	NamesC – names of classes
+% 
+% 
+% General basics:
+% •	DataFile – path/name of the .mat data file
+% •	Display – 1; shows output, set to 0 to hide it 
+% •	ProjectName – Name of the project/model
+% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% •	NCT - Number of choice tasks per person 
+% •	NAlt - Number of alternatives
+% •	NP – Number of respondents
+% 
+% 
+% Variables options:
+% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
+% •	NamesM – Names of variables of means of random parameters
+% •	NamesS – Names of variables of Scale
+% 
+% Numbers of variables are set automatically; you can check them in the following fields:
+% o	NVarA - Number of attributes
+% o	NVarM - Number of covariates of means of random parameters
+% o	NVarS - Number of covariates of scale
+% 
+% 
+% Parameters options:
+% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
+% 
+% 
+% Modelling options from DataCleanDCE:
+% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% •	HessEstFix = 0; Options: 
+% o	0 - use optimization Hessian, 
+% o	1 - use jacobian-based (BHHH) Hessian, 
+% o	2 - use high-precision jacobian-based (BHHH) Hessian,
+% o	3 - use numerical Hessian, 
+% o	4 - use analytical Hessian
+% 
+% 
+% For drawing and simulations:
+% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
+% o	1 - pseudo-random, 
+% o	2 - Latin Hypercube, 
+% o	3 - Halton, 
+% o	4 - Halton RR scrambled, 
+% o	5 - Sobol, 
+% o	6 - Sobol MAO scrambled
+% •	NRep = 1e3; specify no. of draws for numerical simulation
+% •	RealMin = by default 0, can be set to 1
+% •	NSdSim = 1e4; number of draws for simulating standard deviations
+%  
+% 
+% Precision:
+% •	eps = 1.e-6; overall precision level
+% •	Otherwise:
+% o	FunctionTolerance - df / gradient precision level
+% o	TolX - step precision level
+% o	OptimalityTolerance - dB precision level
+% 
+% 
+% Seeds by default:
+% •	Seed1 = 179424673
+% •	Seed2 = 7521436817
+%
+% Example: 
+%    Results.HLC = HLC(INPUT,Results,EstimOpt,OptimOpt);
+%
+% Author: Mikolaj Czajkowski, Professor
+% University of Warsaw, Faculty of Economic Sciences
+% email address: mik@czaj.org 
+% Website: http://czaj.org/#
 
 global B_backup;
 

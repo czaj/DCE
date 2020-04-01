@@ -1,4 +1,111 @@
 function Results = LML(INPUT,Results_old,EstimOpt,OptimOpt)
+% LML creates Mixed Logit with a Flexible Mixing Distribution Model.
+%
+% Syntax:   LML(INPUT,EstimOpt,OptimOpt)
+%           LML(INPUT,Results_old,EstimOpt,OptimOpt)
+%
+% Inputs:
+%    INPUT - clean, updated INPUT data from DataCleanDCE
+%    EstimOpt - Estimation Options (check below)
+%    OptimOpt - Optimizer Options define how algorithms converges to the final result. They are set by default based on provided EstimOpt in DataCleanDCE, however, they are subject to change.
+%    Results_old - here one can provide old results to use as starting
+%    values
+%
+% EstimOpt Options:
+% Set them by e.g. Estimopt.DataFile = 'Project'
+%
+% LML is a model with a flexible distribution of WTPs and the price/scale coefficient.
+% 
+% •	Dist = 0; distribution of random parameters, by default set to approximate normal. Set in a vector of numbers, each corresponding to specific distribution: 
+% o	0 - approximate normal, 
+% o	1 - approximate lognormal, 
+% o	2 - Legendre polynomial (normal), 
+% o	3 - Legendre polynomial (log-normal), 
+% o	4 - Step function, 
+% o	5 - Linear Spline, 
+% o	6 - Cubic Spline, 
+% o	7 - Piece-wise Cubic Spline, 
+% o	8 - Piece-wise Cubic Hermite Interpolating Spline
+% •	NOrder = 3; auxiliary variable for distributions of random parameters:
+% o	dist=0 or dist=1 - for approximate it is Order of approximation, 
+% o	dist=2 or dist=3 - for Legendre polynomial(s) it is their order,
+% o	dist=4 - for step function it is number of step function segments,
+% o	dist=5,6,7,8 - for splines it’s number of spline knots (including bonds)
+% •	NGrid = 1000; number of grids 
+% •	StepFun – user defined step function
+% •	PlotIndex = 0; not drawing plot, set to 1 to draw it
+% •	NoOutput = 0; set to 1 to create output
+% 
+% 
+% General basics:
+% •	DataFile – path/name of the .mat data file
+% •	Display – 1; shows output, set to 0 to hide it 
+% •	ProjectName – Name of the project/model
+% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% •	NCT - Number of choice tasks per person 
+% •	NAlt - Number of alternatives
+% •	NP – Number of respondents
+% 
+% 
+% Variables options:
+% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
+% 
+% Numbers of variables are set automatically; you can check them in the following fields:
+% o	NVarA - Number of attributes
+%
+% 
+% Parameters options:
+% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
+% 
+% 
+% Modelling options from DataCleanDCE:
+% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% •	HessEstFix = 0; Options: 
+% o	0 - use optimization Hessian, 
+% o	1 - use jacobian-based (BHHH) Hessian, 
+% o	2 - use high-precision jacobian-based (BHHH) Hessian,
+% o	3 - use numerical Hessian, 
+% o	4 - use analytical Hessian
+% 
+% 
+% For drawing and simulations:
+% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
+% o	1 - pseudo-random, 
+% o	2 - Latin Hypercube, 
+% o	3 - Halton, 
+% o	4 - Halton RR scrambled, 
+% o	5 - Sobol, 
+% o	6 - Sobol MAO scrambled
+% •	NRep = 1e3; specify no. of draws for numerical simulation
+% •	RealMin = by default 0, can be set to 1
+% •	NSdSim = 1e4; number of draws for simulating standard deviations
+%  
+% 
+% Precision:
+% •	eps = 1.e-6; overall precision level
+% •	Otherwise:
+% o	FunctionTolerance - df / gradient precision level
+% o	TolX - step precision level
+% o	OptimalityTolerance - dB precision level
+% 
+% 
+% Seeds by default:
+% •	Seed1 = 179424673
+% •	Seed2 = 7521436817
+% 
+%
+% Example: 
+%    Results.LML = LML(INPUT,Results,EstimOpt,OptimOpt);
+%
+% Author: Mikolaj Czajkowski, Professor
+% University of Warsaw, Faculty of Economic Sciences
+% email address: mik@czaj.org 
+% Website: http://czaj.org/#
 
 % save tmp_LML
 % return
@@ -163,9 +270,7 @@ end
 if isfield(EstimOpt, 'NoOutput') == 0
     EstimOpt.NoOutput = 0; % Do not draw a plot
 end
-if isfield(EstimOpt, 'FitCens') == 0
-    EstimOpt.FitCens = 0; % Do not censor fitted values in estimation process
-end
+
 
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= NVarA
     EstimOpt.NamesA = (1:NVarA)';
@@ -179,8 +284,6 @@ end
 
 %% Starting values
 
-% save tmp2
-% return
 
 NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
     (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
