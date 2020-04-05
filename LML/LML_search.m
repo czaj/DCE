@@ -1,7 +1,6 @@
 function [B_out,Summary,Res] = LML_search(INPUT,Results,EstimOpt,OptimOpt,varargin)
 
 % save LML_search_out
-% return
 
 % INPUT:
 % EstimOpt.LMLSearchNOrder - maximum NOrder
@@ -24,7 +23,7 @@ try
     
     global B_backup
     
-    if ~isfield(EstimOpt,'LMLSearchNOrder')
+    if isfield(EstimOpt,'LMLSearchNOrder') == 0
         EstimOpt.LMLSearchNOrder = 10;
     elseif EstimOpt.LMLSearchNOrder < 2
         error('EstimOpt.LMLSearchNOrder cannot be < 2')
@@ -48,7 +47,7 @@ try
     
     if nargin > 4
         B0_in = varargin{1}; % NOrder x NParams x NDist x 2 (FullCov = [0,1])
-        %             save tmp1
+%             save tmp1
         %     EstimOpt.LMLSearchNOrder = EstimOpt.LMLSearchNOrder + 1; % an additional evaluation for the starting valuaes provided
         %     % test B0 size
         %     if ndims(B0_in) ~= 4
@@ -88,19 +87,18 @@ try
     EstimOpt.PlotIndx = 0; % No plots
     EstimOpt.NoOutput = 1; % No output
     
-%     save tmp1
-%     return
+    % save tmp1
+    % return
     
-    B0_start = unifrnd(-5,5,[size(B0),EstimOpt.LMLSearchNTrials]); % Random starting values
-    %     Res = cell(3,EstimOpt.LMLSearchNOrder-1,7,2,EstimOpt.LMLSearchNTrials); % To save results
+    B0_start = unifrnd(-5,5,[size(B0),EstimOpt.LMLSearchNTrials]); % Random starting values    
+%     Res = cell(3,EstimOpt.LMLSearchNOrder-1,7,2,EstimOpt.LMLSearchNTrials); % To save results    
     B_out = NaN(size(B0));
     LL = NaN(EstimOpt.LMLSearchNOrder-1,7,2);
     Res.bhat = NaN(EstimOpt.LMLSearchNOrder-1, 7, 2, EstimOpt.LMLSearchNTrials, EstimOpt.NVarA.*(EstimOpt.LMLSearchNOrder+1) + EstimOpt.StepVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2);
     Res.LL = NaN(EstimOpt.LMLSearchNOrder-1, 7, 2, EstimOpt.LMLSearchNTrials);
     Res.stats = NaN(EstimOpt.LMLSearchNOrder-1, 7, 2, EstimOpt.LMLSearchNTrials,9);
     
-    %     save tmp1
-    %     return
+%     save tmp1
     
     for j = 1:7 % Loop over Dist
         if j == 1
@@ -148,8 +146,8 @@ try
                         Res.LL(i-1,j,1,1) = Results.LML_d.LL;
                         Res.stats(i-1,j,1,1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
                     catch theErrorInfo
-                        cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n']);
-                        %                         rethrow(theErrorInfo)
+                        cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n']); 
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -170,7 +168,7 @@ try
                             Res.stats(i-1,j,1,k+1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
                         catch theErrorInfo
                             cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                            %                             rethrow(theErrorInfo)
+%                             rethrow(theErrorInfo)
                         end
                         
                     end
@@ -181,12 +179,6 @@ try
                     EstimOpt.FullCov = 1;
                     
                     disp(['Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials)])
-                    
-                    NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
-                        (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
-                        (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
-                        (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),1) + ...
-                        EstimOpt.StepVar;
                     
                     B_backup = B0(i-1,~isnan(B0(i-1,:,j,2)),j,2); % Start from B0_in or 0
                     if size(B_backup(:),1) ~= (NVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2)
@@ -206,7 +198,7 @@ try
                         Res.stats(i-1,j,2,1,1:length(Results.LML.stats)) = Results.LML.stats;
                     catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                        %                         rethrow(theErrorInfo)
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -226,7 +218,7 @@ try
                             Res.stats(i-1,j,2,k+1,1:length(Results.LML.stats)) = Results.LML.stats;
                         catch theErrorInfo
                             cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                            %                             rethrow(theErrorInfo)
+%                             rethrow(theErrorInfo)
                         end
                     end
                 end
@@ -267,7 +259,7 @@ try
                         Res.stats(i-1,j,1,1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
                     catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                        %                         rethrow(theErrorInfo)
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -293,7 +285,7 @@ try
                             Res.stats(i-1,j,1,k+1,1:length(Results.LML_d.stats)) = Results.LML_d.stats;
                         catch theErrorInfo
                             cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 0, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                            %                             rethrow(theErrorInfo)
+%                             rethrow(theErrorInfo)
                         end
                         
                     end
@@ -305,13 +297,7 @@ try
                     
                     disp(['Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials)])
                     
-                    NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
-                        (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
-                        (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
-                        (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),1) + ...
-                        EstimOpt.StepVar;
-                    
-                    B_backup = B0(i-1,~isnan(B0(i-1,:,j,2)),j,2); % Start from B0_in or 0
+                    B_backup = B0(i-1,~isnan(B0(i-1,:,j,1)),j,2); % Start from B0_in or 0
                     if size(B_backup(:),1) ~= NVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2
                         if (j == 1) || (j == 2)
                             B_backup = [B_out(i-2,1:NVar - EstimOpt.NVarA,j,2),zeros(1,EstimOpt.NVarA,1),B_out(i-2,NVar - EstimOpt.NVarA + 1:NVar - EstimOpt.NVarA + (EstimOpt.NVarA)*(EstimOpt.NVarA - 1)/2,j,2)]; % If B_in not provided use vector of Polynomial of the i-1'th order and 0s as starting values in Trial 1
@@ -332,7 +318,7 @@ try
                         Res.stats(i-1,j,2,1,1:length(Results.LML.stats)) = Results.LML.stats;
                     catch theErrorInfo
                         cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                        %                         rethrow(theErrorInfo)
+%                         rethrow(theErrorInfo)
                     end
                     
                     for k = 1:EstimOpt.LMLSearchNTrials-1
@@ -343,7 +329,7 @@ try
                             B_backup = [B_out(i-2,1:NVar - EstimOpt.NVarA,j,2),B0_start(i-1,NVar - EstimOpt.NVarA + 1:NVar,j,2,k),B_out(i-2,NVar - EstimOpt.NVarA + 1:NVar - EstimOpt.NVarA + (EstimOpt.NVarA)*(EstimOpt.NVarA - 1)/2,j,2)]; % This time use B_out from the same NOrder, and for new elements (in the middle) use values from B0_start
                         else % j > 2
                             B_backup = B0_start(i-1,isnan(B_out(i-2,1:NVar + EstimOpt.NVarA*(EstimOpt.NVarA-1)/2,j,1)),j,2,k); % If B_in not provided use vector of 0s as starting values in Trial 1
-                        end
+                        end      
                         
                         try
                             Results.LML = LML(INPUT,Results,EstimOpt,OptimOpt);
@@ -357,7 +343,7 @@ try
                             Res.stats(i-1,j,2,k+1,1:length(Results.LML.stats)) = Results.LML.stats;
                         catch theErrorInfo
                             cprintf(rgb('DarkOrange'), ['WARNING: Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(k+1),'/',num2str(EstimOpt.LMLSearchNTrials),' - resulted in estimation error\n'])
-                            %                             rethrow(theErrorInfo)
+%                             rethrow(theErrorInfo)
                         end
                     end
                 end
@@ -365,8 +351,8 @@ try
         end
     end
     
-    %     save tmp1
-    
+%     save tmp1
+
     if exist('Res_in','var') == 1 && ~isempty(Res_in)
         Res.bhat = cat(4,Res.bhat,Res_in.bhat);
         Res.LL = cat(4,Res.LL,Res_in.LL);
@@ -377,8 +363,8 @@ try
     
 catch theErrorInfo
     
-    %     save LML_search_results % save current state in case of error
-    %     rethrow(theErrorInfo)
+%     save LML_search_results % save current state in case of error
+%     rethrow(theErrorInfo)
     
 end
 

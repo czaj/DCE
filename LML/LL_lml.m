@@ -6,16 +6,10 @@ function [f,j,h] = LL_lml(GridProbs,b_mtx,EstimOpt,b0)
 NP = EstimOpt.NP;
 NRep = EstimOpt.NRep;
 NVar = size(b_mtx,1);
-FitCens = EstimOpt.FitCens;
 
 if nargout == 1
     
     Fit_exp = reshape(b_mtx'*b0,[NRep,NP]); % NRep x NP
-    if FitCens == 1
-       Fit99 = prctile(Fit_exp,99,1);
-       Fit99 = Fit99(ones(NRep,1),:);
-       Fit_exp(Fit_exp > Fit99(ones(NRep,1),:)) = Fit99(Fit_exp > Fit99(ones(NRep,1),:)); 
-    end
     Fit_exp = exp(Fit_exp - max(Fit_exp,[],1)); % NRep x NP
     Fit_sum = sum(Fit_exp,1); % 1 x NP
     Fit_exp = Fit_exp./Fit_sum; % NRep x NP
@@ -24,11 +18,6 @@ if nargout == 1
 elseif nargout == 2
     
     Fit = reshape(b_mtx'*b0,[NRep,NP]); % NRep x NP
-    if FitCens == 1
-       Fit99 = prctile(Fit,99,1);
-       Fit99 = Fit99(ones(NRep,1),:);
-       Fit(Fit > Fit99(ones(NRep,1),:)) = Fit99(Fit > Fit99(ones(NRep,1),:)); 
-    end
     Fit_exp = exp(Fit - max(Fit,[],1)); % NRep x NP
     Fit_sum = sum(Fit_exp,1); % 1 x NP
     Fit_exp = Fit_exp./Fit_sum; % NRep x NP

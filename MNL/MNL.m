@@ -1,5 +1,62 @@
 function Results = MNL(INPUT,Results_old,EstimOpt,OptimOpt)
 
+% MNL creates Multinomial Logit Model.
+%
+% Syntax:   MNL(INPUT,EstimOpt,OptimOpt)
+%           MNL(INPUT,Results_old,EstimOpt,OptimOpt)
+%
+% Inputs:
+%    INPUT - clean, updated INPUT data from DataCleanDCE
+%    EstimOpt - Estimation Options (check below)
+%    OptimOpt - Optimizer Options define how algorithms converges to the final result. They are set by default based on provided EstimOpt in DataCleanDCE, however, they are subject to change.
+%    Results_old - here one can provide old results to use as starting
+%    values
+%
+% EstimOpt Options:
+% Set them by e.g. Estimopt.DataFile = 'Project'
+%
+% General basics:
+% •	DataFile – path/name of the .mat data file
+% •	Display – 1; shows output, set to 0 to hide it 
+% •	ProjectName – Name of the project/model
+% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% •	NCT - Number of choice tasks per person 
+% •	NAlt - Number of alternatives
+% •	NP – Number of respondents
+% 
+% 
+% Variables options:
+% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
+% •	NamesM – Names of variables of means of random parameters
+% •	NamesS – Names of variables of Scale
+% •	NLTVariables – vector specifying which attributes are to subject to non-linear transformations
+% •	NLTType – Transformation for non-linear variables. By default it is set to Box-Cox transformation (1), set to 2 in order to use Yeo-Johnson transformation
+% 
+% 
+% Parameters options:
+% •	ExpB = vector of 0; for each parameter set it to 1 to use ExpB, otherwise 0
+% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
+% 
+% 
+% Modelling options from DataCleanDCE:
+% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% •	HessEstFix = 0; Options: 
+% o	0 - use optimization Hessian, 
+% o	1 - use jacobian-based (BHHH) Hessian, 
+% o	2 - use high-precision jacobian-based (BHHH) Hessian,
+% o	3 - use numerical Hessian, 
+% o	4 - use analytical Hessian
+%
+% Example: 
+%    Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
+%
+% Author: Mikolaj Czajkowski, Professor
+% University of Warsaw, Faculty of Economic Sciences
+% email address: mik@czaj.org 
+% Website: http://czaj.org/#
 
 % save tmp_MNL
 % return

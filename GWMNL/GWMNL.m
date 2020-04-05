@@ -1,5 +1,62 @@
 function Results = GWMNL(INPUT,Results_old,EstimOpt,OptimOpt)
-
+% GWMNL creates Geographically Weighted Multinomial Logit Model.
+%
+% Syntax:   GWMNL(INPUT,EstimOpt,OptimOpt)
+%           GWMNL(INPUT,Results_old,EstimOpt,OptimOpt)
+%
+% Inputs:
+%    INPUT - clean, updated INPUT data from DataCleanDCE
+%    EstimOpt - Estimation Options (check below)
+%    OptimOpt - Optimizer Options define how algorithms converges to the final result. They are set by default based on provided EstimOpt in DataCleanDCE, however, they are subject to change.
+%    Results_old - here one can provide old results to use as starting
+%    values
+%
+% EstimOpt Options:
+% Set them by e.g. Estimopt.DataFile = 'Project'
+%
+% GWMNL uses bandwidth:
+% •	BandType = 1; by default uses global bandwidth, set to 2 for spatially varying bandwidth, set to 3 for square root of spatially varying bandwidth
+% •	BandSearch = 0; model uses fixed bandwidth as provided in BandVal; set to 1 to find optimal bandwidth value
+% •	BandVal = 3; default bandwidth value
+% •	BandLower = 0; bandwidth lower bound
+% •	BandUpper = 5; bandwidth upper bound
+% •	Clustered = 1; uses clustered standard errors, set to 0 otherwise
+% •	WeightSum = 1; no particular summing, set to 2 for summing to 1, set to 3 for summing to NP
+% •	BStrap = 0; set to 1 for bootstrapping
+% o	NBStrap = 100; No of bootstrap replications
+% 
+% 
+% General basics:
+% •	DataFile – path/name of the .mat data file
+% •	Display – 1; shows output, set to 0 to hide it 
+% •	ProjectName – Name of the project/model
+% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% •	NCT - Number of choice tasks per person 
+% •	NAlt - Number of alternatives
+% •	NP – Number of respondents
+% 
+% 
+% Variables options:
+% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
+% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
+% 
+% 
+% Modelling options from DataCleanDCE:
+% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% •	HessEstFix = 0; Options: 
+% o	0 - use optimization Hessian, 
+% o	1 - use jacobian-based (BHHH) Hessian, 
+% o	2 - use high-precision jacobian-based (BHHH) Hessian,
+% o	3 - use numerical Hessian, 
+% o	4 - use analytical Hessian
+% 
+% Example: 
+%    Results.GWMNL = GWMNL(INPUT,Results,EstimOpt,OptimOpt);
+%
+% Author: Mikolaj Czajkowski, Professor
+% University of Warsaw, Faculty of Economic Sciences
+% email address: mik@czaj.org 
+% Website: http://czaj.org/#
 
 % save tmp_MNL
 % return
