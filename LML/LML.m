@@ -13,7 +13,7 @@ Results.R_out = {};
 Results.stats = [];
 
 NVarA = EstimOpt.NVarA;
-NSdSim = EstimOpt.NSdSim;
+% NSdSim = EstimOpt.NSdSim;
 NRep = EstimOpt.NRep;
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
@@ -148,6 +148,8 @@ if isfield(EstimOpt,'NGrid') == 0
 else
     NGrid = EstimOpt.NGrid;
 end
+% save tmp1
+% return
 
 if isfield(EstimOpt, 'StepFun') == 1
     EstimOpt.StepVar = size(EstimOpt.StepFun(ones(EstimOpt.NVarA,1)),1);
@@ -379,7 +381,7 @@ end
 %     GridMat(1:end-EstimOpt.WTP_space,:) = GridMat(1:end-EstimOpt.WTP_space,:).*GridMat(EstimOpt.WTP_matrix,:);
 % end
 
-b_GridMat = B_lml(GridMat,EstimOpt); % NV x NGrid
+% b_GridMat = B_lml(GridMat,EstimOpt); % NV x NGrid
 % b_mtx = zeros(NVarA,NP*NRep);
 % for i = 1:size(b_GridMat,1)
 %     mod(i,NVarA)
@@ -503,7 +505,7 @@ end
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
 % parfor n = 1:NP    
-if any(isnan(XXa(:))) == 0 % faster version for complete dataset
+if ~any(isnan(XXa(:))) % faster version for complete dataset
     YYy = INPUT.YY==1;
     for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
         U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
@@ -562,6 +564,7 @@ if EstimOpt.NoOutput == 0
     
     LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
 
+   
     if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
         try
             [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
@@ -580,6 +583,7 @@ if EstimOpt.NoOutput == 0
             Results.jacobian = Results.jacobian.*INPUT.W(:,ones(1,size(Results.jacobian,2)));
         end
     elseif EstimOpt.HessEstFix == 2
+        [Results.LLdetailed] = LLfun2(Results.bhat);
         Results.jacobian = jacobianest(@(B) INPUT.W.*LLfun2(B),Results.bhat);
     elseif EstimOpt.HessEstFix == 3
         Results.LLdetailed = LLfun2(Results.bhat);

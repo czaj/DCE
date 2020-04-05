@@ -1,5 +1,8 @@
 function [LL,g,h] = LL_hmnl_MATlike(Y,Xa,Xm,Xs,X_str,X_mea,Xmea_exp,err_sliced,W,EstimOpt,OptimOpt,b0)
 
+% save tmp1
+% return
+
 LLfun = @(B) LL_hmnl(Y,Xa,Xm,Xs,X_str,X_mea, Xmea_exp,err_sliced,EstimOpt,B);
 
 if isequal(OptimOpt.GradObj,'on')
