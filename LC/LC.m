@@ -562,10 +562,18 @@ Results.DetailsV = [Results.DetailsV,zeros(EstimOpt.NVarC,1),NaN(EstimOpt.NVarC,
 
 if sum(EstimOpt.BActiveClass == 0,1) == 0
     bclass = reshape([Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
+    try
     bclass_sim = reshape([mvnrnd(Results.bhat((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end,(EstimOpt.NVarA+EstimOpt.NVarS)*EstimOpt.NClass+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
+    catch % theErrorInfo
+        bclass_sim = NaN(EstimOpt.NVarC,EstimOpt.NClass,NSdSim);
+    end    
 else
     bclass = reshape([Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
-    bclass_sim = reshape([mvnrnd(Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end,(EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
+    try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
+        bclass_sim = reshape([mvnrnd(Results.bhat((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),Results.ihess((EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end,(EstimOpt.NClass-1)*sum(EstimOpt.BActiveClass,1)+EstimOpt.NVarA+EstimOpt.NVarS*EstimOpt.NClass+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
+    catch % theErrorInfo
+        bclass_sim = NaN(EstimOpt.NVarC,EstimOpt.NClass,NSdSim);
+    end
     Results.bhat = [Results.DetailsA(:,1);Results.DetailsV(:,1)];
 end
 
