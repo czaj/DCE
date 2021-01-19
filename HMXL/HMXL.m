@@ -1202,6 +1202,7 @@ elseif EstimOpt.FullCov == 2
         % Using delta method instead simulation
         H = jacobianest(@(b) sdtriHe2(b,EstimOpt,0),bhattmp); % Covariance
         VarTmp = H*covtmp*H';
+%         save tmp1
         Results.DetailsCOV = [sdtriHe2(bhattmp,EstimOpt,0),zeros(EstimOpt.NVarA,1),sqrt(diag(VarTmp)),pv(sdtriHe2(bhattmp,EstimOpt,0),sqrt(diag(VarTmp)))];
         H = jacobianest(@(b) sdtriHe2(b,EstimOpt,1),bhattmp); % Correlation
         VarTmp = H*covtmp*H';
