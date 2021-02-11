@@ -1,4 +1,6 @@
 function [EstimOpt, OptimOpt] = setOptimizationOptions(EstimOpt, OptimOpt, b0)
+% Function sets such options as:
+% EstimOpt: BActive, NumGrad, GradObj
 
 if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
