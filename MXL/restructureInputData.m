@@ -1,4 +1,8 @@
 function INPUT = restructureInputData(INPUT,EstimOpt)
+% This function restructures input data.
+% It adds XXa, YY and XXm to the INPUT structure. They are the versions of
+% Xa, Y and Xm that are better suited for the further algebraic
+% calculations.
 
 INPUT.XXa = reshape(INPUT.Xa,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP,EstimOpt.NVarA]);
 INPUT.XXa = permute(INPUT.XXa,[1 3 2]);

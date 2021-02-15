@@ -217,7 +217,7 @@ if EstimOpt.FullCov == 0
         end
     end
     
-    if sum(EstimOpt.Dist == 3) > 0
+    if sum(EstimOpt.Dist == 3) > 0  % parameters with triangular distribution
         Results.DetailsA(EstimOpt.Dist == 3,1) = ...
             exp(Results.bhat(EstimOpt.Dist == 3)) + EstimOpt.Triang';
         Results.DetailsA(EstimOpt.Dist == 3,3:4) = ...
@@ -243,7 +243,7 @@ if EstimOpt.FullCov == 0
                      exp(Results.bhat(EstimOpt.Dist == 3)) + ...
                      EstimOpt.Triang',stdx)];
     end
-    if sum(EstimOpt.Dist == 4) > 0
+    if sum(EstimOpt.Dist == 4) > 0  % parameters with Weibull distribution
         Results.DetailsA(EstimOpt.Dist == 4,1) = exp(Results.bhat(EstimOpt.Dist == 4));
         Results.DetailsA(EstimOpt.Dist == 4,3:4) = ...
             [exp(Results.bhat(EstimOpt.Dist == 4)).*Results.std(EstimOpt.Dist == 4), ...

@@ -1,4 +1,6 @@
 function [INPUT, EstimOpt, OptimOpt] = setDisplayOptions(INPUT, EstimOpt, OptimOpt)
+% Needs to be refactored
+% Possibly couple of instructions should be moved to setOptimizationOptions
 
 if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || ...
         sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
@@ -14,10 +16,10 @@ end
 
 % TODO
 % jezeli zostanie zrobiony gradient analityczny to do zmiany
-if any(EstimOpt.Dist > 1) && EstimOpt.NumGrad == 0
+if (any(EstimOpt.Dist > 1) && ~any(EstimOpt.Dist == 4)) && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally or lognormally distributed parameters only \n')
+    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally, lognormally or Weibull distributed parameters only \n')
 end
 
 

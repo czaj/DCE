@@ -216,7 +216,7 @@ if isfield(EstimOpt,'Dist') == 0 || isempty(EstimOpt.Dist)
     end
 else
     if length(EstimOpt.Dist) == 1
-        EstimOpt.Dist = EstimOpt.Dist.*ones(1,NVarA); %needed?
+        EstimOpt.Dist = EstimOpt.Dist.*ones(1,NVarA); % needed?
     elseif length(EstimOpt.Dist) == NVarA
         EstimOpt.Dist = EstimOpt.Dist(:)';
     else

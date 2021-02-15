@@ -1,4 +1,6 @@
 function [f,g,h]= LL_mxl_MATlike(YY,XXa,XXm,Xs,err,W,EstimOpt,OptimOpt,b0)
+% Function calculating loglikelihood function value (f), its gradient (g)
+% and hessian (h).
 
 % save res_LL_mxl_MATlike2;
 % return
@@ -46,5 +48,5 @@ else % No gradient
     f = LLfun(b0);
 end
 f = f.*W;
-f = sum(f);
+f = sum(f); % -simulated log likelihood
 end
