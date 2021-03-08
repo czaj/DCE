@@ -217,7 +217,7 @@ if sum(Dist == 4) > 0 % Weibull
         tmpWeib = reshape(tmpWeib, [], NRep, NP);
     end
 else
-    tmpWeib = []; % initialize variable for parfor loop (even thoough it is not used)
+    tmpWeib = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
 end
 if sum(Dist >= 5) > 0 % Johnson
     if sum(Dist == 5) > 0 % Sinh-Arcsinh
@@ -451,13 +451,13 @@ elseif nargout == 2 %% function value + gradient
                     sumVC2tmp2(normDist, :) = ...
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
-%                 % calculations for gradient columns for Weibull distr.
-%                 if any(weibDist ~= 0)
-%                     tmpWeib_n = tmpWeib(:, :, n);
-%                     sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
-%                     sumVC2tmp2(weibDist, :) = ...
-%                         sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
-%                 end
+                % calculations for gradient columns for Weibull distr.
+                if any(weibDist ~= 0)
+                    tmpWeib_n = tmpWeib(:, :, n);
+                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
+                    sumVC2tmp2(weibDist, :) = ...
+                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
+                end
                 gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
