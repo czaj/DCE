@@ -452,12 +452,12 @@ elseif nargout == 2 %% function value + gradient
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
                 % calculations for gradient columns for Weibull distr.
-                if any(weibDist ~= 0)
-                    tmpWeib_n = tmpWeib(:, :, n);
-                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
-                    sumVC2tmp2(weibDist, :) = ...
-                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
-                end
+%                 if any(weibDist ~= 0)
+%                     tmpWeib_n = tmpWeib(:, :, n);
+%                     sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
+%                     sumVC2tmp2(weibDist, :) = ...
+%                         sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
+%                 end
                 gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
