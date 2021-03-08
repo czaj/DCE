@@ -95,6 +95,8 @@ if FullCov == 0 % no covariance, only variances
     if any(Dist == 4)   % weibull
         b0weibB = exp(-b0v(Dist == 4)); % b0weibB = 1/exp(b0v(Dist == 4))
         b0v(Dist == 4) = 1;
+    else
+        b0weibB = []; % initialize variable for parfor loop
     end
     if any(Dist == 5)   % sinh-arcsinh
         b0sinhB = b0v(Dist == 5).^2;
@@ -214,6 +216,8 @@ if sum(Dist == 4) > 0 % Weibull
     if EstimOpt.NumGrad == 0
         tmpWeib = reshape(tmpWeib, [], NRep, NP);
     end
+else
+    tmpWeib = []; % initialize variable for parfor loop (even thoough it is not used)
 end
 if sum(Dist >= 5) > 0 % Johnson
     if sum(Dist == 5) > 0 % Sinh-Arcsinh
@@ -438,24 +442,22 @@ elseif nargout == 2 %% function value + gradient
                 sumFtmp1 = ones(NVarA, NRep);
                 sumVC2tmp2 = ones(NVarA, NRep);
                 
-                % check which attributes has normal/lognormal or weibull
-                % distribution
+                % check which attributes has normal/lognormal or weibull distribution
                 normDist = logical(sum([Dist == 0; Dist == 1], 1));
                 weibDist = (Dist == 4);
-                % calculations for gradient columns for normal and
-                % lognormal distributions
+                % calculations for gradient columns for normal and lognormal distributions
                 if any(normDist ~= 0)
                     sumFtmp1(normDist, :) = sumFsqueezed(normDist, :);
                     sumVC2tmp2(normDist, :) = ...
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
-                % calculations for gradient columns for Weibull distr.
-                if any(weibDist ~= 0)
-                    tmpWeib_n = tmpWeib(:, :, n);
-                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
-                    sumVC2tmp2(weibDist, :) = ...
-                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
-                end
+%                 % calculations for gradient columns for Weibull distr.
+%                 if any(weibDist ~= 0)
+%                     tmpWeib_n = tmpWeib(:, :, n);
+%                     sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
+%                     sumVC2tmp2(weibDist, :) = ...
+%                         sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
+%                 end
                 gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
