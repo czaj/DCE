@@ -476,6 +476,7 @@ elseif nargout == 2 %% function value + gradient
         
     else % data has missing choices
         
+% save tmp1
         parfor n = 1:NP
             YYy_n = YY(:,n) == 1;
             YnanInd = ~isnan(YY(:,n));
