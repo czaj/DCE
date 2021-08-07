@@ -318,7 +318,12 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
     end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+            % make unique values positive (avoid problems with dummyvar)
+            % INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; 
+            [Aval, ~, indAval] = unique(INPUT.Xmea(:,i));
+            Avalnew = 1:size(Aval,1);
+            INPUT.Xmea(:,i) = Avalnew(indAval);
+            clear Aval Avalnew indAval
         end
     end
 end
@@ -1042,7 +1047,7 @@ if EstimOpt.FullCov == 0
         for i = 1:EstimOpt.NVarM
             Results.DetailsCM(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i+1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+i));
             Results.DetailsCM(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i+1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+i)),pv(Results.bhat((i+1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+i)),Results.std((i+1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(2+i)))];
-        end
+        end            
     else
         Results.DetailsCM = [];
     end
@@ -1232,8 +1237,7 @@ elseif EstimOpt.FullCov == 2
         
 end
 
-
-Results.R = [Results.DetailsA;Results.DetailsV;Results.DetailsCM;Results.DetailsL;Results.DetailsS;Results.DetailsM];
+Results.R = [Results.DetailsA;Results.DetailsV;reshape(permute(reshape(Results.DetailsCM,[EstimOpt.NVarA,4,EstimOpt.NVarM]),[1,3,2]),[EstimOpt.NVarA.*EstimOpt.NVarM,4]);Results.DetailsL;Results.DetailsS;Results.DetailsM];
 Results.LL0 = Results.MIMIC0.LL + Results_old.MNL0.LL;
 EstimOpt.params = length(Results.bhat);
 if isfield(EstimOpt,'BActive')

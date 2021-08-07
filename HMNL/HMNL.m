@@ -260,14 +260,14 @@ end
 EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 
 for i = 1:size(EstimOpt.MeaMatrix,2)
-    if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
+    if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
     end
-    if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
+    if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
-    end    
+    end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
@@ -275,7 +275,14 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
     end
     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+%             save tmp1
+%             return
+            % make unique values positive (avoid problems with dummyvar)
+            % INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+            [Aval, ~, indAval] = unique(INPUT.Xmea(:,i));
+            Avalnew = 1:size(Aval,1);
+            INPUT.Xmea(:,i) = Avalnew(indAval);
+            clear Aval Avalnew indAval
         end
     end
 end
@@ -328,36 +335,36 @@ if any(EstimOpt.MeaSpecMatrix == 3 | EstimOpt.MeaSpecMatrix == 4 | EstimOpt.MeaS
         cprintf(rgb('DarkOrange'),['WARNING: Values of count data measurment equations are too high, they were censored to ',num2str(EstimOpt.CountCut),'\n'])
     end
 end
-if isfield(EstimOpt,'MissingIndMea') == 0
-    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea)) ;
-end
+% if isfield(EstimOpt,'MissingIndMea') == 0
+%     EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea)) ;
+% end
+% 
+% if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
+%     error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
+% end
+% 
+% INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
 
-if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
-    error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
-end
-
-INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
-
-for i = 1:size(EstimOpt.MeaMatrix,2)
-    if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
-        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
-    end
-    if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
-        cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
-        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
-    end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
-            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
-        end
-    end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
-        end
-    end
-end
+% for i = 1:size(EstimOpt.MeaMatrix,2)
+%     if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
+%         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
+%     end
+%     if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
+%         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
+%         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
+%     end
+%     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+%         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
+%             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
+%         end
+%     end
+%     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+%         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+%             INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
+%         end
+%     end
+% end
 
 if sum(any(EstimOpt.MissingIndMea == 1) & (EstimOpt.MeaSpecMatrix ~= 0 & EstimOpt.MeaSpecMatrix ~= 2),2) > 0
     error('Missing Indicators possible only for OLS and Ordered Probit')
@@ -417,6 +424,7 @@ for i = 1:size(INPUT.Xmea,2)
         if ~all(ceil(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i)) == floor(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i)))
             error(num2str(i,'Measurement variable %1.0f is modelled using MNL - all values must be integer'));
         end
+%         save tmp1
         EstimOpt.NVarcut = EstimOpt.NVarcut + (length(unique(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (length(unique(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) - 1)*(1+ EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~=0)); % constants + additional coefficients
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) - 1;
         EstimOpt.Names = [EstimOpt.Names,'MNL '];
@@ -568,6 +576,7 @@ end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 EstimOpt.MissingIndMea = EstimOpt.MissingIndMea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+EstimOpt.MissingInd_tmp = INPUT.MissingInd(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 
 if EstimOpt.NVarMeaExp > 0
     INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
@@ -599,6 +608,7 @@ if size(INPUT.Xmea,2) > 0
     LLfun0 = @(B) LL_hmnl0(INPUT.Xmea,EstimOpt, B);
     [Results.MIMIC0.bhat,LL0] = fminunc(LLfun0,0.001*ones(EstimOpt.NVarcut0,1),OptimOpt_0);
     Results.MIMIC0.LL = -LL0;
+    Results.MIMIC0.LL = 0;
 else
     Results.MIMIC0.bhat = [];
     Results.MIMIC0.LL = 0;
@@ -651,6 +661,95 @@ elseif isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'b0') % starting 
         b0 = Results_old.HMNL.b0_old(:);
     end
 end
+% save tmp1
+% if ~exist('b0','var')
+%     if isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'bhat')
+%         disp('Using MIMIC results as starting values')
+%         Results_old.MIMIC.bhat = Results_old.MIMIC.bhat(:);
+%         bstr = reshape(Results_old.MIMIC.bhat(1:EstimOpt.NVarStr*EstimOpt.NLatent),[EstimOpt.NVarStr,EstimOpt.NLatent]);
+%         LV = INPUT.Xstr*bstr;
+%         mLV = mean(LV,1);
+%         sLV = std(LV);
+%         LV = (LV - mLV)./sLV; % normalilzing for 0 mean and std
+%         LV = LV(:,:,ones(EstimOpt.NCT*EstimOpt.NAlt,1)); % NP x NLatent x NCT*NAlt
+%         LV = permute(LV,[3 1 2]);
+%         LV = reshape(LV,[EstimOpt.NCT*EstimOpt.NAlt*EstimOpt.NP,EstimOpt.NLatent]);
+%         disp('Estimating additional MNL for starting values')
+%         INPUT0.Xa = INPUT.Xa;
+%         INPUT0.Y = INPUT.Y;
+%         INPUT0.Xm = [INPUT.Xm, LV];
+%         INPUT0.W = ones(EstimOpt.NP,1);
+%         INPUT0.MissingInd = INPUT.MissingInd;
+%         INPUT0.Xs = INPUT.Xs;
+%         if EstimOpt.ScaleLV == 1
+%             INPUT0.Xs = [INPUT0.Xs,LV];
+%         end
+%         EstimOpt0 = EstimOpt;
+%         EstimOpt0.DISPLAY = 0;
+%         EstimOpt0.WTP_space = 0;
+%         if isfield(EstimOpt,'BActive') == 1
+%             EstimOpt0.BActive = EstimOpt.BActive(1:EstimOpt.NVarA*(1+EstimOpt.NLatent));
+%         else
+%             EstimOpt0.BActive = ones(1,EstimOpt.NVarA*(1+EstimOpt.NLatent));
+%         end
+%         Results.MNL_LV = MNL(INPUT0,[],EstimOpt0,OptimOpt);
+%         b0 = [Results.MNL_LV.bhat;Results_old.MIMIC.bhat];
+%     elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat')
+%         disp('Using MNL and MIMIC0 results as starting values')
+%         Results_old.MNL.bhat = Results_old.MNL.bhat(:);
+%         b0 = zeros(EstimOpt.NVarA*(1 + EstimOpt.NLatent+EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS,1);
+%         b0(1:EstimOpt.NVarA*(1+EstimOpt.NVarM)) = Results_old.MNL.bhat(1:EstimOpt.NVarA*(1+EstimOpt.NVarM));
+%         if EstimOpt.ScaleLV == 0
+%             b0(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS) = Results_old.MNL.bhat(EstimOpt.NVarA*(1+EstimOpt.NVarM)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS);
+%         else
+%             b0(EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM+EstimOpt.NLatent)+EstimOpt.NVarS-EstimOpt.NLatent) = Results_old.MNL.bhat(EstimOpt.NVarA*(1+EstimOpt.NVarM)+1:EstimOpt.NVarA*(1+EstimOpt.NVarM)+EstimOpt.NVarS-EstimOpt.NLatent);
+%         end
+%         l = EstimOpt.NVarStr*EstimOpt.NLatent + (EstimOpt.NLatent + 1 + EstimOpt.NVarM)*EstimOpt.NVarA + EstimOpt.NVarS;
+%         k = 0;
+%         for i = 1:size(INPUT.Xmea,2)
+%             if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit:cutoffs
+%                 b0(l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1) = Results.MIMIC0.bhat(k+1:k+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1);
+%                 l = l + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp + length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1;
+%                 k = k + length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1;
+%             elseif EstimOpt.MeaSpecMatrix(i) == 0
+%                 b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                 b0(l+2+sum(EstimOpt.MeaMatrix(:,i)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp,1)) = Results.MIMIC0.bhat(k+2);
+%                 k = k + 2;
+%                 l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%             elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+%                 for n = 1:(length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1)
+%                     b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                     l = l + 1 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%                     k = k + 1;
+%                 end
+%             elseif EstimOpt.MeaSpecMatrix(i) == 3 % POISS
+%                 b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                 k = k + 1;
+%                 l = l + 1 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%             elseif EstimOpt.MeaSpecMatrix(i) == 4 % NB
+%                 b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                 b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % theta
+%                 k = k + 2;
+%                 l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%             elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP
+%                 b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                 b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % second constant
+%                 k = k + 2;
+%                 l = l + 2 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%             elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
+%                 b0(l+1) = Results.MIMIC0.bhat(k+1);
+%                 b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % Second constant
+%                 b0(l+3+2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+3); % Theta
+%                 k = k + 3;
+%                 l = l + 3 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+%             end
+%         end
+%     else
+%         error('No starting values available - run MNL or MIMIC first')
+%     end
+% end
+
+% redone for missing values in Mea that do not matter anyway because of MissingInd
 if ~exist('b0','var')
     if isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'bhat')
         disp('Using MIMIC results as starting values')
@@ -697,16 +796,16 @@ if ~exist('b0','var')
         k = 0;
         for i = 1:size(INPUT.Xmea,2)
             if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit:cutoffs
-                b0(l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1) = Results.MIMIC0.bhat(k+1:k+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1);
-                l = l + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp + length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1;
-                k = k + length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1;
+                b0(l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+length(unique(INPUT.Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0) ,i)))-1) = Results.MIMIC0.bhat(k+1:k+length(unique(INPUT.Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0) ,i)))-1);
+                l = l + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp + length(unique(INPUT.Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0) ,i))) - 1;
+                k = k + length(unique(INPUT.Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0) ,i))) - 1;
             elseif EstimOpt.MeaSpecMatrix(i) == 0
                 b0(l+1) = Results.MIMIC0.bhat(k+1);
                 b0(l+2+sum(EstimOpt.MeaMatrix(:,i)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp,1)) = Results.MIMIC0.bhat(k+2);
                 k = k + 2;
                 l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
             elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-                for n = 1:(length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) - 1)
+                for n = 1:(length(unique(INPUT.Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0) ,i))) - 1)
                     b0(l+1) = Results.MIMIC0.bhat(k+1);
                     l = l + 1 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
                     k = k + 1;
@@ -737,6 +836,7 @@ if ~exist('b0','var')
         error('No starting values available - run MNL or MIMIC first')
     end
 end
+
 % it must be after starting values
 INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
 

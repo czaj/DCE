@@ -3,7 +3,7 @@ function f = LL_hmnl0(Xmea,EstimOpt,b)
 l = 0;
 L_mea = ones(EstimOpt.NP,1);
 LogFact = 0;
-
+% save tmp1
 for i = 1:size(Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 0 % OLS - might not work for MissingIndMea
         X = ones(EstimOpt.NP,1);
@@ -12,22 +12,27 @@ for i = 1:size(Xmea,2)
         L = normpdf(X_mea_n,X*bx(1),exp(bx(2)));
         L_mea(EstimOpt.MissingIndMea(:,i) == 0,:) = L_mea(EstimOpt.MissingIndMea(:,i) == 0,:).*L;
         l = l + 2;
-    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-        UniqueMea = unique(Xmea(:,i));
+    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL       
+%         EstimOpt.NVarcut0 + length(unique(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) - 1
+        %         UniqueMea = unique(Xmea(:,i));
+        UniqueMea = unique(Xmea(EstimOpt.MissingInd_tmp==0 & (EstimOpt.MissingIndMea(:,i) == 0),i));        
         k = length(UniqueMea) - 1;
         bx = [0,b(l+1:l+k)'];
         l = l + k;
-        V = exp(ones(EstimOpt.NP,1)*bx); %NP x Unique values
+        V = exp(ones(EstimOpt.NP,1)*bx); % NP x Unique values
         V = V./sum(V,2);
-        L = zeros(EstimOpt.NP,1);
+%         L = zeros(EstimOpt.NP,1);
+        L = NaN(EstimOpt.NP,1);
         for j = 1:length(UniqueMea)
             L(Xmea(:,i) == UniqueMea(j)) = V(Xmea(:,i) == UniqueMea(j),j);
         end
-        L_mea = L_mea.*L;
+%         L_mea = L_mea.*L;
+        L_mea(~isnan(L)) = L_mea(~isnan(L)).*L(~isnan(L)); % this is a work-around for missing Ind values for MNL that do not matter anyway (because of INPUT.MissingInd)
     elseif EstimOpt.MeaSpecMatrix(i) == 2 % Ordered Probit
         UniqueMea = unique(Xmea(EstimOpt.MissingIndMea(:,i) == 0,i));
         k = length(UniqueMea) - 1;
-        bx = b(l+1:l+k);
+%         save tmp1
+        bx = b(l+1:l+k);        
         bx(2:end) = exp(bx(2:end));
         bx = cumsum(bx);
         L = zeros(sum(EstimOpt.MissingIndMea(:,i) == 0),1);
