@@ -255,6 +255,123 @@ if EstimOpt.FullCov == 0
         Results.DetailsV(EstimOpt.Dist == 4,3:4) = ...
             [stdx(EstimOpt.Dist == 4),pv(exp(btmp(EstimOpt.Dist == 4)),stdx(EstimOpt.Dist == 4))];
     end
+    %%%% WZ21. %%%%
+    if sum(EstimOpt.Dist == 9) > 0  % parameters with Uni-Log distribution
+        Results.DetailsA(EstimOpt.Dist == 9,1) = exp(Results.bhat(EstimOpt.Dist == 9));
+        Results.DetailsA(EstimOpt.Dist == 9,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 9)), ...
+             exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 9,1) = exp(btmp(EstimOpt.Dist == 9));
+        Results.DetailsV(EstimOpt.Dist == 9,3:4) = ...
+            [stdx(EstimOpt.Dist == 9),pv(exp(btmp(EstimOpt.Dist == 9)),stdx(EstimOpt.Dist == 9))];
+    end
+
+    if sum(EstimOpt.Dist == 10) > 0  % parameters with Pareto distribution
+        Results.DetailsA(EstimOpt.Dist == 10,1) = exp(Results.bhat(EstimOpt.Dist == 10));
+        Results.DetailsA(EstimOpt.Dist == 10,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 10)).*Results.std(EstimOpt.Dist == 10), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 10)), ...
+             exp(Results.bhat(EstimOpt.Dist == 10)).*Results.std(EstimOpt.Dist == 10))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 10,1) = exp(btmp(EstimOpt.Dist == 10));
+        Results.DetailsV(EstimOpt.Dist == 10,3:4) = ...
+            [stdx(EstimOpt.Dist == 10),pv(exp(btmp(EstimOpt.Dist == 10)),stdx(EstimOpt.Dist == 10))];
+    end
+    
+    if sum(EstimOpt.Dist == 11) > 0  % parameters with Lomax distribution
+        Results.DetailsA(EstimOpt.Dist == 11,1) = exp(Results.bhat(EstimOpt.Dist == 11));
+        Results.DetailsA(EstimOpt.Dist == 11,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 11)).*Results.std(EstimOpt.Dist == 11), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 11)), ...
+             exp(Results.bhat(EstimOpt.Dist == 11)).*Results.std(EstimOpt.Dist == 11))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 11,1) = exp(btmp(EstimOpt.Dist == 11));
+        Results.DetailsV(EstimOpt.Dist == 11,3:4) = ...
+            [stdx(EstimOpt.Dist == 11),pv(exp(btmp(EstimOpt.Dist == 11)),stdx(EstimOpt.Dist == 11))];
+    end
+    
+    if sum(EstimOpt.Dist == 12) > 0  % parameters with Logistic distribution
+        Results.DetailsA(EstimOpt.Dist == 12,1) = exp(Results.bhat(EstimOpt.Dist == 12));
+        Results.DetailsA(EstimOpt.Dist == 12,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 12)).*Results.std(EstimOpt.Dist == 12), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 12)), ...
+             exp(Results.bhat(EstimOpt.Dist == 12)).*Results.std(EstimOpt.Dist == 12))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 12,1) = exp(btmp(EstimOpt.Dist == 12));
+        Results.DetailsV(EstimOpt.Dist == 12,3:4) = ...
+            [stdx(EstimOpt.Dist == 12),pv(exp(btmp(EstimOpt.Dist == 12)),stdx(EstimOpt.Dist == 12))];
+    end
+    
+    if sum(EstimOpt.Dist == 13) > 0  % parameters with Log-Logistic distribution
+        Results.DetailsA(EstimOpt.Dist == 13,1) = exp(Results.bhat(EstimOpt.Dist == 13));
+        Results.DetailsA(EstimOpt.Dist == 13,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 13)).*Results.std(EstimOpt.Dist == 13), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 13)), ...
+             exp(Results.bhat(EstimOpt.Dist == 13)).*Results.std(EstimOpt.Dist == 13))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 13,1) = exp(btmp(EstimOpt.Dist == 13));
+        Results.DetailsV(EstimOpt.Dist == 13,3:4) = ...
+            [stdx(EstimOpt.Dist == 13),pv(exp(btmp(EstimOpt.Dist == 13)),stdx(EstimOpt.Dist == 13))];
+    end
+    
+    if sum(EstimOpt.Dist == 14) > 0  % parameters with Gumbel distribution
+        Results.DetailsA(EstimOpt.Dist == 14,1) = exp(Results.bhat(EstimOpt.Dist == 14));
+        Results.DetailsA(EstimOpt.Dist == 14,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 14)).*Results.std(EstimOpt.Dist == 14), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 14)), ...
+             exp(Results.bhat(EstimOpt.Dist == 14)).*Results.std(EstimOpt.Dist == 14))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 14,1) = exp(btmp(EstimOpt.Dist == 14));
+        Results.DetailsV(EstimOpt.Dist == 14,3:4) = ...
+            [stdx(EstimOpt.Dist == 14),pv(exp(btmp(EstimOpt.Dist == 14)),stdx(EstimOpt.Dist == 14))];
+    end   
+    
+    if sum(EstimOpt.Dist == 15) > 0  % parameters with Cauchy distribution
+        Results.DetailsA(EstimOpt.Dist == 15,1) = exp(Results.bhat(EstimOpt.Dist == 15));
+        Results.DetailsA(EstimOpt.Dist == 15,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 15)).*Results.std(EstimOpt.Dist == 15), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 15)), ...
+             exp(Results.bhat(EstimOpt.Dist == 15)).*Results.std(EstimOpt.Dist == 15))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        Results.DetailsV(EstimOpt.Dist == 15,1) = exp(btmp(EstimOpt.Dist == 15));
+        Results.DetailsV(EstimOpt.Dist == 15,3:4) = ...
+            [stdx(EstimOpt.Dist == 15),pv(exp(btmp(EstimOpt.Dist == 15)),stdx(EstimOpt.Dist == 15))];
+    end
+    if sum(EstimOpt.Dist == 16) > 0  % parameters with Rayleigh distribution
+        Results.DetailsA(EstimOpt.Dist == 16,1) = exp(Results.bhat(EstimOpt.Dist == 16));
+        Results.DetailsA(EstimOpt.Dist == 16,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 16)).*Results.std(EstimOpt.Dist == 16), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 16)), ...
+             exp(Results.bhat(EstimOpt.Dist == 16)).*Results.std(EstimOpt.Dist == 16))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        %Results.DetailsV(EstimOpt.Dist == 16,1) = exp(btmp(EstimOpt.Dist == 16));
+        %Results.DetailsV(EstimOpt.Dist == 16,3:4) = ...
+            %[stdx(EstimOpt.Dist == 16),pv(exp(btmp(EstimOpt.Dist == 16)),stdx(EstimOpt.Dist == 16))];
+    end
+    if sum(EstimOpt.Dist == 17) > 0  % parameters with Exponential distribution
+        Results.DetailsA(EstimOpt.Dist == 17,1) = exp(Results.bhat(EstimOpt.Dist == 17));
+        Results.DetailsA(EstimOpt.Dist == 17,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 17)).*Results.std(EstimOpt.Dist == 17), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 17)), ...
+             exp(Results.bhat(EstimOpt.Dist == 17)).*Results.std(EstimOpt.Dist == 17))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        stdx = exp(btmp).*Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2);
+        %Results.DetailsV(EstimOpt.Dist == 17,1) = exp(btmp(EstimOpt.Dist == 17));
+        %Results.DetailsV(EstimOpt.Dist == 17,3:4) = ...
+            %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
+    end
+    %%%% WZ21. koniec %%%%
+    
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
         %         Results.DetailsM = [];
@@ -486,6 +603,145 @@ elseif EstimOpt.FullCov == 1
              pv(btmp(EstimOpt.Dist == 5).^2, ...
                 2*btmp(EstimOpt.Dist == 5).*stdtmp(EstimOpt.Dist == 5))];
     end
+    
+    %%%% WZ22. %%%%
+    if sum(EstimOpt.Dist == 9) > 0
+        Results.DetailsA(EstimOpt.Dist == 9,1) = exp(Results.bhat(EstimOpt.Dist == 9));
+        Results.DetailsA(EstimOpt.Dist == 9,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 9)), ...
+                exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 9,1) = exp(btmp(EstimOpt.Dist == 9));
+        Results.DetailsV(EstimOpt.Dist == 9,3:4) = ...
+            [stdx(EstimOpt.Dist == 9),pv(exp(btmp(EstimOpt.Dist == 9)),stdx(EstimOpt.Dist == 9))];
+    end
+    if sum(EstimOpt.Dist == 10) > 0
+        Results.DetailsA(EstimOpt.Dist == 10,1) = exp(Results.bhat(EstimOpt.Dist == 10));
+        Results.DetailsA(EstimOpt.Dist == 10,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 10)).*Results.std(EstimOpt.Dist == 10), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 10)), ...
+                exp(Results.bhat(EstimOpt.Dist == 10)).*Results.std(EstimOpt.Dist == 10))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 10,1) = exp(btmp(EstimOpt.Dist == 10));
+        Results.DetailsV(EstimOpt.Dist == 10,3:4) = ...
+            [stdx(EstimOpt.Dist == 10),pv(exp(btmp(EstimOpt.Dist == 10)),stdx(EstimOpt.Dist == 10))];
+    end    
+    if sum(EstimOpt.Dist == 11) > 0
+        Results.DetailsA(EstimOpt.Dist == 11,1) = exp(Results.bhat(EstimOpt.Dist == 11));
+        Results.DetailsA(EstimOpt.Dist == 11,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 11)).*Results.std(EstimOpt.Dist == 11), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 11)), ...
+                exp(Results.bhat(EstimOpt.Dist == 11)).*Results.std(EstimOpt.Dist == 11))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 11,1) = exp(btmp(EstimOpt.Dist == 11));
+        Results.DetailsV(EstimOpt.Dist == 11,3:4) = ...
+            [stdx(EstimOpt.Dist == 11),pv(exp(btmp(EstimOpt.Dist == 11)),stdx(EstimOpt.Dist == 11))];
+    end
+    if sum(EstimOpt.Dist == 12) > 0
+        Results.DetailsA(EstimOpt.Dist == 12,1) = exp(Results.bhat(EstimOpt.Dist == 12));
+        Results.DetailsA(EstimOpt.Dist == 12,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 12)).*Results.std(EstimOpt.Dist == 12), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 12)), ...
+                exp(Results.bhat(EstimOpt.Dist == 12)).*Results.std(EstimOpt.Dist == 12))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 12,1) = exp(btmp(EstimOpt.Dist == 12));
+        Results.DetailsV(EstimOpt.Dist == 12,3:4) = ...
+            [stdx(EstimOpt.Dist == 12),pv(exp(btmp(EstimOpt.Dist == 12)),stdx(EstimOpt.Dist == 12))];
+    end
+    if sum(EstimOpt.Dist == 13) > 0
+        Results.DetailsA(EstimOpt.Dist == 13,1) = exp(Results.bhat(EstimOpt.Dist == 13));
+        Results.DetailsA(EstimOpt.Dist == 13,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 13)).*Results.std(EstimOpt.Dist == 13), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 13)), ...
+                exp(Results.bhat(EstimOpt.Dist == 13)).*Results.std(EstimOpt.Dist == 13))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 13,1) = exp(btmp(EstimOpt.Dist == 13));
+        Results.DetailsV(EstimOpt.Dist == 13,3:4) = ...
+            [stdx(EstimOpt.Dist == 13),pv(exp(btmp(EstimOpt.Dist == 13)),stdx(EstimOpt.Dist == 13))];
+    end
+    if sum(EstimOpt.Dist == 14) > 0
+        Results.DetailsA(EstimOpt.Dist == 14,1) = exp(Results.bhat(EstimOpt.Dist == 14));
+        Results.DetailsA(EstimOpt.Dist == 14,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 14)).*Results.std(EstimOpt.Dist == 14), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 14)), ...
+                exp(Results.bhat(EstimOpt.Dist == 14)).*Results.std(EstimOpt.Dist == 14))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 14,1) = exp(btmp(EstimOpt.Dist == 14));
+        Results.DetailsV(EstimOpt.Dist == 14,3:4) = ...
+            [stdx(EstimOpt.Dist == 14),pv(exp(btmp(EstimOpt.Dist == 14)),stdx(EstimOpt.Dist == 14))];
+    end
+    if sum(EstimOpt.Dist == 15) > 0
+        Results.DetailsA(EstimOpt.Dist == 15,1) = exp(Results.bhat(EstimOpt.Dist == 15));
+        Results.DetailsA(EstimOpt.Dist == 15,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 15)).*Results.std(EstimOpt.Dist == 15), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 15)), ...
+                exp(Results.bhat(EstimOpt.Dist == 15)).*Results.std(EstimOpt.Dist == 15))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        Results.DetailsV(EstimOpt.Dist == 15,1) = exp(btmp(EstimOpt.Dist == 15));
+        Results.DetailsV(EstimOpt.Dist == 15,3:4) = ...
+            [stdx(EstimOpt.Dist == 15),pv(exp(btmp(EstimOpt.Dist == 15)),stdx(EstimOpt.Dist == 15))];
+    end
+    if sum(EstimOpt.Dist == 16) > 0
+        Results.DetailsA(EstimOpt.Dist == 16,1) = exp(Results.bhat(EstimOpt.Dist == 16));
+        Results.DetailsA(EstimOpt.Dist == 16,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 16)).*Results.std(EstimOpt.Dist == 16), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 16)), ...
+                exp(Results.bhat(EstimOpt.Dist == 16)).*Results.std(EstimOpt.Dist == 16))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        %Results.DetailsV(EstimOpt.Dist == 16,1) = exp(btmp(EstimOpt.Dist == 16));
+        %Results.DetailsV(EstimOpt.Dist == 16,3:4) = ...
+            %[stdx(EstimOpt.Dist == 16),pv(exp(btmp(EstimOpt.Dist == 16)),stdx(EstimOpt.Dist == 16))];
+    end
+    if sum(EstimOpt.Dist == 17) > 0
+        Results.DetailsA(EstimOpt.Dist == 17,1) = exp(Results.bhat(EstimOpt.Dist == 17));
+        Results.DetailsA(EstimOpt.Dist == 17,3:4) = ...
+            [exp(Results.bhat(EstimOpt.Dist == 17)).*Results.std(EstimOpt.Dist == 17), ...
+             pv(exp(Results.bhat(EstimOpt.Dist == 17)), ...
+                exp(Results.bhat(EstimOpt.Dist == 17)).*Results.std(EstimOpt.Dist == 17))];
+        btmp = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        btmp = btmp(EstimOpt.DiagIndex);
+        stdx = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA-1)/2+2*EstimOpt.NVarA);
+        stdx = stdx(EstimOpt.DiagIndex);
+        stdx = exp(btmp).*stdx;
+        %Results.DetailsV(EstimOpt.Dist == 17,1) = exp(btmp(EstimOpt.Dist == 17));
+        %Results.DetailsV(EstimOpt.Dist == 17,3:4) = ...
+            %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
+    end
+    %%%% WZ22. koniec %%%%
+    
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
         %         Results.DetailsM = [];
@@ -548,15 +804,17 @@ elseif EstimOpt.FullCov == 1
                        Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5)))];
     Results.DetailsVcov = tril(ones(EstimOpt.NVarA));
     choltmp = Results.chol(:,1);
-    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
-        choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5)) = 1;
+    %%%% WZ23. dopisanie %%%
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) > 0
+        choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17)) = 1;
     end
     Results.DetailsVcov(Results.DetailsVcov == 1) = choltmp;
-    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
-        choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:).^2,2));
-        Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:) = ...
-            Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:)./choltmp(:,ones(1,EstimOpt.NVarA));
+    if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) > 0
+        choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:).^2,2));
+        Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:) = ...
+            Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:)./choltmp(:,ones(1,EstimOpt.NVarA));
     end
+    %%%% WZ23. koniec %%%%
     Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
     Results.DetailsVcor = corrcov(Results.DetailsVcov);
 end
