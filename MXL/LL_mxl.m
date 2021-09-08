@@ -85,6 +85,54 @@ if any(Dist == 5)   % Sinh-Arcsinh distribution
     b0a(Dist == 5) = 0;
 end
 
+%%%% WZ1. %%%%
+if any(Dist == 9)   % Uni-Log distribution
+    b0UniLogA = exp(b0a(Dist == 9));
+    b0a(Dist == 9) = 0;
+end
+
+if any(Dist == 10)   % Pareto distribution
+    b0ParetoA = exp(b0a(Dist == 10));
+    b0a(Dist == 10) = 0;
+end
+
+if any(Dist == 11)   % Lomax distribution
+    b0LomaxA = exp(b0a(Dist == 11));
+    b0a(Dist == 11) = 0;
+end
+
+if any(Dist == 12)   % Logistic distribution
+    b0LogA = exp(b0a(Dist == 12));
+    b0a(Dist == 12) = 0;
+end
+
+if any(Dist == 13)   % Log-Logistic distribution
+    b0LogLA = exp(b0a(Dist == 13));
+    b0a(Dist == 13) = 0;
+end
+
+if any(Dist == 14)   % Gumbel distribution
+    b0GumA = exp(b0a(Dist == 14));
+    b0a(Dist == 14) = 0;
+end
+
+if any(Dist == 15)   % Cauchy distribution
+    b0CaucA = exp(b0a(Dist == 15));
+    b0a(Dist == 15) = 0;
+end
+
+if any(Dist == 16)   % Rayleigh distribution
+    b0RayA = exp(b0a(Dist == 16));
+    b0a(Dist == 16) = 0;
+end
+
+if any(Dist == 17)   % Exponential distribution
+    b0ExpA = exp(b0a(Dist == 17));
+    b0a(Dist == 17) = 0;
+end
+
+%%%% koniec WZ1. %%%%
+
 %% Second parameters of the distributions (std devs as default)
 if FullCov == 0 % no covariance, only variances
     b0v = (b0(NVarA+1:NVarA*2));    % Second parameters of the distributions (std devs as default)
@@ -96,12 +144,93 @@ if FullCov == 0 % no covariance, only variances
         b0weibB = exp(-b0v(Dist == 4)); % b0weibB = 1/exp(b0v(Dist == 4))
         b0v(Dist == 4) = 1;
     else
+        % WZ.poprawka/dopisanie %
+        b0weibA = [];
+        % WZ.poprawka/dopisanie koniec %
+        
         b0weibB = []; % initialize variable for parfor loop
     end
     if any(Dist == 5)   % sinh-arcsinh
         b0sinhB = b0v(Dist == 5).^2;
         b0v(Dist == 5) = 1;
     end
+    
+    %%%% WZ2. %%%%
+    
+    if any(Dist == 9)   % Uni-Log
+        b0UniLogB = exp(b0v(Dist == 9));
+        b0v(Dist == 9) = 1;
+    else
+        b0UniLogA = [];  % initialize variable for parfor loop
+        b0UniLogB = []; % initialize variable for parfor loop
+    end
+        
+    if any(Dist == 10)   % Pareto
+        b0ParetoB = exp(b0v(Dist == 10));
+        b0v(Dist == 10) = 1;
+    else
+        b0ParetoA = [];  % initialize variable for parfor loop
+        b0ParetoB = []; % initialize variable for parfor loop
+    end
+    
+    if any(Dist == 11)   % Lomax
+        b0LomaxB = exp(b0v(Dist == 11));
+        b0v(Dist == 11) = 1;
+    else
+        b0LomaxA = [];  % initialize variable for parfor loop
+        b0LomaxB = []; % initialize variable for parfor loop
+    end
+    
+    if any(Dist == 12)   % Logistic
+        b0LogB = exp(b0v(Dist == 12));
+        b0v(Dist == 12) = 1;
+    else
+        b0LogA = [];  % initialize variable for parfor loop
+        b0LogB = []; % initialize variable for parfor loop
+    end
+        
+    if any(Dist == 13)   % Log-Logistic
+        b0LogLB = exp(b0v(Dist == 13));
+        b0v(Dist == 13) = 1;
+    else
+        b0LogLA = [];  % initialize variable for parfor loop
+        b0LogLB = []; % initialize variable for parfor loop
+    end
+
+    if any(Dist == 14)   % Gumbel
+        b0GumB = exp(b0v(Dist == 14));
+        b0v(Dist == 14) = 1;
+    else
+        b0GumA = [];  % initialize variable for parfor loop
+        b0GumB = []; % initialize variable for parfor loop
+    end
+    
+    if any(Dist == 15)   % Cauchy
+        b0CaucB = exp(b0v(Dist == 15));
+        b0v(Dist == 15) = 1;
+    else
+        b0CaucA = [];  % initialize variable for parfor loop
+        b0CaucB = []; % initialize variable for parfor loop
+    end
+        
+    if any(Dist == 16)   % Rayleigh
+        % b0RayB = exp(b0v(Dist == 16));
+        b0v(Dist == 16) = 1;
+    else
+        b0RayA = [];  % initialize variable for parfor loop
+        % b0RayB = []; % initialize variable for parfor loop
+    end
+    
+    if any(Dist == 17)   % Exponential
+        % b0ExpB = exp(b0v(Dist == 17));
+        b0v(Dist == 17) = 1;
+    else
+        b0ExpA = [];  % initialize variable for parfor loop
+        % b0ExpB = []; % initialize variable for parfor loop
+    end
+    
+    %%%% koniec WZ2. %%%%
+    
     %     b0v = b0v.^2;
     VC = diag(b0v); % no covariance elements (varcov matrix; here var only)
     b0m = b0(NVarA*2+1:NVarA*(NVarM+2));
@@ -112,24 +241,94 @@ if FullCov == 0 % no covariance, only variances
 else    % with covariance elements
     b0v = b0(NVarA+1:NVarA+sum(1:NVarA));   % second parameters of the distributions (with covariance)
     tmp = b0v(DiagIndex);   % second parameters of the distributions (std devs as default)
-    b0v(DiagIndex(Dist >=3 & Dist <=5)) = 1;    % triangular, weibull and sinh-arcsinh distributions
+    
+    %%%% WZ4. dopisanie %%%%
+    b0v(DiagIndex(Dist >=3 & Dist <=5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)) = 1;    % triangular, weibull, sinh-arcsinh, uni-log(reciprocal), pareto, lomax, logistic, log-logistic, gumbel, cauchy, rayleigh, exponential distributions
+    %%%% WZ4. koniec %%%%
+    
     if any(Dist == 3)
         b0triag_b = exp(tmp(Dist == 3)) + b0triang_c;
     end
     if any(Dist == 4)
         b0weibB = exp(-tmp(Dist == 4));
     else
+        % WZ.poprawka/dopisanie %
+        b0weibA = [];
+        % WZ.poprawka/dopisanie koniec %
         b0weibB = [];
     end
     if any(Dist == 5)
         b0sinhB = tmp(Dist == 5).^2;
     end
+    
+    %%%% WZ5. %%%%
+    if any(Dist == 9)
+        b0UniLogB = exp(tmp(Dist == 9));
+    else
+        b0UniLogA = [];
+        b0UniLogB = [];
+    end
+    if any(Dist == 10)
+        b0ParetoB = exp(tmp(Dist == 10));
+    else
+        b0ParetoA = [];
+        b0ParetoB = [];
+    end
+    if any(Dist == 11)
+        b0LomaxB = exp(tmp(Dist == 11));
+    else
+        b0LomaxA = [];
+        b0LomaxB = [];
+    end
+    if any(Dist == 12)
+        b0LogB = exp(tmp(Dist == 12));
+    else
+        b0LogA = [];
+        b0LogB = [];
+    end  
+    if any(Dist == 13)
+        b0LogLB = exp(tmp(Dist == 13));
+    else
+        b0LogLA = [];
+        b0LogLB = [];
+    end
+    if any(Dist == 14)
+        b0GumB = exp(tmp(Dist == 14));
+    else
+        b0GumA = [];
+        b0GumB = [];
+    end    
+    if any(Dist == 15)
+        b0CaucB = exp(tmp(Dist == 15));
+    else
+        b0CaucA = [];
+        b0CaucB = [];
+    end
+    if any(Dist == 16)
+        % b0RayB = exp(tmp(Dist == 16));
+    else
+        b0RayA = [];
+        % b0RayB = [];
+    end
+    if any(Dist == 17)
+        % b0ExpB = exp(tmp(Dist == 17));
+    else
+        b0ExpA = [];
+        % b0ExpB = [];
+    end
+    
+    %%%% WZ5. koniec %%%%
+    
     VC = tril(ones(NVarA)); % with covariance elements
     VC(VC == 1) = b0v;
-    if any(Dist >= 3 & Dist <= 5)
-        tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5,:).^2,2));
-        VC(Dist >= 3 & Dist <= 5,:) = VC(Dist >= 3 & Dist <= 5,:)./tmp;
+    
+    %%%% WZ6. dopsianie %%%%
+    if any(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)
+        tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:).^2,2));
+        VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:) = VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:)./tmp;
     end
+    %%%% WZ6. koniec %%%%
+    
     b0m = b0(NVarA*(NVarA/2+1.5)+1:NVarA*(NVarA/2+1.5+NVarM));
     b0m = reshape(b0m,[NVarA,NVarM]);
     b0s = b0(NVarA*(NVarA/2+1.5+NVarM)+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS);
@@ -237,6 +436,99 @@ if sum(Dist >= 5) > 0 % Johnson
         b_mtx(Dist == 7,:) = b0j(1:Johnson,:) + exp(b0j(Johnson+1:end,:)).*b_mtx(Dist == 7,:);
     end
 end
+
+%%%% WZ7. %%%%
+if sum(Dist == 9) > 0 % Uni-Log
+    tmpUniLog = normcdf(b_mtx(Dist == 9,:));
+    b_mtx(Dist == 9,:) = exp(log(b0UniLogA)+tmpUniLog.*(log(b0UniLogB)-log(b0UniLogA)));   % inverse CDF function (dziala)
+    if EstimOpt.NumGrad == 0
+        tmpUniLog = reshape(tmpUniLog, [], NRep, NP);
+    end
+else
+    tmpUniLog = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 10) > 0 % Pareto
+    tmpPareto = normcdf(b_mtx(Dist == 10,:));
+    b_mtx(Dist == 10,:) = b0ParetoA./((1-tmpPareto).^(1./b0ParetoB));   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpPareto = reshape(tmpPareto, [], NRep, NP);
+    end
+else
+    tmpPareto = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 11) > 0 % Lomax
+    tmpLomax = normcdf(b_mtx(Dist == 11,:));
+    b_mtx(Dist == 11,:) = b0LomaxB.*(((1./(1-tmpLomax)).^(1./b0LomaxA))-1);   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpLomax = reshape(tmpLomax, [], NRep, NP);
+    end
+else
+    tmpLomax = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 12) > 0 % Logistic
+    tmpLog = normcdf(b_mtx(Dist == 12,:));
+    b_mtx(Dist == 12,:) = b0LogA+b0LogB.*log(tmpLog./(1-tmpLog));   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpLog = reshape(tmpLog, [], NRep, NP);
+    end
+else
+    tmpLog = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 13) > 0 % Log-Logistic
+    tmpLogL = normcdf(b_mtx(Dist == 13,:));
+    b_mtx(Dist == 13,:) = b0LogLA.*(1./((1./tmpLogL)-1)).^(1./b0LogLB);   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpLogL = reshape(tmpLogL, [], NRep, NP);
+    end
+else
+    tmpLogL = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 14) > 0 % Gumbel
+    tmpGum = normcdf(b_mtx(Dist == 14,:));
+    b_mtx(Dist == 14,:) = b0GumA+b0GumB.*log(1./log(1./tmpGum));   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpGum = reshape(tmpGum, [], NRep, NP);
+    end
+else
+    tmpGum = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 15) > 0 % Cauchy
+    tmpCauc = normcdf(b_mtx(Dist == 15,:));
+    b_mtx(Dist == 15,:) = b0CaucA+b0CaucB.*tan(pi.*(tmpCauc-1/2));   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpCauc = reshape(tmpCauc, [], NRep, NP);
+    end
+else
+    tmpCauc = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 16) > 0 % Rayleigh
+    tmpRay = normcdf(b_mtx(Dist == 16,:));
+    b_mtx(Dist == 16,:) = (2.*(b0RayA.^2).*log(1./(1-tmpRay))).^(1/2);   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpRay = reshape(tmpRay, [], NRep, NP);
+    end
+else
+    tmpRay = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+if sum(Dist == 17) > 0 % Exponential
+    tmpExp = normcdf(b_mtx(Dist == 17,:));
+    b_mtx(Dist == 17,:) = (log(1./(1-tmpExp))).*(1./b0ExpA);   % inverse CDF function
+    if EstimOpt.NumGrad == 0
+        tmpExp = reshape(tmpExp, [], NRep, NP);
+    end
+else
+    tmpExp = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
+end
+
+%%%% WZ7. koniec %%%%
 
 if WTP_space > 0
     b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
@@ -447,19 +739,102 @@ elseif nargout == 2 %% function value + gradient
                 % check which attributes has normal/lognormal or weibull distribution
                 normDist = logical(sum([Dist == 0; Dist == 1], 1));
                 weibDist = (Dist == 4);
+                %%%% WZ8. %%%%
+                UniLogDist = (Dist == 9);
+                ParetoDist = (Dist == 10);
+                LomaxDist = (Dist == 11);
+                LogDist = (Dist == 12);
+                LogLDist = (Dist == 13);
+                GumDist = (Dist == 14);
+                CaucDist = (Dist == 15);
+                RayDist = (Dist == 16);
+                ExpDist = (Dist == 17);
+                %%%% WZ8. koniec %%%%
+                
                 % calculations for gradient columns for normal and lognormal distributions
                 if any(normDist ~= 0)
                     sumFtmp1(normDist, :) = sumFsqueezed(normDist, :);
                     sumVC2tmp2(normDist, :) = ...
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
+                
+                %%%% WZ9. poprawka %%%%
                 % calculations for gradient columns for Weibull distr.
                 if any(weibDist ~= 0)
                     tmpWeib_n = tmpWeib(:, :, n);
-                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
+                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*b0weibA.*tmpWeib_n.^b0weibB;
                     sumVC2tmp2(weibDist, :) = ...
-                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
+                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*b0weibA.*b0weibB.*log(tmpWeib_n).*tmpWeib_n.^(b0weibB)); 
+                end                
+                %%%% WZ9. koniec %%%%
+                
+                %%%% WZ10. %%%%
+                if any(UniLogDist ~= 0)
+                    tmpUniLog_n = tmpUniLog(:, :, n);
+                    sumFtmp1(UniLogDist, :) = sumFsqueezed(UniLogDist, :).*(1-tmpUniLog_n).*(b0UniLogB.^tmpUniLog_n).*(b0UniLogA.^(1-tmpUniLog_n));
+                    sumVC2tmp2(UniLogDist, :) = ...
+                        sumFsqueezed(UniLogDist, :).*(b_mtx_n(Dist == 9,:)).*tmpUniLog_n.*(b0UniLogA.^(1-tmpUniLog_n)).*(b0UniLogB.^tmpUniLog_n);
                 end
+                                
+                if any(ParetoDist ~= 0)
+                    tmpPareto_n = tmpPareto(:, :, n);
+                    sumFtmp1(ParetoDist, :) = sumFsqueezed(ParetoDist, :).*b0ParetoA.*(1./((1-tmpPareto_n).^(1./b0ParetoB)));
+                    sumVC2tmp2(ParetoDist, :) = ...
+                        sumFsqueezed(ParetoDist, :).*(b_mtx_n(Dist == 10,:)).*b0ParetoA.*(1./b0ParetoB).*log(1-tmpPareto_n).*(1./((1-tmpPareto_n).^(1./b0ParetoB)));
+                end
+                
+                if any(LomaxDist ~= 0)
+                    tmpLomax_n = tmpLomax(:, :, n);
+                    sumFtmp1(LomaxDist, :) = sumFsqueezed(LomaxDist, :).*(-b0LomaxB./b0LomaxA).*log(1./(1-tmpLomax_n)).*((1./(1-tmpLomax_n)).^(1./b0LomaxA));
+                    sumVC2tmp2(LomaxDist, :) = ...
+                        sumFsqueezed(LomaxDist, :).*(b_mtx_n(Dist == 11,:)).*b0LomaxB.*(((1./(1-tmpLomax_n)).^(1./b0LomaxA))-1);
+                end
+                
+                if any(LogDist ~= 0)
+                    tmpLog_n = tmpLog(:, :, n);
+                    sumFtmp1(LogDist, :) = sumFsqueezed(LogDist, :).*b0LogA;
+                    sumVC2tmp2(LogDist, :) = ...
+                        sumFsqueezed(LogDist, :).*(b_mtx_n(Dist == 12,:)).*(b0LogB).*log(tmpLog_n./(1-tmpLog_n));
+                end
+                
+                if any(LogLDist ~= 0)
+                    tmpLogL_n = tmpLogL(:, :, n);
+                    sumFtmp1(LogLDist, :) = sumFsqueezed(LogLDist, :).*b0LogLA.*((1./((1./tmpLogL_n)-1)).^(1./b0LogLB));
+                    sumVC2tmp2(LogLDist, :) = ...
+                        sumFsqueezed(LogLDist, :).*(b_mtx_n(Dist == 13,:)).*(-1).*b0LogLA.*(1./b0LogLB).*log(1./((1./tmpLogL_n)-1)).*((1./((1./tmpLogL_n)-1)).^(1./b0LogLB)); 
+                end
+
+                if any(GumDist ~= 0)
+                    tmpGum_n = tmpGum(:, :, n);
+                    sumFtmp1(GumDist, :) = sumFsqueezed(GumDist, :).*b0GumA;
+                    sumVC2tmp2(GumDist, :) = ...
+                        sumFsqueezed(GumDist, :).*(b_mtx_n(Dist == 14,:)).*b0GumB.*log(1./log(1./tmpGum_n)); 
+                end 
+                
+                if any(CaucDist ~= 0)
+                    tmpCauc_n = tmpCauc(:, :, n);
+                    sumFtmp1(CaucDist, :) = sumFsqueezed(CaucDist, :).*b0CaucA;
+                    sumVC2tmp2(CaucDist, :) = ...
+                        sumFsqueezed(CaucDist, :).*(b_mtx_n(Dist == 15,:)).*(-1).*b0CaucB.*(1./(tan(pi.*tmpCauc_n)));
+                        %sumFsqueezed(CaucDist, :).*(b_mtx_n(Dist == 15,:)).*b0CaucB.*tan(pi.*tmpCauc_n-pi./2);
+                end
+                
+                if any(RayDist ~= 0)
+                    tmpRay_n = tmpRay(:, :, n);
+                    sumFtmp1(RayDist, :) = sumFsqueezed(RayDist, :).*((2.*(b0RayA.^2).*log(1./(1-tmpRay_n))).^(1/2));
+                    sumVC2tmp2(RayDist, :) = ...
+                        sumFsqueezed(RayDist, :).*(b_mtx_n(Dist == 16,:)).*0;
+                end
+                
+                if any(ExpDist ~= 0)
+                    tmpExp_n = tmpExp(:, :, n);
+                    sumFtmp1(ExpDist, :) = sumFsqueezed(ExpDist, :).*(-1).*(1./b0ExpA).*log(1./(1-tmpExp_n));
+                    sumVC2tmp2(ExpDist, :) = ...
+                        sumFsqueezed(ExpDist, :).*(b_mtx_n(Dist == 17,:)).*0;
+                end
+
+                %%%% WZ10. koniec %%%%
+                
                 gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);

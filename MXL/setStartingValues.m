@@ -56,18 +56,73 @@ if EstimOpt.FullCov == 0
             b0([indx;indx+EstimOpt.NVarA]) = ...
                 [log(b0(indx) - EstimOpt.Triang');log(b0(indx) - EstimOpt.Triang')];
         end
+        
+        %%%% WZ15. poprawki %%%%
         if sum(EstimOpt.Dist == 4) > 0 % Weibull
             indx = find(EstimOpt.Dist == 4);
             % first parameters = log(first parameters)
             % second parameters = 0
-            b0([indx;indx+EstimOpt.NVarA]) = [log(b0(indx));zeros(length(indx),1)];
+            b0([indx;indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)];
         end
-        if sum(EstimOpt.Dist >= 5) > 0 % Johnson
-            indx = find(EstimOpt.Dist >= 5);
+        
+        if sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7) > 0 % Johnson
+            indx = find(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
             tmp = [b0(indx);log(b0(indx+EstimOpt.NVarA))];
             b0([indx;indx+EstimOpt.NVarA]) = [zeros(length(indx),1),ones(length(indx),1)];
             b0 = [b0;tmp];
         end
+        %%%% WZ15. koniec %%%%
+        
+        %%%% WZ16. %%%%
+        if sum(EstimOpt.Dist == 9) > 0 % Uni-Log
+            indx = find(EstimOpt.Dist == 9);
+            % first parameters = log(first parameters)
+            % second parameters > first parameters
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),log(2*b0(indx))];
+        end
+        if sum(EstimOpt.Dist == 10) > 0 % Pareto
+            indx = find(EstimOpt.Dist == 10);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1];
+        end
+        if sum(EstimOpt.Dist == 11) > 0 % Lomax
+            indx = find(EstimOpt.Dist == 11);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1]; 
+        end
+        if sum(EstimOpt.Dist == 12) > 0 % Logistic
+            indx = find(EstimOpt.Dist == 12);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1];
+        end
+        if sum(EstimOpt.Dist == 13) > 0 % Log-Logistic
+            indx = find(EstimOpt.Dist == 13);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1];
+        end
+        if sum(EstimOpt.Dist == 14) > 0 % Gumbel
+            indx = find(EstimOpt.Dist == 14);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1];
+        end          
+        if sum(EstimOpt.Dist == 15) > 0 % Cauchy
+            indx = find(EstimOpt.Dist == 15);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)+0.1];
+        end
+        if sum(EstimOpt.Dist == 16) > 0 % Rayleigh
+            indx = find(EstimOpt.Dist == 16);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)]; % zamiast 0 -> 0.001?
+        end
+        if sum(EstimOpt.Dist == 17) > 0 % Exponential
+            indx = find(EstimOpt.Dist == 17);
+            % first parameters = log(first parameters)
+            b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)]; % zamiast 0 -> 0.001?
+        end
+                
+        %%%% WZ16. koniec %%%%
+
         %         else
         %             error('No starting values available - run MNL first')
     end
@@ -140,12 +195,45 @@ else % EstimOpt.FullCov == 1
             if sum(EstimOpt.Dist == 4) > 0 % Weibull
                 b0(EstimOpt.Dist == 4) = log(b0(EstimOpt.Dist == 4));
             end
-            if sum(EstimOpt.Dist >= 5) > 0 % Johnson
-                indx = find(EstimOpt.Dist >= 5);
+            %%%% WZ17. poprawki %%%%
+            if sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7) > 0 % Johnson
+                indx = find(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
                 tmp = b0(indx);
                 b0(indx) = zeros(length(indx),1);
                 b0 = [b0;tmp;zeros(length(indx),1)];
             end
+            %%%% WZ17. koniec %%%%
+            
+            %%%% WZ18. %%%%
+            if sum(EstimOpt.Dist == 9) > 0 % Uni-Log
+                b0(EstimOpt.Dist == 9) = log(b0(EstimOpt.Dist == 9));
+            end
+            if sum(EstimOpt.Dist == 10) > 0 % Pareto
+                b0(EstimOpt.Dist == 10) = log(b0(EstimOpt.Dist == 10));
+            end
+            if sum(EstimOpt.Dist == 11) > 0 % Lomax
+                b0(EstimOpt.Dist == 11) = log(b0(EstimOpt.Dist == 11));
+            end
+            if sum(EstimOpt.Dist == 12) > 0 % Logistic
+                b0(EstimOpt.Dist == 12) = log(b0(EstimOpt.Dist == 12));
+            end
+            if sum(EstimOpt.Dist == 13) > 0 % Log-Logistic
+                b0(EstimOpt.Dist == 13) = log(b0(EstimOpt.Dist == 13));
+            end
+            if sum(EstimOpt.Dist == 14) > 0 % Gumbel
+                b0(EstimOpt.Dist == 14) = log(b0(EstimOpt.Dist == 14));
+            end               
+            if sum(EstimOpt.Dist == 15) > 0 % Cauchy
+                b0(EstimOpt.Dist == 15) = log(b0(EstimOpt.Dist == 15));
+            end
+            if sum(EstimOpt.Dist == 16) > 0 % Rayleigh
+                b0(EstimOpt.Dist == 16) = log(b0(EstimOpt.Dist == 16));
+            end
+            if sum(EstimOpt.Dist == 17) > 0 % Exponential
+                b0(EstimOpt.Dist == 17) = log(b0(EstimOpt.Dist == 17));
+            end         
+            %%%% WZ18. koniec %%%%
+            
             %         else
             %             error('No starting values available')
         end

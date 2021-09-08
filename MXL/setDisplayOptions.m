@@ -16,12 +16,13 @@ end
 
 % TODO
 % jezeli zostanie zrobiony gradient analityczny to do zmiany
-if (any(EstimOpt.Dist > 1) && ~any(EstimOpt.Dist == 4)) && EstimOpt.NumGrad == 0
+%%%% WZ13. dopisanie %%%%
+if (any(EstimOpt.Dist > 1) && ~any(EstimOpt.Dist == 4))  && ~any(EstimOpt.Dist == 9)  && ~any(EstimOpt.Dist == 10) && ~any(EstimOpt.Dist == 11) && ~any(EstimOpt.Dist == 12) && ~any(EstimOpt.Dist == 13) && ~any(EstimOpt.Dist == 14) && ~any(EstimOpt.Dist == 15) && ~any(EstimOpt.Dist == 16) && ~any(EstimOpt.Dist == 17) && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally, lognormally or Weibull distributed parameters only \n')
+    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally, lognormally, Weibull, Uni-Log (Reciprocal), Pareto, Lomax, Logistic, Log-Logistic, Gumbel, Cauchy, Rayleigh or Exponential distributed parameters only \n')
 end
-
+%%%% WZ13. koniec %%%%
 
 % This is not necessary any more (?)
 % if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
@@ -102,9 +103,11 @@ if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix =
     cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
 end
 
-if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) && EstimOpt.NVarM ~= 0
-    error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
+%%%% WZ14. dopisanie %%%%
+if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) && EstimOpt.NVarM ~= 0
+    error('Covariates of means do not work with triangular/weibull/sinh-arcsinh/uni-log(reciprocal)/pareto/lomax/logistic/log-logistic/gumbel/cauchy/rayleigh/exponential distributions')
 end
+%%%% WZ14. koniec %%%%
 
 fprintf('\n')
 cprintf('Optimization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
