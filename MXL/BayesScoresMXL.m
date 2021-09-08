@@ -31,6 +31,54 @@ if any(Dist == 5)
     b0a(Dist == 5) = 0;
 end
 
+%%%% WZ24. %%%%
+if any(Dist == 9)   % Uni-Log distribution
+    b0UniLogA = exp(b0a(Dist == 9));
+    b0a(Dist == 9) = 0;
+end
+
+if any(Dist == 10)   % Pareto distribution
+    b0ParetoA = exp(b0a(Dist == 10));
+    b0a(Dist == 10) = 0;
+end
+
+if any(Dist == 11)   % Lomax distribution
+    b0LomaxA = exp(b0a(Dist == 11));
+    b0a(Dist == 11) = 0;
+end
+
+if any(Dist == 12)   % Logistic distribution
+    b0LogA = exp(b0a(Dist == 12));
+    b0a(Dist == 12) = 0;
+end
+
+if any(Dist == 13)   % Log-Logistic distribution
+    b0LogLA = exp(b0a(Dist == 13));
+    b0a(Dist == 13) = 0;
+end
+
+if any(Dist == 14)   % Gumbel distribution
+    b0GumA = exp(b0a(Dist == 14));
+    b0a(Dist == 14) = 0;
+end
+
+if any(Dist == 15)   % Cauchy distribution
+    b0CaucA = exp(b0a(Dist == 15));
+    b0a(Dist == 15) = 0;
+end
+
+if any(Dist == 16)   % Rayleigh distribution
+    b0RayA = exp(b0a(Dist == 16));
+    b0a(Dist == 16) = 0;
+end
+
+if any(Dist == 17)   % Exponential distribution
+    b0ExpA = exp(b0a(Dist == 17));
+    b0a(Dist == 17) = 0;
+end
+
+%%%% WZ24. koniec %%%%
+
 if EstimOpt.FullCov == 0
     b0v = (b0(NVarA+1:NVarA*2));
     if any(Dist == 3)
@@ -45,6 +93,46 @@ if EstimOpt.FullCov == 0
         b0sinhB = b0v(Dist == 5).^2;
         b0v(Dist == 5) = 1;
     end
+    
+    %%%% WZ25. %%%%
+    if any(Dist == 9)   % Uni-Log
+        b0UniLogB = exp(b0v(Dist == 9));
+        b0v(Dist == 9) = 1;
+    end
+    if any(Dist == 10)   % Pareto
+        b0ParetoB = exp(b0v(Dist == 10));
+        b0v(Dist == 10) = 1;
+    end
+    if any(Dist == 11)   % Lomax
+        b0LomaxB = exp(b0v(Dist == 11));
+        b0v(Dist == 11) = 1;
+    end
+    if any(Dist == 12)   % Logistic
+        b0LogB = exp(b0v(Dist == 12));
+        b0v(Dist == 12) = 1;
+    end    
+    if any(Dist == 13)   % Log-Logistic
+        b0LogLB = exp(b0v(Dist == 13));
+        b0v(Dist == 13) = 1;
+    end     
+    if any(Dist == 14)   % Gumbel
+        b0GumB = exp(b0v(Dist == 14));
+        b0v(Dist == 14) = 1;
+    end     
+    if any(Dist == 15)   % Cauchy
+        b0CaucB = exp(b0v(Dist == 15));
+        b0v(Dist == 15) = 1;
+    end 
+    if any(Dist == 16)   % Rayleigh
+        % b0RayB = exp(b0v(Dist == 16));
+        b0v(Dist == 16) = 1;
+    end
+    if any(Dist == 17)   % Exponential
+        % b0ExpB = exp(b0v(Dist == 17));
+        b0v(Dist == 17) = 1;
+    end    
+    %%%% WZ25. koniec %%%%
+    
     b0v = b0v.^2;
     VC = diag(b0v);
     b0m = b0(NVarA*2+1:NVarA*(NVarM+2));
@@ -64,12 +152,47 @@ else
     if any(Dist == 5)
         b0sinhB = tmp(Dist == 5).^2;
     end
+    
+    %%%% WZ26. %%%%
+    if any(Dist == 9)
+        b0UniLogB = exp(tmp(Dist == 9));
+    end
+    if any(Dist == 10)
+        b0ParetoB = exp(tmp(Dist == 10));
+    end
+    if any(Dist == 11)
+        b0LomaxB = exp(tmp(Dist == 11));
+    end
+    if any(Dist == 12)
+        b0LogB = exp(tmp(Dist == 12));
+    end
+    if any(Dist == 13)
+        b0LogLB = exp(tmp(Dist == 13));
+    end
+    if any(Dist == 14)
+        b0GumB = exp(tmp(Dist == 14));
+    end     
+    if any(Dist == 15)
+        b0CaucB = exp(tmp(Dist == 15));
+    end
+    if any(Dist == 16)
+        % b0RayB = exp(tmp(Dist == 16));
+    end
+    if any(Dist == 17)
+        % b0ExpB = exp(tmp(Dist == 17));
+    end
+    %%%% WZ26. koniec %%%%
+    
     VC = tril(ones(NVarA));
     VC(VC==1) = b0v;
-    if any(Dist >= 3 & Dist <= 5)
-        tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5,:).^2,2));
-        VC(Dist >= 3 & Dist <= 5,:) = VC(Dist >= 3 & Dist <= 5,:)./tmp(:,ones(1,NVarA));
+    
+    %%%% WZ27. dopisanie %%%%
+    if any(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)
+        tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:).^2,2));
+        VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:) = VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:)./tmp(:,ones(1,NVarA));
     end
+    %%%% WZ27. koniec %%%%
+    
     b0m = b0(NVarA*(NVarA/2+1.5)+1:NVarA*(NVarA/2+1.5+NVarM));
     b0m = reshape(b0m,[NVarA,NVarM]);
     b0s = b0(NVarA*(NVarA/2+1.5+NVarM)+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS);
@@ -119,6 +242,54 @@ if sum(Dist >= 5) > 0 % Johnson
         b_mtx_n(Dist == 7,:) = b0j(1:Johnson,ones(NRep*NP,1)) + exp(b0j(Johnson+1:end,ones(NRep*NP,1))).*b_mtx_n(Dist == 7,:);
     end
 end
+
+%%%% WZ28. %%%%
+if sum(Dist == 9) > 0 % Uni-Log
+    tmp = normcdf(b_mtx(Dist == 9,:));
+    b_mtx_n(Dist == 9,:) = exp(log(b0UniLogA)+tmp.*(log(b0UniLogB)-log(b0UniLogA)));   % inverse CDF function
+end
+
+if sum(Dist == 10) > 0 % Pareto
+    tmp = normcdf(b_mtx(Dist == 10,:));
+    b_mtx_n(Dist == 10,:) = b0ParetoA./((1-tmp).^(1./b0ParetoB));   % inverse CDF function
+end
+
+if sum(Dist == 11) > 0 % Lomax
+    tmp = normcdf(b_mtx(Dist == 11,:));
+    b_mtx_n(Dist == 11,:) = b0LomaxB.*(((1./(1-tmp)).^(1./b0LomaxA))-1);   % inverse CDF function
+end
+
+if sum(Dist == 12) > 0 % Logistic
+    tmp = normcdf(b_mtx(Dist == 12,:));
+    b_mtx_n(Dist == 12,:) = b0LogA+b0LogB.*log(tmp./(1-tmp));   % inverse CDF function
+end
+
+if sum(Dist == 13) > 0 % Log-Logistic
+    tmp = normcdf(b_mtx(Dist == 13,:));
+    b_mtx_n(Dist == 13,:) = b0LogLA.*(1./((1./tmp)-1)).^(1./b0LogLB);   % inverse CDF function
+end
+
+if sum(Dist == 14) > 0 % Gumbel
+    tmp = normcdf(b_mtx(Dist == 14,:));
+    b_mtx_n(Dist == 14,:) = b0GumA+b0GumB.*log(1./log(1./tmp));   % inverse CDF function
+end
+
+if sum(Dist == 15) > 0 % Cauchy
+    tmp = normcdf(b_mtx(Dist == 15,:));
+    b_mtx_n(Dist == 15,:) = b0CaucA+b0CaucB.*tan(pi.*(tmp-1/2));   % inverse CDF function
+end
+
+if sum(Dist == 16) > 0 % Rayleigh
+    tmp = normcdf(b_mtx(Dist == 16,:));
+    b_mtx_n(Dist == 16,:) = (2.*(b0RayA.^2).*log(1./(1-tmp))).^(1/2);   % inverse CDF function
+end
+
+if sum(Dist == 17) > 0 % Exponential
+    tmp = normcdf(b_mtx(Dist == 17,:));
+    b_mtx_n(Dist == 17,:) = (log(1./(1-tmp))).*(1./b0ExpA);   % inverse CDF function
+end
+
+%%%% WZ28. koniec %%%%
 
 b_score = b_mtx_n;
 if WTP_space > 0
