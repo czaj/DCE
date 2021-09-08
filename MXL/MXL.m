@@ -15,17 +15,30 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % EstimOpt Options:
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
+
+%%%% WZ11. dopisanie %%%%
 % MXL parameter options:
 % �	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
-% o	-1 - constant, 
-% o	0 - normal, 
-% o	1 - lognormal, 
-% o	2 - spike, 
-% o	3 - Triangular, 
-% o	4 - Weibull, 
-% o	5 - Sinh-Arcsinh, 
-% o	6 - Johnson Sb, 
+% o	-1 - constant
+% o	0 - normal
+% o	1 - lognormal
+% o	2 - spike
+% o	3 - Triangular
+% o	4 - Weibull             (lambda - scale, k - shape)         (lambda>0 & k>0)        support x: [0,+infty) 
+% o	5 - Sinh-Arcsinh
+% o	6 - Johnson Sb
 % o	7 - Johnson Su
+% o 9 - Uni-Log/Reciprocal  (a - lower bond, b - upper bond)    (0<a<b)                 support x: [a,b]
+% o 10 - Pareto             (xm - scale, alpha - shape)         (xm>0 & alpha>0)        support x: [xm,+infty)
+% o 11 - Lomax              (alpha - shape, lambda - scale)     (alpha>0 & lambda>0)    support x: [0,+infty)
+% o 12 - Logistic           (mi - location, s - scale)          (s>0)                   support x: (-infty,+infty)
+% o 13 - Log-Logistic       (alpha - scale, beta - shape)       (alpha>0 & beta>0)      support x: [0,+infty)
+% o 14 - Gumbel             (mi - location, beta - scale)       (beta>0)                support x: (-infty,+infty)
+% o 15 - Cauchy             (x0 - location, gamma - scale)      (gamma>0)               support x: (-infty,+infty)
+% o 16 - Rayleigh           (sigma - scale)                     (sigma>0)               support x: [0,+infty)
+% o 17 - Exponential        (lambda - scale)                    (lambda>0)              support x: [0,+infty)
+%%%% WZ11. koniec %%%%
+
 % �	FullCov = 0; set to 1 for correlated random parameters, 0 if not
 % �	EffectiveMoments = 0; set to 1 to calculate effective moments
 % 
@@ -231,13 +244,17 @@ else
     EstimOpt.Triang = EstimOpt.Triang(:)';
 end
 
-EstimOpt.Johnson = sum(EstimOpt.Dist >= 5);
+%%%% WZ12. dopisanie %%%%
+EstimOpt.Johnson = sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
 
-if (sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0 && any(find(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5))) && EstimOpt.FullCov == 1
-    cprintf(rgb('DarkOrange'),'WARNING: It is recommended to put variables with random parameters with Triangular/Weibull/Sinh-Arcsinh distribution first \n')
+
+if (sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) > 0 && any(find(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) > sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17))) && EstimOpt.FullCov == 1
+    cprintf(rgb('DarkOrange'),'WARNING: It is recommended to put variables with random parameters with Triangular/Weibull/Sinh-Arcsinh/Uni-Log(Reciprocal)/Pareto/Lomax/Logistic/Log-Logistic/Gumbel/Cauchy/Rayleigh/Exponential distribution first \n')
 end
 
-disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal, 2 - spike, 3 - Triangular, 4  - Weibull, 5 - Sinh-Arcsinh, 6 - Johnson Sb, 7 - Johnson Su)'])
+disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal, 2 - spike, 3 - Triangular, 4  - Weibull, 5 - Sinh-Arcsinh, 6 - Johnson Sb, 7 - Johnson Su, 9 - Uni-Log (Reciprocal), 10 - Pareto, 11 - Lomax, 12 - Logistic, 13 - Log-Logistic, 14 - Gumbel, 15 - Cauchy, 16 - Rayleigh, 17 - Exponential)'])
+
+%%%% WZ12. koniec %%%%
 
 if EstimOpt.WTP_space > 0 && sum(EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==1) > 0 && any(mean(INPUT.Xa(:,end-EstimOpt.WTP_space+1:end)) >= 0)
     cprintf(rgb('DarkOrange'),'WARNING: Cost attributes with log-normally distributed parameters should enter utility function with a ''-'' sign \n')
