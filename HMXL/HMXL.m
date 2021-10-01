@@ -584,6 +584,7 @@ end
 
 INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 EstimOpt.MissingIndMea = EstimOpt.MissingIndMea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+EstimOpt.MissingInd_tmp = INPUT.MissingInd(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
 
 INPUT.Xm = INPUT.Xm(1:EstimOpt.NAlt*EstimOpt.NCT:end,:)'; % NVarM x NP
 if EstimOpt.NVarMeaExp > 0
