@@ -16,6 +16,11 @@ if nargout > 1
     else
         error('Simulating distribution statistics requires providing GridMat, iHess, EstimOpt as inputs');
     end
+    
+    if isfield(EstimOpt,'Seed1') == 1
+        rng(EstimOpt.Seed1);
+    end
+
     M_info = memory;
     if 0.6*M_info.MaxPossibleArrayBytes/8 < size(b_GridMat,1)*size(GridMat,1)*size(GridMat,2)
          cprintf(rgb('DarkOrange'), 'WARNING: Probably not enough memory, switching to numerical approximation (slower, but using less memory) \n')

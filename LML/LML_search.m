@@ -87,8 +87,8 @@ try
     EstimOpt.PlotIndx = 0; % No plots
     EstimOpt.NoOutput = 1; % No output
     
-    % save tmp1
-    % return
+%     save tmp1
+%     return
     
     B0_start = unifrnd(-5,5,[size(B0),EstimOpt.LMLSearchNTrials]); % Random starting values    
 %     Res = cell(3,EstimOpt.LMLSearchNOrder-1,7,2,EstimOpt.LMLSearchNTrials); % To save results    
@@ -177,6 +177,12 @@ try
                 if SimIdx(i-1,j,2) == 1
                     
                     EstimOpt.FullCov = 1;
+                    
+                    NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
+                        (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
+                        (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
+                        (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),1) + ...
+                        EstimOpt.StepVar;
                     
                     disp(['Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials)])
                     
@@ -295,6 +301,12 @@ try
                     
                     EstimOpt.FullCov = 1;
                     
+                    NVar = sum((EstimOpt.Dist == 0 | EstimOpt.Dist == 1)*EstimOpt.NOrder + ...
+                        (EstimOpt.Dist == 2 | EstimOpt.Dist == 3)*EstimOpt.NOrder + ...
+                        (EstimOpt.Dist == 4)*(EstimOpt.NOrder-1) + ...
+                        (EstimOpt.Dist == 5 | EstimOpt.Dist == 6 | EstimOpt.Dist == 7 | EstimOpt.Dist == 8)*(EstimOpt.NOrder+1),1) + ...
+                        EstimOpt.StepVar;                                        
+
                     disp(['Dist = ',num2str(j),'/',num2str(7),', NOrder = ',num2str(i),'/',num2str(EstimOpt.LMLSearchNOrder),', FullCov = 1, Trial = ',num2str(1),'/',num2str(EstimOpt.LMLSearchNTrials)])
                     
                     B_backup = B0(i-1,~isnan(B0(i-1,:,j,1)),j,2); % Start from B0_in or 0
