@@ -26,7 +26,8 @@ function Results = MDCEV(INPUT,Results_old,EstimOpt,OptimOpt)
 % 
 % Modelling options from DataCleanDCE:
 % �	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% �	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% �	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical
+%    gradient (only NumGrad=1 at the moment)
 % �	HessEstFix = 0; Options: 
 % o	0 - use optimization Hessian, 
 % o	1 - use jacobian-based (BHHH) Hessian, 
@@ -81,7 +82,7 @@ if EstimOpt.Display ~= 0
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
     
-    disp('Estimating MNL model ...')
+    disp('Estimating MDCEV model ...')
     
     disp('in preference-space ...')
 end
@@ -108,13 +109,21 @@ if ~exist('b0','var')
         disp('Using linear regression estimates as starting values')
     end
     
-    b0 = [regress(INPUT.Y,INPUT.Xa); 0.5*ones(EstimOpt.NVarA,1); 1];
     % [covariates parameters; alphas or gammas; scale]
+    b0 = [regress(INPUT.Y,INPUT.Xa); 0.5*ones(EstimOpt.NAlt,1); 1];
+    
+%     % Maybe add a transformation for alpha or gamma profile
+%     if EstimOpt.Profile == 1 % alpha profile (alpha = 1 - exp(-alpha))
+%         b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt) = ...
+%             -log(1 - b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+%     else % gamma profile (gamma = exp(gamma))
+%         b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt) = ...
+%             log(b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+%     end
 end
 
 
 %% Optimization Options
-
 
 if isfield(EstimOpt,'BActive')
     EstimOpt.BActive = EstimOpt.BActive(:)';
@@ -125,7 +134,9 @@ if EstimOpt.Display ~= 0
     cprintf('Opmization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
     if strcmp(OptimOpt.GradObj,'on')
         if EstimOpt.NumGrad == 0
-            cprintf('Gradient: '); cprintf('*Black','user-supplied, analytical \n')
+            cprintf('*Red', 'Analytical gradient not supported at the moment.')
+            return
+            % cprintf('Gradient: '); cprintf('*Black','user-supplied, analytical \n')
         else
             cprintf('Gradient: '); cprintf('*Black',['user-supplied, numerical, ' OptimOpt.FinDiffType '\n'])
         end
@@ -192,7 +203,7 @@ INPUT.Xa = INPUT.Xa(idx == 0,:);
 % INPUT must contain Xa, priceMat, y (dependent variable; demands) ========
 % =========================================================================
 
-LLfun = @(B) probs_mdcev_MATlike(INPUT, EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mdcev_MATlike(INPUT, EstimOpt,OptimOpt,B);
 
 if EstimOpt.ConstVarActive == 0
     if EstimOpt.HessEstFix == 0
@@ -215,26 +226,7 @@ if isfield(EstimOpt,'R2type') == 0
     EstimOpt.R2type = 0;
 end
 
-Results.LLdetailed = probs_mdcev(INPUT, EstimOpt,Results.bhat);
-
-if any(INPUT.MissingInd == 1) % In case of some missing data
-    idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP])) == EstimOpt.NAlt;
-    idx = sum(reshape(idx,[EstimOpt.NCT,EstimOpt.NP]),1)'; % no. of missing NCT for every respondent
-    R2 = zeros(EstimOpt.NP,1);
-    idx = EstimOpt.NCT - idx;
-    l = 1;
-    for i = 1:EstimOpt.NP
-        R2(i) = prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i));
-        Results.CrossEntropy = log(prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i)));
-        l = l+idx(i);
-    end
-    R2 = mean(R2);
-    Results.CrossEntropy = mean(Results.CrossEntropy);
-else
-    R2 = mean(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT),2);
-    Results.CrossEntropy = -mean(log(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT)),2);
-end
-Results.CrossEntropyCS = -mean(Results.LLdetailed);
+Results.LLdetailed = probs_mdcev(INPUT, EstimOpt, Results.bhat);
 
 if EstimOpt.HessEstFix == 1
     f = probs_mdcev(INPUT, EstimOpt,Results.bhat);
@@ -253,22 +245,6 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
 end
 Results.ihess = inv(Results.hess);
 
-
-if EstimOpt.RobustStd == 1
-    if EstimOpt.NumGrad == 0
-        [~,Results.jacobian] = probs_mdcev(INPUT, EstimOpt,Results.bhat);
-        Results.jacobian = -Results.jacobian;
-    else
-        Results.jacobian = numdiff(@(B) -probs_mdcev(INPUT, EstimOpt,B),Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-    end
-    RobJacob = zeros(EstimOpt.NP,size(Results.jacobian,2));
-    RobJacob(1,:) = sum(Results.jacobian(1:EstimOpt.NCTMiss(1),:),1);
-    for i = 2:EstimOpt.NP
-        RobJacob(i,:) = sum(Results.jacobian(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i)),:),1);
-    end
-    RobustHess = RobJacob'*RobJacob;
-    Results.ihess = Results.ihess*RobustHess*Results.ihess;
-end
 Results.std = sqrt(diag(Results.ihess));
 
 if sum(EstimOpt.BActive == 0) > 0
@@ -288,13 +264,27 @@ Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
 Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
 
 % alphas or gammas
-Results.ProfileVars(1:EstimOpt.NVAlt, 1) = ...
-    Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt);
+if EstimOpt.Profile == 1 % alpha profile (alphas = 1 - exp(-alphas))
+    Results.ProfileVars(1:EstimOpt.NVAlt, 1) = ...
+        1 - exp(-Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+    
+    Results.ProfileVars(1:EstimOpt.NAlt,3:4) = ...
+        [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt), ...
+        pv(1 - exp(-Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt)),...
+        Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt))];
+elseif EstimOpt.Profile == 2 % gamma profile (gammas = exp(gammas))
+    Results.ProfileVars(1:EstimOpt.NVAlt, 1) = ...
+    exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+
 Results.ProfileVars(1:EstimOpt.NAlt,3:4) = ...
     [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt), ...
-     pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt),...
+     pv(exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt)),...
      Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt))];
-Results.Scale(1, 1) = Results.bhat(end);
+else
+    % Error
+end
+ 
+Results.Scale(1, 1) = exp(Results.bhat(end));
 Results.Scale(1, 3:4) = ...
     [Results.std(end), ...
      pv(Results.bhat(end),...

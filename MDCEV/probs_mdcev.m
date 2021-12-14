@@ -16,11 +16,11 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 % 2 -- "gamma" profile
 %
 % variables -- includes variables to be estimated:
-%   1. betas    -- alternative attributes parameters
-%   2. alphas   -- satiation parameters
+%   1. betas    -- alternative attributes parameters (NVarA)
+%   2. alphas   -- satiation parameters (NAlt)
 %      or
-%   2. gammas   -- translation parameters (enable corner solutions)
-%   3. sigma    -- scale parameter
+%   2. gammas   -- translation parameters (enable corner solutions) (NAlt)
+%   3. sigma    -- scale parameter (1)
 %
 % data contains:
 %   x           -- dependent variables (quantities demanded); (NAltxN)

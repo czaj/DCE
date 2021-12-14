@@ -1,5 +1,9 @@
 function [f,g,h]= LL_mdcev_MATlike(data,EstimOpt,OptimOpt,b0)
 % Function calculates loglikelihood of the MDCEV model.
+% Return values:
+%   f -- loglikelihood value
+%   g -- gradient
+%   h -- hessian
 
 % save res_LL_mnl_MATlike
 % return
