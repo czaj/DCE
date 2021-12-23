@@ -110,11 +110,20 @@ if NVarS > 0
     betaX = betaX.*cs;
 end
 
+% Computations of utility levels
 v = reshape(betaX,[NAlt,N]);
 maxv = max(v,[],1);
+
+% Nominators of probabilities fractions
 evdiff = exp(v - maxv); %clear v maxv
+
+% Denominators of probabilities fractions
 sum_evdiff = nansum(evdiff,1); %1 by N
+
+% Probabilities for each alternative
 P = evdiff./sum_evdiff; % NAlt x N
+
+% Probabilities for chosen alternatives
 probs = P(y == 1);
 
 if RealMin == 1
