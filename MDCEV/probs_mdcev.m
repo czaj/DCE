@@ -23,7 +23,7 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 %   3. sigma    -- scale parameter (1)
 %
 % data contains:
-%   x           -- dependent variables (quantities demanded); (NAltxN)
+%   Y           -- dependent variables (quantities demanded); (NAltxN)
 %   Xa          -- covariates (alternatives attributes) (NxNVar)
 %   priceMat    -- matrix of prices of each alternative (NAltxN)
 
@@ -31,18 +31,9 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 % save LL_mnl
 % return
 
-% Move to MDCEV.m ====
-if isempty(EstimOpt.Profile) || ~ismember(EstimOpt.Profile, [1, 2])
-    error ('Version of the utility function must be specified!')
-end
-% ====
-
-y = data.y; % dependent variables (quantities demands); size: NAltxN
-
+y = data.Y; % dependent variables (quantities demands); size: NAltxN
 NVarA = EstimOpt.NVarA; % Number of attributes
-
 Profile = EstimOpt.Profile; % Utility function version
-
 NAlt = EstimOpt.NAlt; % Number of alternatives
 N = size(y,2); % Number of decisions
 
@@ -78,30 +69,7 @@ isChosen = (y ~= 0); % if the alternative was chosen or not
 M = sum(isChosen, 1); % number of consumed goods in each decision
 
 % computing utility levels
-betasZ = reshape(Xa*betas(1:NVarA,1), [NAlt, N]); % beta*X part of utility
-
-%% original
-% V = betasZ + (alphas - 1) .* log(x./gammas + 1) - log(priceMat);
-% 
-% V = exp(V / scale); % exp(V_i / \sigma)
-% 
-% f = (1-alphas)./(x + gammas);
-% 
-%
-% f(x == 0) = 1; % for product calculation
-% prodf = prod(f, 1);
-% 
-% sumpf = sum(isChosen .* (priceMat./f), 1);
-% 
-%
-% sumV = sum(V, 1);
-% V(x == 0) = 1;
-% prodV = prod(V, 1);
-% probs = 1/scale^(M-1) .* prodf .* sumpf .* prodV ./ (sumV.^M) .* factorial(M-1);
-% 
-% logprobs = log(probs);
-% 
-% f = logprobs;
+betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]); % beta*X part of utility
 
 %% logarithms
 logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
