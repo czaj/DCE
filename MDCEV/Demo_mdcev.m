@@ -29,6 +29,7 @@ N = EstimOpt.NP*EstimOpt.NCT;
 EstimOpt.Profile = 2; % = 1 if Alpha-profile, = 2 is Gamma
 
 %% Generating data
+
 Price = (1+poissrnd(8, [EstimOpt.NAlt, N]))/4; % Price vec
 Z = unifrnd(0,1, [EstimOpt.NAlt, N]); % Quality
 ASC = [ones(1,N); zeros(4,N)]; % ASC for first alternative

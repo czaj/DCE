@@ -27,8 +27,7 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 %   Xa          -- covariates (alternatives attributes) (NxNVar)
 %   priceMat    -- matrix of prices of each alternative (NAltxN)
 
-
-% save LL_mnl
+save LL_mdcev
 % return
 
 y = data.Y; % dependent variables (quantities demands); size: NAltxN
@@ -36,6 +35,7 @@ NVarA = EstimOpt.NVarA; % Number of attributes
 Profile = EstimOpt.Profile; % Utility function version
 NAlt = EstimOpt.NAlt; % Number of alternatives
 N = size(y,2); % Number of decisions
+RealMin = EstimOpt.RealMin;
 
 % define variables to be optimized
 betas = variables(1:NVarA); % betas
@@ -72,9 +72,15 @@ M = sum(isChosen, 1); % number of consumed goods in each decision
 betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]); % beta*X part of utility
 
 %% logarithms
-logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
-V = betasZ + (alphas - 1) .* log(y ./ gammas + 1) - log(priceMat);
-logV = V / scale; % log(exp(V_i / scale)
+if RealMin == 1
+    logf_i = log(max(1 - alphas,realmin)) - log(max(y + gammas,realmin)); % (NAltxN)
+    V = betasZ + (alphas - 1) .* log(max(y ./ gammas + 1,realmin)) - log(max(priceMat,realmin));
+    logV = V / scale; % log(exp(V_i / scale)
+else
+    logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
+    V = betasZ + (alphas - 1) .* log(y ./ gammas + 1) - log(priceMat);
+    logV = V / scale; % log(exp(V_i / scale)
+end
 
 % size(M)
 % size(isChosen)
@@ -85,11 +91,19 @@ logV = V / scale; % log(exp(V_i / scale)
 priceRatio = priceMat ./ exp(logf_i);
 sumV = sum(exp(logV), 1);
 
-logprobs = (1 - M) .* log(scale) + ...
-    sum(isChosen .* logf_i, 1) + ...
-    log(sum(isChosen .* priceRatio, 1)) + ...
-    (sum(isChosen .* logV, 1) - M .* log(sumV)) + ...
-    gammaln(M); % log(factorial(M-1)) = gammaln(M)
+if RealMin == 1
+    logprobs = (1 - M) .* log(max(scale,realmin)) + ...
+        sum(isChosen .* logf_i, 1) + ...
+        log(max(sum(isChosen .* priceRatio, 1),realmin)) + ...
+        (sum(isChosen .* logV, 1) - M .* log(max(sumV,1))) + ...
+        gammaln(M); % log(factorial(M-1)) = gammaln(M)
+else
+    logprobs = (1 - M) .* log(scale) + ...
+        sum(isChosen .* logf_i, 1) + ...
+        log(sum(isChosen .* priceRatio, 1)) + ...
+        (sum(isChosen .* logV, 1) - M .* log(sumV)) + ...
+        gammaln(M); % log(factorial(M-1)) = gammaln(M)
+end
 
 f = logprobs';
 

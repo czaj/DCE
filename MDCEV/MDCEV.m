@@ -42,7 +42,7 @@ function Results = MDCEV(INPUT,EstimOpt,OptimOpt)
 % email address: mik@czaj.org 
 % Website: http://czaj.org/#
 
-% save tmp_MNL
+save tmp_MDCEV
 % return
 
 global B_backup

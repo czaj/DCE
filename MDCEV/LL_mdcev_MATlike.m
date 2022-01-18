@@ -5,7 +5,7 @@ function [f,g,h]= LL_mdcev_MATlike(data,EstimOpt,OptimOpt,b0)
 %   g -- gradient
 %   h -- hessian
 
-% save res_LL_mnl_MATlike
+save res_LL_mdcev_MATlike
 % return
 
 probsfun = @(B) probs_mdcev(data,EstimOpt,B);
