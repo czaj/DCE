@@ -33,29 +33,45 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 
 y = data.Y; % dependent variables (quantities demands); size: NAltxN
 NVarA = EstimOpt.NVarA; % Number of attributes
+NVarP = EstimOpt.NVarP; % Number of parameters for alpha/gamma profile
 Profile = EstimOpt.Profile; % Utility function version
+SpecProfile = EstimOpt.SpecProfile;
 NAlt = EstimOpt.NAlt; % Number of alternatives
 N = size(y,2); % Number of decisions
 
 % define variables to be optimized
 betas = variables(1:NVarA); % betas
-scale = exp(variables(NVarA+NAlt+1)); % scale parameter (sigma); one for all dataset
+b_profile = variables(NVarA+1:NVarA+NVarP); 
+scale = exp(variables(NVarA+NVarP+1)); % scale parameter (sigma); one for all dataset
 % scale = exp(variables(end)); % scale parameter (sigma); one for all dataset
 % exp() for ensuring > 0
 
 % alphas and gammas
 if Profile == 1 % alpha profile
-    alphas = variables(NVarA+1:NVarA+NAlt);
+    alphas = b_profile;
     gammas = ones(size(alphas));
     
     % another parametrisation accounting for constraints
     alphas = 1 - exp(-alphas); % between 0 and 1
 elseif Profile == 2 % gamma profile
-    gammas = variables(NVarA+1:NVarA+NAlt);
+    gammas = b_profile;
     alphas = zeros(size(gammas));
     
     % another parametrisation accounting for constraints
     gammas = exp(gammas); % greater than 0
+elseif Profile == 3 % SpecProfile
+    indx = length(unique(SpecProfile(1,SpecProfile(1,:) ~= 0))); % unique alphas
+    a = b_profile(1:indx);
+    a = 1 - exp(-a);
+    a = a(SpecProfile(1,SpecProfile(1,:) ~= 0)); 
+    alphas = zeros(NAlt,1);
+    alphas(SpecProfile(1,:) ~= 0) = a;
+
+    g = b_profile(indx+1:end);
+    g = exp(g); % greater than 0
+    g = g(SpecProfile(2,SpecProfile(2,:) ~= 0)); 
+    gammas = ones(NAlt,1);
+    gammas(SpecProfile(2,:) ~= 0) = g;
 end
  
 % define other variables

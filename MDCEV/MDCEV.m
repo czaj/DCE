@@ -88,29 +88,49 @@ if EstimOpt.Display ~= 0
 end
 EstimOpt.NVarA = size(INPUT.Xa,2);
 
-if isfield(EstimOpt,'Profile') == 0 || isempty(EstimOpt.Profile) || ~ismember(EstimOpt.Profile, [1, 2])
-    if EstimOpt.Display ~= 0
-        cprintf(rgb('DarkOrange'), 'WARNING: Assuming alpha-profile. For gamma-profile specify EstimOpt.Profile = 2.\n')
+if isfield(EstimOpt,'SpecProfile') == 0 || isempty(EstimOpt.SpecProfile) || size(EstimOpt.SpecProfile,1) ~= 2 || size(EstimOpt.SpecProfile,2) ~= EstimOpt.NAlt
+    if isfield(EstimOpt,'Profile') == 0 || isempty(EstimOpt.Profile) || ~ismember(EstimOpt.Profile, [1, 2])
+        if EstimOpt.Display ~= 0
+            cprintf(rgb('DarkOrange'), 'WARNING: Assuming alpha-profile. For gamma-profile specify EstimOpt.Profile = 2 or use EstimOpt.SpecProfile.\n')
+        end
+        EstimOpt.Profile = 1;
+        EstimOpt.SpecProfile = [1:EstimOpt.NAlt; zeros(1,EstimOpt.NAlt)]; % Alpha profile
+    else
+        if EstimOpt.Profile == 1
+            EstimOpt.SpecProfile = [1:EstimOpt.NAlt; zeros(1,EstimOpt.NAlt)];
+        else
+            EstimOpt.SpecProfile = [zeros(1,EstimOpt.NAlt); 1:EstimOpt.NAlt];
+        end
     end
-    EstimOpt.Profile = 1;
-
+else
+    disp('Using profile specification from EstimOpt.SpecProfile')
+    if sum(EstimOpt.SpecProfile(1,:)) ~= 0 && sum(EstimOpt.SpecProfile(2,:)) ~= 0 % Both
+        EstimOpt.Profile = 3; 
+    elseif sum(EstimOpt.SpecProfile(1,:)) ~= 0 % Alpha
+        EstimOpt.Profile = 1; 
+    elseif sum(EstimOpt.SpecProfile(2,:)) ~= 0 % Gamma
+        EstimOpt.Profile = 2; 
+    end
 end
+
 if isfield(EstimOpt,'NamesA') == 0 || isempty(EstimOpt.NamesA) || length(EstimOpt.NamesA) ~= EstimOpt.NVarA
     EstimOpt.NamesA = (1:EstimOpt.NVarA)';
     EstimOpt.NamesA = cellstr(num2str(EstimOpt.NamesA));
 elseif size(EstimOpt.NamesA,1) ~= EstimOpt.NVarA
     EstimOpt.NamesA = EstimOpt.NamesA';
 end
-if isfield(EstimOpt,'NamesAlt') == 0 || isempty(EstimOpt.NamesAlt) || length(EstimOpt.NamesAlt) ~= EstimOpt.NAlt
-    EstimOpt.NamesAlt = (1:EstimOpt.NAlt)';
+% Alpha and gamma parameters
+EstimOpt.NVarP = length(unique(EstimOpt.SpecProfile(1,EstimOpt.SpecProfile(1,:) ~= 0))) + length(unique(EstimOpt.SpecProfile(2,EstimOpt.SpecProfile(2,:) ~= 0)));
+
+if isfield(EstimOpt,'NamesAlt') == 0 || isempty(EstimOpt.NamesAlt) || length(EstimOpt.NamesAlt) ~= EstimOpt.NVarP
+    EstimOpt.NamesAlt = (1:EstimOpt.NVarP)';
     EstimOpt.NamesAlt = cellstr(num2str(EstimOpt.NamesAlt));
-elseif size(EstimOpt.NamesAlt,1) ~= EstimOpt.NAlt
+elseif size(EstimOpt.NamesAlt,1) ~= EstimOpt.NVarP
     EstimOpt.NamesAlt = EstimOpt.NamesAlt';
 end
 
-
 %% Starting values
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA + EstimOpt.NAlt + 1
+if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA + EstimOpt.NVarP + 1
     b0 = B_backup(:);
     if EstimOpt.Display ~= 0
         disp('Using the starting values from Backup')
@@ -122,7 +142,7 @@ if ~exist('b0','var')
         disp('Using linear regression estimates as starting values')
     end
     % [covariates parameters; alphas or gammas; scale]
-    b0 = [regress(INPUT.Y,INPUT.Xa); 0.5*ones(EstimOpt.NAlt,1); 1];
+    b0 = [regress(INPUT.Y,INPUT.Xa); 0.5*ones(EstimOpt.NVarP,1); 1];
     
 %     % Maybe add a transformation for alpha or gamma profile
 %     if EstimOpt.Profile == 1 % alpha profile (alpha = 1 - exp(-alpha))
@@ -270,7 +290,15 @@ end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
+% Results.ihess = inv(Results.hess);
+EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
+EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = inv(Results.hess);
+Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
+Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+
 Results.std = sqrt(diag(Results.ihess));
 
 if sum(EstimOpt.BActive == 0) > 0
@@ -306,6 +334,21 @@ Results.DetailsProfile(1:EstimOpt.NAlt,3:4) = ...
     [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp, ...
      pv(exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt)),...
      Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp)];
+elseif EstimOpt.Profile == 3
+    indx = length(unique(EstimOpt.SpecProfile(1,EstimOpt.SpecProfile(1,:) ~= 0)));
+    b1 = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NVarP);
+    b2 = b1(indx+1:end);
+    b1 = b1(1:indx);
+    std1 = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NVarP);
+    std2 = std1(indx+1:end);
+    std1 = std1(1:indx);
+
+    Results.DetailsProfile(1:indx, 1) = 1 - exp(-b1);
+    Tmp = exp(-b1);
+    Results.DetailsProfile(1:indx,3:4) = [std1.*Tmp, pv(1 - exp(-b1), std1.*Tmp)];
+    Results.DetailsProfile(indx+1:EstimOpt.NVarP, 1) = exp(b2);
+    Tmp = exp(b2);
+    Results.DetailsProfile(indx+1:EstimOpt.NVarP, 3:4) = [std2.*Tmp, pv(exp(b2),std2.*Tmp)];
 end
  
 Results.DetailsScale(1, 1) = exp(Results.bhat(end));
