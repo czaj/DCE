@@ -1,4 +1,4 @@
-function [f] = probs_mdcev(data, EstimOpt, variables)
+function [f] = probs_mmdcev(data, EstimOpt, variables)
 % Function calculates probabilities of the MDCEV model.
 % It returns log(probabilities)
 % See:
@@ -32,18 +32,41 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 % return
 
 y = data.Y; % dependent variables (quantities demands); size: NAltxN
+err = data.err;
+FullCov = EstimOpt.FullCov;
 NVarA = EstimOpt.NVarA; % Number of attributes
 NVarP = EstimOpt.NVarP; % Number of parameters for alpha/gamma profile
 NVarM = EstimOpt.NVarM;
+NRep = EstimOpt.NRep;
 Profile = EstimOpt.Profile; % Utility function version
 SpecProfile = EstimOpt.SpecProfile;
+Dist = EstimOpt.Dist;
 NAlt = EstimOpt.NAlt; % Number of alternatives
+NP = EstimOpt.NP;
+NCT = EstimOpt.NCT;
+RealMin = EstimOpt.RealMin;
 N = size(y,2); % Number of decisions
 
 % define variables to be optimized
 betas = variables(1:NVarA); % betas
-b_profile = variables(NVarA+1:NVarA+NVarP*(1+NVarM));
-scale = exp(variables(NVarA+NVarP*(1+NVarM)+1)); % scale parameter (sigma); one for all dataset
+if FullCov == 0
+    b0v = variables(NVarA+1:2*NVarA);
+    VC = diag(b0v);
+    l = 2*NVarA;
+else
+    b0v = variables(NVarA+1:NVarA+sum(1:NVarA));
+    VC = tril(ones(NVarA));
+    VC(VC == 1) = b0v;
+    l = NVarA+sum(1:NVarA);
+end
+b_mtx = betas + VC*err; 
+if sum(Dist == 1) > 0 % Log-normal
+    b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+end
+b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
+
+b_profile = variables(l+1:l+NVarP*(1+NVarM));
+scale = exp(variables(l+NVarP*(1+NVarM)+1)); % scale parameter (sigma); one for all dataset
 % scale = exp(variables(end)); % scale parameter (sigma); one for all dataset
 % exp() for ensuring > 0
 
@@ -109,12 +132,18 @@ isChosen = (y ~= 0); % if the alternative was chosen or not
 M = sum(isChosen, 1); % number of consumed goods in each decision
 
 % computing utility levels
-betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]); % beta*X part of utility
+betasZ = zeros(NAlt*NCT, NRep, NP);
+for i = 1:NP
+    betasZ(:,:,i) = Xa(:,:,i)*b_mtx(:,:,i);
+end
+betasZ = reshape(permute(betasZ, [1, 3, 2]), [NAlt, N, NRep]);
+% betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]);
+% %betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]); % beta*X part of utility
 
 %% logarithms
 logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
 V = betasZ + (alphas - 1) .* log(y ./ gammas + 1) - log(priceMat);
-logV = V / scale; % log(exp(V_i / scale)
+logV = V / scale; % NAlt x N x NRep
 
 % size(M)
 % size(isChosen)
@@ -131,6 +160,12 @@ logprobs = (1 - M) .* log(scale) + ...
     (sum(isChosen .* logV, 1) - M .* log(sumV)) + ...
     gammaln(M); % log(factorial(M-1)) = gammaln(M)
 
-f = logprobs';
+probs = reshape(exp(logprobs), [NCT, NP, NRep]);
+probs = mean(prod(probs,1),3);
 
+if RealMin == 1
+    f = log(max(probs',realmin));
+else
+    f = log(probs');
+end
 end
