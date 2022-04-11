@@ -1,5 +1,5 @@
-function Results = MDCEV(INPUT,EstimOpt,OptimOpt)
-% MDCEV creates Multiple Discrete-Continuous Extreme Value model.
+function Results = MMDCEV(INPUT,Results_old, EstimOpt,OptimOpt)
+% MDCEV creates Mixed Multiple Discrete-Continuous Extreme Value model.
 %
 % Inputs:
 %    INPUT - clean, updated INPUT data from DataCleanDCE
@@ -42,7 +42,7 @@ function Results = MDCEV(INPUT,EstimOpt,OptimOpt)
 % email address: mik@czaj.org 
 % Website: http://czaj.org/#
 
-save tmp_MDCEV
+% save tmp_MNL
 % return
 
 global B_backup
@@ -58,7 +58,7 @@ Results.stats = [];
 %% Check data and inputs
 
 if nargin < 3
-    error('Too few input arguments for MDCEV(INPUT,EstimOpt,OptimOpt)')
+    error('Too few input arguments for MMDCEV(INPUT,EstimOpt,OptimOpt)')
 end
 
 warning off MATLAB:mir_warning_maybe_uninitialized_temporary
@@ -82,12 +82,37 @@ if EstimOpt.Display ~= 0
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
     
-    disp('Estimating MDCEV model ...')
+    disp('Estimating Mixed MDCEV model ...')
     
     disp('in preference-space ...')
 end
 EstimOpt.NVarA = size(INPUT.Xa,2);
+if isfield(EstimOpt,'FullCov') == 0
+    EstimOpt.FullCov = 0;
+end
 
+if isfield(EstimOpt,'NRep') == 0
+    EstimOpt.NRep = 1000;
+    cprintf(rgb('DarkOrange'), 'WARNING: Setting no. of draws (EstimOpt.NRep) to 1000. \n')
+end
+if isfield(EstimOpt,'Draws') == 0
+    EstimOpt.Draws = 6;
+end
+if isfield(EstimOpt,'HaltonSkip') == 0
+    EstimOpt.HaltonSkip = 1; % specify no of rows in halton sequence to skip (default=1)
+end
+if isfield(EstimOpt,'HaltonLeap') == 0
+    EstimOpt.HaltonLeap = 0; % specify no of rows in halton sequence to leap (default=0)
+end
+if isfield(EstimOpt,'Seed1') == 0
+    EstimOpt.Seed1 = 179424673;
+end
+if isfield(EstimOpt,'RealMin') == 0
+    EstimOpt.RealMin = 0;
+end
+if isfield(EstimOpt,'NSdSim') == 0
+    EstimOpt.NSdSim = 10000;
+end
 if isfield(EstimOpt,'SpecProfile') == 0 || isempty(EstimOpt.SpecProfile) || size(EstimOpt.SpecProfile,1) ~= 2 || size(EstimOpt.SpecProfile,2) ~= EstimOpt.NAlt
     if isfield(EstimOpt,'Profile') == 0 || isempty(EstimOpt.Profile) || ~ismember(EstimOpt.Profile, [1, 2])
         if EstimOpt.Display ~= 0
@@ -112,6 +137,20 @@ else
         EstimOpt.Profile = 2; 
     end
 end
+
+if isfield(EstimOpt,'Dist') == 0 || isempty(EstimOpt.Dist)
+    EstimOpt.Dist = zeros(1,EstimOpt.NVarA);
+    cprintf(rgb('DarkOrange'),'WARNING: distributions for random parameters not specified - assuming normality \n')
+else
+    if length(EstimOpt.Dist) == 1
+        EstimOpt.Dist = EstimOpt.Dist.*ones(1,EstimOpt.NVarA); % needed?
+    elseif length(EstimOpt.Dist) == EstimOpt.NVarA
+        EstimOpt.Dist = EstimOpt.Dist(:)';
+    else
+        error('Incorrect no. of random parameters'' distributions provided')
+    end
+end
+disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal'])
 
 if isfield(INPUT,'Xm') == 0
     INPUT.Xm = zeros(size(INPUT.Y,1),0);
@@ -143,28 +182,37 @@ elseif size(EstimOpt.NamesAlt,1) ~= EstimOpt.NVarP
 end
 
 %% Starting values
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA + EstimOpt.NVarP*(1+EstimOpt.NVarM) + 1
-    b0 = B_backup(:);
-    if EstimOpt.Display ~= 0
-        disp('Using the starting values from Backup')
+if EstimOpt.FullCov == 0
+    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == 2*EstimOpt.NVarA + EstimOpt.NVarP*(1+EstimOpt.NVarM) + 1
+        b0 = B_backup(:);
+        if EstimOpt.Display ~= 0
+            disp('Using the starting values from Backup')
+        end
     end
-end
-
-if ~exist('b0','var')
-    if EstimOpt.Display ~= 0
-        disp('Using linear regression estimates as starting values')
+    if ~exist('b0','var')
+        if (isfield(Results_old,'MDCEV') && isfield(Results_old.MDCEV,'bhat') && length(Results_old.MDCEV.bhat) == (EstimOpt.NVarA + EstimOpt.NVarP*(1+EstimOpt.NVarM) + 1))
+            disp('Using MDCEV for starting values')
+            b0 = [Results_old.MDCEV.bhat(1:EstimOpt.NVarA); 0.1*ones(EstimOpt.NVarA,1); Results_old.MDCEV.bhat(EstimOpt.NVarA+1:end)];
+        else
+            error('No starting values - Estimate MDCEV first')
+        end   
     end
-    % [covariates parameters; alphas or gammas; scale]
-    b0 = [regress(INPUT.Y,INPUT.Xa); 0.5*ones(EstimOpt.NVarP,1); 0.01*ones(EstimOpt.NVarP*EstimOpt.NVarM,1); 1];
-    
-%     % Maybe add a transformation for alpha or gamma profile
-%     if EstimOpt.Profile == 1 % alpha profile (alpha = 1 - exp(-alpha))
-%         b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt) = ...
-%             -log(1 - b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
-%     else % gamma profile (gamma = exp(gamma))
-%         b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt) = ...
-%             log(b0(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
-%     end
+else
+    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarP*(1+EstimOpt.NVarM) + 1
+        b0 = B_backup(:);
+        if EstimOpt.Display ~= 0
+            disp('Using the starting values from Backup')
+        end
+    end
+    if ~exist('b0','var')
+        if (isfield(Results_old,'MMDCEV_d') && isfield(Results_old.MMDCEV_d,'bhat') && length(Results_old.MMDCEV_d.bhat) == (2*EstimOpt.NVarA + EstimOpt.NVarP*(1+EstimOpt.NVarM) + 1))
+            disp('Using MMDCEV_d for starting values')
+            vc_tmp = abs(diag(Results_old.MMDCEV_d.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2)));
+            b0 = [Results_old.MMDCEV_d.bhat(1:EstimOpt.NVarA); vc_tmp(tril(ones(size(vc_tmp))) == 1); Results_old.MMDCEV_d.bhat(2*EstimOpt.NVarA+1:end)];
+        else
+            error('No starting values - Estimate MMDCEV_d first')
+        end   
+    end
 end
 
 
@@ -242,23 +290,24 @@ if EstimOpt.Display ~= 0
     fprintf('\n')
 end
 
+%% Generate pseudo-random draws from standard normal distribution
+err_mtx = generateRandomDraws(EstimOpt);
 
+% set column value to 0 for constant parameters
+err_mtx(:,EstimOpt.Dist == -1) = 0;
+INPUT.err = err_mtx';
 %% Restucturing Data 
 
 INPUT.Y = reshape(INPUT.Y, [EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP]);
 INPUT.priceMat = reshape(INPUT.priceMat, [EstimOpt.NAlt, EstimOpt.NCT*EstimOpt.NP]);
+
+INPUT.Xa = reshape(INPUT.Xa,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP, EstimOpt.NVarA]);
+INPUT.Xa = permute(INPUT.Xa,[1 3 2]);
 if EstimOpt.NVarM > 0
     INPUT.Xm = INPUT.Xm(1:EstimOpt.NAlt:end,:);
     INPUT.Xm = [ones(size(INPUT.Xm,1),1), INPUT.Xm];
 end
-% idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP])) == EstimOpt.NAlt;
-% idx = reshape(idx(ones(EstimOpt.NAlt,1),:),[EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.NP,1]);
-% INPUT.Y = INPUT.Y(idx == 0);
-% INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
-% 
-% %Xa has NaNs where there is missing alternative
-% 
-% INPUT.Xa = INPUT.Xa(idx == 0,:);
+
 
 %% Estimation
 
@@ -266,7 +315,7 @@ end
 % INPUT must contain Xa, priceMat, y (dependent variable; demands) ========
 % =========================================================================
 
-LLfun = @(B) LL_mdcev_MATlike(INPUT, EstimOpt,OptimOpt,B);
+LLfun = @(B) LL_mmdcev_MATlike(INPUT, EstimOpt,OptimOpt,B);
 
 if EstimOpt.ConstVarActive == 0
     if EstimOpt.HessEstFix == 0
@@ -289,15 +338,15 @@ if isfield(EstimOpt,'R2type') == 0
     EstimOpt.R2type = 0;
 end
 
-Results.LLdetailed = probs_mdcev(INPUT, EstimOpt, Results.bhat);
+Results.LLdetailed = probs_mmdcev(INPUT, EstimOpt, Results.bhat);
 
 if EstimOpt.HessEstFix == 1
-    f = probs_mdcev(INPUT, EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) -probs_mdcev(INPUT, EstimOpt,B),-f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+    f = probs_mmdcev(INPUT, EstimOpt,Results.bhat);
+    Results.jacobian = numdiff(@(B) -probs_mmdcev(INPUT, EstimOpt,B),-f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) -probs_mdcev(INPUT, EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) -probs_mmdcev(INPUT, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
+    Results.hess = hessian(@(B) -sum(probs_mmdcev(INPUT,EstimOpt,B),1),Results.bhat);
 % elseif EstimOpt.HessEstFix == 4 % analytical - missing
 %     Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 end
@@ -332,31 +381,46 @@ Results.OptimOpt = OptimOpt;
 
 Results.DetailsA(1:EstimOpt.NVarA,1) = Results.bhat(1:EstimOpt.NVarA);
 Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
-
+if EstimOpt.FullCov == 0
+    Results.DetailsV(1:EstimOpt.NVarA,1) = abs(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2));
+    Results.DetailsV(1:EstimOpt.NVarA,3:4) = ...
+        [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2), ...
+         pv(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*2), ...
+         Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA*2))];
+    l = 2*EstimOpt.NVarA;
+else
+    Results.DetailsV = ...
+        sdtri(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), ...
+              Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2, ...
+                            EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2), ...
+              EstimOpt);
+    Results.DetailsV = [Results.DetailsV(:,1),zeros(EstimOpt.NVarA,1),Results.DetailsV(:,2:3)];
+    l = EstimOpt.NVarA*(EstimOpt.NVarA+3)/2; 
+end
 % alphas or gammas
 if EstimOpt.NVarM == 0
     if EstimOpt.Profile == 1 % alpha profile (alphas = 1 - exp(-alphas))
         Results.DetailsProfile(1:EstimOpt.NAlt, 1) = ...
-            1 - exp(-Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
-        Tmp = exp(-Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+            1 - exp(-Results.bhat(l+1:l+EstimOpt.NAlt));
+        Tmp = exp(-Results.bhat(l+1:l+EstimOpt.NAlt));
         Results.DetailsProfile(1:EstimOpt.NAlt,3:4) = ...
-            [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp, ...
-            pv(1 - exp(-Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt)),...
-            Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp)];
+            [Results.std(l+1:l+EstimOpt.NAlt).*Tmp, ...
+            pv(1 - exp(-Results.bhat(l+1:l+EstimOpt.NAlt)),...
+            Results.std(l+1:l+EstimOpt.NAlt).*Tmp)];
     elseif EstimOpt.Profile == 2 % gamma profile (gammas = exp(gammas))
         Results.DetailsProfile(1:EstimOpt.NAlt, 1) = ...
-        exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
-        Tmp = exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt));
+        exp(Results.bhat(l+1:l+EstimOpt.NAlt));
+        Tmp = exp(Results.bhat(l+1:l+EstimOpt.NAlt));
     Results.DetailsProfile(1:EstimOpt.NAlt,3:4) = ...
-        [Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp, ...
-         pv(exp(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt)),...
-         Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NAlt).*Tmp)];
+        [Results.std(l+1:l+EstimOpt.NAlt).*Tmp, ...
+         pv(exp(Results.bhat(l+1:l+EstimOpt.NAlt)),...
+         Results.std(l+1:l+EstimOpt.NAlt).*Tmp)];
     elseif EstimOpt.Profile == 3
         indx = length(unique(EstimOpt.SpecProfile(1,EstimOpt.SpecProfile(1,:) ~= 0)));
-        b1 = Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NVarP);
+        b1 = Results.bhat(l+1:l+EstimOpt.NVarP);
         b2 = b1(indx+1:end);
         b1 = b1(1:indx);
-        std1 = Results.std(EstimOpt.NVarA+1:EstimOpt.NVarA+EstimOpt.NVarP);
+        std1 = Results.std(l+1:l+EstimOpt.NVarP);
         std2 = std1(indx+1:end);
         std1 = std1(1:indx);
     
@@ -371,11 +435,11 @@ else
 
     Results.DetailsProfile = [];
     for i=1:EstimOpt.NVarP
-        Results.DetailsProfile(1:(EstimOpt.NVarM+1),4*i-3) = Results.bhat(EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i-1)+1:EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i));
+        Results.DetailsProfile(1:(EstimOpt.NVarM+1),4*i-3) = Results.bhat(l+(EstimOpt.NVarM+1)*(i-1)+1:l+(EstimOpt.NVarM+1)*(i));
         Results.DetailsProfile(1:(EstimOpt.NVarM+1),4*i-1:4*i) = ...
-            [Results.std(EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i-1)+1:EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i)), ...
-             pv(Results.bhat(EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i-1)+1:EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i)), ...
-             Results.std(EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i-1)+1:EstimOpt.NVarA+(EstimOpt.NVarM+1)*(i)))];
+            [Results.std(l+(EstimOpt.NVarM+1)*(i-1)+1:l+(EstimOpt.NVarM+1)*(i)), ...
+             pv(Results.bhat(l+(EstimOpt.NVarM+1)*(i-1)+1:l+(EstimOpt.NVarM+1)*(i)), ...
+             Results.std(l+(EstimOpt.NVarM+1)*(i-1)+1:l+(EstimOpt.NVarM+1)*(i)))];
     end
 end
 Results.DetailsScale(1, 1) = exp(Results.bhat(end));
@@ -386,15 +450,24 @@ Results.DetailsScale(1, 3:4) = ...
 
 %% Template filling
 
-Template1 = {'DetailsA'};
-Template2 = {'DetailsA'};
-Names.DetailsA = EstimOpt.NamesA;
-Heads.DetailsA = {'';'tb'};
-ST = {'DetailsA'};
+% Template1 = {'DetailsA'};
+% Template2 = {'DetailsA'};
+% Names.DetailsA = EstimOpt.NamesA;
+% Heads.DetailsA = {'';'tb'};
 
+Template1 = {'DetailsA','DetailsV'};
+Template2 = {'DetailsA','DetailsV'};
+Names.DetailsA = EstimOpt.NamesA;
+Heads.DetailsA = {'Means';'tc'};
+Heads.DetailsV = {'Standard Deviations';'lb'};
+ST = {};
+
+% Template1 = [Template1,{'DetailsProfile'}];
+Temp = cell(1,size(Template2,2));
+Temp(1,1) = {'DetailsProfile'};
+Template1 = [Template1;Temp];
+Template2 = [Template2;Temp];
 if EstimOpt.NVarM == 0
-    Template1 = [Template1;'DetailsProfile'];
-    Template2 = [Template2;'DetailsProfile'];
     Names.DetailsProfile = EstimOpt.NamesAlt;
     if EstimOpt.Profile == 1
         Heads.DetailsProfile = {'Coefficients of Alpha-profile'};
@@ -402,28 +475,28 @@ if EstimOpt.NVarM == 0
         Heads.DetailsProfile = {'Coefficients of Gamma-profile'};
     end
     Heads.DetailsProfile(2,:) = {'tb'};
-    ST = [ST,'DetailsProfile'];
+%      ST = [ST,'DetailsProfile'];
 else
-    Template1 = [Template1;'DetailsProfile'];
-    Template2 = [Template2;'DetailsProfile'];
     Heads.DetailsProfile(:,2) = [EstimOpt.NamesAlt;{'lb'}];
     Heads.DetailsProfile(1:2,1) = {'Alpha/Gamma profile coef.';'lc'};
     Names.DetailsProfile = [{'Const.'}; EstimOpt.NamesM];
-    ST = [ST,'DetailsProfile'];
+%      ST = [ST,'DetailsProfile'];
 end
+ST = {'DetailsProfile'};
 
-
-Template1 = [Template1;'DetailsScale'];
-Template2 = [Template2;'DetailsScale'];
+Temp = cell(1,size(Template2,2));
+Temp(1,1) = {'DetailsScale'};
+Template1 = [Template1;Temp];
+Template2 = [Template2;Temp];
 Names.DetailsScale = {'Scale'};
 Heads.DetailsScale = {'Coefficients of scale'};
 Heads.DetailsScale(2,:) = {'tb'};
-ST = [ST,'DetailsScale'];
+ST = [ST;{'DetailsScale'}];
 
 %% Header
 
 Head = cell(1,2);
-Head(1,1) = {'MDCEV'};
+Head(1,1) = {'Mixed MDCEV'};
 Head(1,2) = {'in preference-space'}; % Probably not needed
 
 %% Footer
@@ -497,7 +570,7 @@ Tail(16,2) = {outHessian};
 %%  Print to screen and .xls
 
 if EstimOpt.Display ~= 0
-    Results.Dist = -ones(EstimOpt.NVarA,1);
+     Results.Dist = EstimOpt.Dist;
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
 end
