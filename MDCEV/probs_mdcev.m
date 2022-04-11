@@ -27,7 +27,7 @@ function [f] = probs_mdcev(data, EstimOpt, variables)
 %   Xa          -- covariates (alternatives attributes) (NxNVar)
 %   priceMat    -- matrix of prices of each alternative (NAltxN)
 
-save LL_mdcev
+% save LL_mdcev
 % return
 
 y = data.Y; % dependent variables (quantities demands); size: NAltxN
