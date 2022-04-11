@@ -324,12 +324,20 @@ if WTP_space > 0
         bx = squeeze(b_score(j,:,:))'; % NP x NRep
         Score(:,j) = mean(p0.*bx,2)./fx;
     end
-else
+else 
     b_score = reshape(b_score,[NVarA,NRep,NP]);
-    fee = squeeze(b_score(end,:,:))';
-    for j = 1:NVarA-1
+
+% This calculates individual scores in terms of WTP, even for PS models. 
+%     fee = squeeze(b_score(end,:,:))';
+%     for j = 1:NVarA-1
+%         bx = squeeze(b_score(j,:,:))'; % NP x NRep
+%         Score(:,j) = mean(p0.*bx./fee,2)./fx;
+%     end
+
+% This keeps individual scores in PS: 
+    for j = 1:NVarA
         bx = squeeze(b_score(j,:,:))'; % NP x NRep
-        Score(:,j) = mean(p0.*bx./fee,2)./fx;
+        Score(:,j) = mean(p0.*bx,2)./fx;
     end
-    Score(:,end) = mean(p0.*fee,2)./fx;
+
 end
