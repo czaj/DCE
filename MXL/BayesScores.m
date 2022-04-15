@@ -31,7 +31,6 @@ if any(Dist == 5)
     b0a(Dist == 5) = 0;
 end
 
-%%%% WZ new %%%%
 if any(Dist == 9)   % Uni-Log distribution
     b0UniLogA = exp(b0a(Dist == 9));
     b0a(Dist == 9) = 0;
@@ -77,7 +76,6 @@ if any(Dist == 17)   % Exponential distribution
     b0a(Dist == 17) = 0;
 end
 
-%%%% WZ_end%%%%
 
 if EstimOpt.FullCov == 0
     b0v = (b0(NVarA+1:NVarA*2));
@@ -94,7 +92,6 @@ if EstimOpt.FullCov == 0
         b0v(Dist == 5) = 1;
     end
     
-    %%%% WZ new %%%%
     if any(Dist == 9)   % Uni-Log
         b0UniLogB = exp(b0v(Dist == 9));
         b0v(Dist == 9) = 1;
@@ -131,7 +128,6 @@ if EstimOpt.FullCov == 0
         % b0ExpB = exp(b0v(Dist == 17));
         b0v(Dist == 17) = 1;
     end    
-    %%%% WZ_end %%%%
     
     b0v = b0v.^2;
     VC = diag(b0v);
@@ -153,7 +149,6 @@ else
         b0sinhB = tmp(Dist == 5).^2;
     end
     
-    %%%% WZ new %%%%
     if any(Dist == 9)
         b0UniLogB = exp(tmp(Dist == 9));
     end
@@ -181,21 +176,14 @@ else
     if any(Dist == 17)
         % b0ExpB = exp(tmp(Dist == 17));
     end
-    %%%% WZ_end %%%%
     
     VC = tril(ones(NVarA));
     VC(VC==1) = b0v;
     
-    %%%% WZ change %%%%
-%    if any(Dist >= 3 & Dist <= 5)
-%        tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5,:).^2,2));
-%        VC(Dist >= 3 & Dist <= 5,:) = VC(Dist >= 3 & Dist <= 5,:)./tmp(:,ones(1,NVarA));
-%    end
     if any(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)
         tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:).^2,2));
         VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:) = VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:)./tmp(:,ones(1,NVarA));
     end
-    %%%% WZ_end %%%%
     
     b0m = b0(NVarA*(NVarA/2+1.5)+1:NVarA*(NVarA/2+1.5+NVarM));
     b0m = reshape(b0m,[NVarA,NVarM]);
@@ -247,7 +235,6 @@ if sum(Dist >= 5) > 0 % Johnson
     end
 end
 
-%%%% WZ new %%%%
 if sum(Dist == 9) > 0 % Uni-Log
     tmp = normcdf(b_mtx(Dist == 9,:));
     b_mtx_n(Dist == 9,:) = exp(log(b0UniLogA)+tmp.*(log(b0UniLogB)-log(b0UniLogA)));   % inverse CDF function
@@ -292,8 +279,6 @@ if sum(Dist == 17) > 0 % Exponential
     tmp = normcdf(b_mtx(Dist == 17,:));
     b_mtx_n(Dist == 17,:) = (log(1./(1-tmp))).*(1./b0ExpA);   % inverse CDF function
 end
-
-%%%% WZ_end %%%%
 
 b_score = b_mtx_n;
 if WTP_space > 0

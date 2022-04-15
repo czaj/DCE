@@ -132,7 +132,7 @@ Results.R = [];
 Results.R_out = {};
 Results.stats = [];
 
-NVarA = EstimOpt.NVarA; %%% XYZ: used EstimOpt.NVarA instead NVarA (however it should not have any influence)
+NVarA = EstimOpt.NVarA;
 NSdSim = EstimOpt.NSdSim;
 
 
@@ -243,14 +243,7 @@ else
     EstimOpt.Triang = EstimOpt.Triang(:)';
 end
 
-%%%% WZ change %%%%
-%EstimOpt.Johnson = sum(EstimOpt.Dist >= 5);
-%
-%if (sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0 && any(find(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5))) && EstimOpt.FullCov == 1
-%    cprintf(rgb('DarkOrange'),'WARNING: It is recommended to put variables with random parameters with Triangular/Weibull/Sinh-Arcsinh distribution first \n')
-%end
-%
-%disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal, 2 - spike, 3 - Triangular, 4  - Weibull, 5 - Sinh-Arcsinh, 6 - Johnson Sb, 7 - Johnson Su)'])
+
 EstimOpt.Johnson = sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
 
 
@@ -259,7 +252,7 @@ if (sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.
 end
 
 disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal, 2 - spike, 3 - Triangular, 4  - Weibull, 5 - Sinh-Arcsinh, 6 - Johnson Sb, 7 - Johnson Su, 9 - Uni-Log (Reciprocal), 10 - Pareto, 11 - Lomax, 12 - Logistic, 13 - Log-Logistic, 14 - Gumbel, 15 - Cauchy, 16 - Rayleigh, 17 - Exponential)'])
-%%%% WZ_end %%%%
+
 
 if EstimOpt.WTP_space > 0 && sum(EstimOpt.Dist(end-EstimOpt.WTP_space+1:end)==1) > 0 && any(mean(INPUT.Xa(:,end-EstimOpt.WTP_space+1:end)) >= 0)
     cprintf(rgb('DarkOrange'),'WARNING: Cost attributes with log-normally distributed parameters should enter utility function with a ''-'' sign \n')
@@ -384,12 +377,12 @@ if EstimOpt.FullCov == 0
             end
             b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
         end
-        %%%% XYZ new %%%%
+
         if sum(EstimOpt.Dist == -1) > 0 % Fixed
             indx = find(EstimOpt.Dist == -1);
             b0(indx+EstimOpt.NVarA) = 0;   % second parameters equal to 0 (variances as default)
         end
-        %%%% XYZ_end %%%%
+        
         if sum(EstimOpt.Dist == 3) > 0 % Triangular
             indx = find(EstimOpt.Dist == 3);
             b0([indx;indx+NVarA]) = [log(b0(indx) - EstimOpt.Triang');log(b0(indx) - EstimOpt.Triang')];
@@ -399,24 +392,16 @@ if EstimOpt.FullCov == 0
             indx = find(EstimOpt.Dist == 4);
             % first parameters = log(first parameters)
             % second parameters = 0            
-            b0([indx,indx+NVarA]) = [log(b0(indx)),zeros(length(indx),1)]; %%%% WZ ;->, %%%%
+            b0([indx,indx+NVarA]) = [log(b0(indx)),zeros(length(indx),1)];
         end
-        %%%% WZ change %%%%
-%        if sum(EstimOpt.Dist >= 5) > 0 % Johnson
-%            indx = find(EstimOpt.Dist >= 5);
-%            tmp = [b0(indx);log(b0(indx+NVarA))];
-%            b0([indx;indx+NVarA]) = [zeros(length(indx),1),ones(length(indx),1)];
-%            b0 = [b0;tmp];
-%        end
+
         if sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7) > 0 % Johnson
             indx = find(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
             tmp = [b0(indx);log(b0(indx+EstimOpt.NVarA))];
             b0([indx;indx+EstimOpt.NVarA]) = [zeros(length(indx),1),ones(length(indx),1)];
             b0 = [b0;tmp];
         end
-        %%%% WZ_end %%%%
 
-        %%%% WZ new %%%%
         if sum(EstimOpt.Dist == 9) > 0 % Uni-Log
             indx = find(EstimOpt.Dist == 9);
             % first parameters = log(first parameters)
@@ -464,7 +449,6 @@ if EstimOpt.FullCov == 0
             b0([indx,indx+EstimOpt.NVarA]) = [log(b0(indx)),zeros(length(indx),1)]; % zamiast 0 -> 0.001?
         end
                 
-        %%%% WZ_end %%%%
         
 %         else
 %             error('No starting values available - run MNL first')
@@ -521,33 +505,25 @@ else % EstimOpt.FullCov == 1
                 end
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
-            %%%% XYZ new %%%%
+
             if sum(EstimOpt.Dist == -1) > 0 % Fixed
                 b0(EstimOpt.Dist == -1) = 0;
             end
-            %%%% XYZ_end %%%%
+
             if sum(EstimOpt.Dist == 3) > 0 % Triangular
                 b0(EstimOpt.Dist == 3) = log(b0(EstimOpt.Dist == 3) -EstimOpt.Triang');
             end
             if sum(EstimOpt.Dist == 4) > 0 % Weibull
                 b0(EstimOpt.Dist == 4) = log(b0(EstimOpt.Dist == 4));
             end
-            %%%% WZ change %%%%
-%            if sum(EstimOpt.Dist >= 5) > 0 % Johnson
-%                indx = find(EstimOpt.Dist >= 5);
-%                tmp = b0(indx);
-%                b0(indx) = zeros(length(indx),1);
-%                b0 = [b0;tmp;zeros(length(indx),1)];
-%            end
+
             if sum(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7) > 0 % Johnson
                 indx = find(EstimOpt.Dist >= 5 & EstimOpt.Dist <= 7);
                 tmp = b0(indx);
                 b0(indx) = zeros(length(indx),1);
                 b0 = [b0;tmp;zeros(length(indx),1)];
             end
-            %%%% WZ_end %%%%
 
-            %%%% WZ new%%%%
             if sum(EstimOpt.Dist == 9) > 0 % Uni-Log
                 b0(EstimOpt.Dist == 9) = log(b0(EstimOpt.Dist == 9));
             end
@@ -575,7 +551,6 @@ else % EstimOpt.FullCov == 1
             if sum(EstimOpt.Dist == 17) > 0 % Exponential
                 b0(EstimOpt.Dist == 17) = log(b0(EstimOpt.Dist == 17));
             end         
-            %%%% WZ_end %%%%
 
 %         else
 %             error('No starting values available')
@@ -651,7 +626,7 @@ elseif EstimOpt.Draws == 2 % LHS
     err_mtx = reshape(err_mtx,[EstimOpt.NRep*EstimOpt.NP,NVarA]);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
-        cprintf('*blue','Halton '); %%%% XYZ enter %%%%
+        cprintf('*blue','Halton ');
         cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
         hm1 = haltonset(NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
@@ -700,19 +675,13 @@ end
 % 	cprintf(rgb('DarkOrange'), 'WARNING: Setting user-supplied gradient off - covariates of scale not supported by analytical gradient \n')
 % end
 
-%%%% XYZ: TODO: jezeli zostanie zrobiony gradient analityczny to do zmiany %%%%
-%%%% WZ change %%%%
-%if any(EstimOpt.Dist > 1) && EstimOpt.NumGrad == 0
-%    EstimOpt.NumGrad = 1;
-%    OptimOpt.GradObj = 'off';
-%    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally or lognormally distributed parameters only \n')
-%end
+
 if (any(EstimOpt.Dist > 1) && ~any(EstimOpt.Dist == 4))  && ~any(EstimOpt.Dist == 9)  && ~any(EstimOpt.Dist == 10) && ~any(EstimOpt.Dist == 11) && ~any(EstimOpt.Dist == 12) && ~any(EstimOpt.Dist == 13) && ~any(EstimOpt.Dist == 14) && ~any(EstimOpt.Dist == 15) && ~any(EstimOpt.Dist == 16) && ~any(EstimOpt.Dist == 17) && EstimOpt.NumGrad == 0
     EstimOpt.NumGrad = 1;
     OptimOpt.GradObj = 'off';
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient available for normally, lognormally, Weibull, Uni-Log (Reciprocal), Pareto, Lomax, Logistic, Log-Logistic, Gumbel, Cauchy, Rayleigh or Exponential distributed parameters only \n')
 end
-%%%% WZ_end %%%%
+
 
 % This is not necessary any more (?)
 % if any(var(EstimOpt.NAltMissInd)) ~= 0 && EstimOpt.NumGrad == 0 && EstimOpt.WTP_space > 1
@@ -790,14 +759,11 @@ if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix =
     cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
 end
 
-%%%% WZ change %%%%
-%if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) && EstimOpt.NVarM ~= 0
-%    error('Covariates of means do not work with triangular/weibull/sinh-arcsinh distributions')
-%end
+
 if  any(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) && EstimOpt.NVarM ~= 0
     error('Covariates of means do not work with triangular/weibull/sinh-arcsinh/uni-log(reciprocal)/pareto/lomax/logistic/log-logistic/gumbel/cauchy/rayleigh/exponential distributions')
 end
-%%%% WZ_end %%%%
+
 
 fprintf('\n')
 cprintf('Optimization algorithm: '); cprintf('*Black',[OptimOpt.Algorithm '\n'])
@@ -865,13 +831,8 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 %INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
 INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-%%%% XYZ change %%%%
-%INPUT.XXm = squeeze(INPUT.XXm(:,1,:));
-%if EstimOpt.NVarM == 1
-%    INPUT.XXm = INPUT.XXm';
-%end
 INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
-%%%% XYZ_end %%%%
+
 
 err_mtx = err_mtx';
 % change err_mtx from NRep*NP x NVarA to NP*NRep x NVarA (incrasing the no. of draws only adds new draws for each respondent, does not change all draws per individual)
@@ -1053,7 +1014,7 @@ if EstimOpt.FullCov == 0
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV(1:NVarA,1) = abs(Results.bhat(NVarA+1:NVarA*2));
     Results.DetailsV(1:NVarA,3:4) = [Results.std(NVarA+1:NVarA*2),pv(Results.bhat(NVarA+1:NVarA*2),Results.std(NVarA+1:NVarA*2))];
-%%%% XYZ new %%%%
+
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
         for i=1:EstimOpt.NVarM
@@ -1061,7 +1022,7 @@ if EstimOpt.FullCov == 0
             Results.DetailsM(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)), pv(Results.bhat(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)), Results.std(EstimOpt.NVarA*(2+i-1)+1:EstimOpt.NVarA*(2+i)))];
         end
     end
-%%%% XYZ_end %%%%    
+ 
     %     if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (delta):
     %         log_idx = find(EstimOpt.Dist==1);
     %         Results.DetailsA(log_idx,1) = exp(Results.DetailsA(log_idx,1) + Results.DetailsV(log_idx,1).^2./2);
@@ -1081,30 +1042,15 @@ if EstimOpt.FullCov == 0
         if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
         	Results.DetailsA_underlying = Results.DetailsA;
             Results.DetailsV_underlying = Results.DetailsV;
-            %%%% XYZ new %%%%
+
             if EstimOpt.NVarM > 0
                 Results.DetailsM_underlying = Results.DetailsM;
             end        
-            %%%% XYZ_end %%%%
+
             log_idx = find(EstimOpt.Dist==1);
             try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
-                %%%% XYZ change %%%%
-                %bhat_sim = mvnrnd(Results.bhat(1:NVarA*2),Results.ihess(1:NVarA*2,1:NVarA*2),NSdSim)';
+
                 bhat_sim = mvnrnd(Results.bhat(1:EstimOpt.NVarA*(2+EstimOpt.NVarM)), Results.ihess(1:EstimOpt.NVarA*(2+EstimOpt.NVarM),1:EstimOpt.NVarA*(2+EstimOpt.NVarM)),NSdSim)';
-                %%%% XYZ_end %%%%
-                %%%% XYZ change/new %%%%
-    %            bhat_new = zeros(NSdSim,5*NVarA);
-    %            parfor i = 1:NSdSim
-    %                bhat_i = bhat_sim(:,i);
-    %                B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
-    %                %     b0v = bhat_i(NVarA+1:end)';
-    %                %     VC = tril(ones(NVarA));
-    %                %     VC(VC==1) = b0v;
-    %                %     VC = VC*VC';
-    %                %     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,sim2);
-    %                B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-    %                bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
-    %            end
                  if EstimOpt.NVarM > 0
                     BM_i = permute(reshape(bhat_sim(EstimOpt.NVarA*2+1:EstimOpt.NVarA*2+EstimOpt.NVarA*EstimOpt.NVarM,:), [EstimOpt.NVarA,EstimOpt.NVarM,NSdSim]),[3,1,2]);
                     bhat_new = zeros(NSdSim,5*EstimOpt.NVarA);
@@ -1142,7 +1088,6 @@ if EstimOpt.FullCov == 0
                 Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
                 Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
                 Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
-            %%%% XYZ new %%%%
                 if EstimOpt.NVarM > 0
                     Results.DistStatsM_Coef = reshape(median(bhatM_new,1),[EstimOpt.NVarA,5]);
                     Results.DistStatsM_Std = reshape(std(bhatM_new,[],1),[EstimOpt.NVarA,5]);
@@ -1152,7 +1097,6 @@ if EstimOpt.FullCov == 0
                     Results.DetailsM(log_idx,1) = exp(Results.DetailsA_underlying(log_idx,1) + Results.DetailsM(log_idx,1) + Results.DetailsV_underlying(log_idx,1).^2./2) - Results.DetailsA(log_idx,1); % We use analytical formula instead of simulated moments
                     Results.DetailsM(log_idx,3:4) = [Results.DistStatsM_Std(log_idx,1), pv(Results.DetailsM(log_idx,1), Results.DistStatsM_Std(log_idx,1))];
                 end
-            %%%% XYZ_end %%%%
             catch % theErrorInfo
                 Results.DetailsA(log_idx,[1,3:4]) = NaN;
                 Results.DetailsV(log_idx,[1,3:4]) = NaN;
@@ -1183,7 +1127,7 @@ if EstimOpt.FullCov == 0
         Results.DetailsV(EstimOpt.Dist == 4,1) = exp(btmp(EstimOpt.Dist == 4));
         Results.DetailsV(EstimOpt.Dist == 4,3:4) = [stdx(EstimOpt.Dist == 4),pv(exp(btmp(EstimOpt.Dist == 4)),stdx(EstimOpt.Dist == 4))];
     end
-    %%%% WZ new %%%%
+
     if sum(EstimOpt.Dist == 9) > 0  % parameters with Uni-Log distribution
         Results.DetailsA(EstimOpt.Dist == 9,1) = exp(Results.bhat(EstimOpt.Dist == 9));
         Results.DetailsA(EstimOpt.Dist == 9,3:4) = [exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9), pv(exp(Results.bhat(EstimOpt.Dist == 9)), exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9))];
@@ -1264,17 +1208,9 @@ if EstimOpt.FullCov == 0
         %Results.DetailsV(EstimOpt.Dist == 17,3:4) = ...
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
-    %%%% WZ_end%%%%
     
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
-        %%%% XYZ # %%%%
-%        Results.DetailsM = [];
-%        for i=1:EstimOpt.NVarM
-%            Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i));
-%            Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)),pv(Results.bhat(NVarA*(2+i-1)+1:NVarA*(2+i)),Results.std(NVarA*(2+i-1)+1:NVarA*(2+i)))];
-%        end
-        %%%% XYZ_end %%%%
         Results.R = [Results.R,Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0
@@ -1320,7 +1256,6 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
     Results.DetailsV = [Results.DetailsV(:,1),zeros(NVarA,1),Results.DetailsV(:,2:3)];
-    %%%% XYZ new %%%%
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
         for i=1:EstimOpt.NVarM
@@ -1328,33 +1263,17 @@ elseif EstimOpt.FullCov == 1
             Results.DetailsM(1:EstimOpt.NVarA, 4*i-1:4*i) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)), pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)), Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))];
         end
     end
-    %%%% XYZ_end %%%%
     
     if isfield(EstimOpt,'EffectiveMoments') && EstimOpt.EffectiveMoments == 1
         if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
             Results.DetailsA_underlying = Results.DetailsA;
             Results.DetailsV_underlying = Results.DetailsV;
-            %%%% XYZ new %%%%
             if EstimOpt.NVarM > 0
                 Results.DetailsM_underlying = Results.DetailsM;
             end
-            %%%% XYZ_end %%%%
             log_idx = find(EstimOpt.Dist==1);
             try % in case Results.ihess is not positive semidefinite (avoid mvnrnd error)
                 bhat_sim = mvnrnd(Results.bhat,Results.ihess,NSdSim)';
-                %%%% XYZ # & new %%%%
-%                 bhat_new = zeros(NSdSim,5*NVarA);
-%                 parfor i = 1:NSdSim
-%                     bhat_i = bhat_sim(:,i);
-%                     %             B0_i = mvnrnd(bhat_i(1:NVarA)',diag(bhat_i(NVarA+1:NVarA*2).^2),NSdSim);
-%                     b0v = bhat_i(NVarA+1:NVarA+sum(1:NVarA))';
-%                     VC = tril(ones(NVarA));
-%                     VC(VC == 1) = b0v;
-%                     VC = VC*VC';
-%                     B0_i = mvnrnd(bhat_i(1:NVarA)',VC,NSdSim);
-%                     B0_i(:,log_idx) = exp(B0_i(:,log_idx));
-%                     bhat_new(i,:) = [mean(B0_i),median(B0_i),std(B0_i),quantile(B0_i,0.025),quantile(B0_i,0.975)];
-%                 end
                 if EstimOpt.NVarM > 0
                     BM_i = permute(reshape(bhat_sim(EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+1:EstimOpt.NVarA+sum(1:EstimOpt.NVarA)+EstimOpt.NVarA*EstimOpt.NVarM,:),[EstimOpt.NVarA,EstimOpt.NVarM,NSdSim]),[3,1,2]);
                     bhat_new = zeros(NSdSim,5*EstimOpt.NVarA);
@@ -1397,7 +1316,6 @@ elseif EstimOpt.FullCov == 1
                 Results.DetailsA(log_idx,3:4) = [Results.DistStats_Std(log_idx,1),pv(Results.DetailsA(log_idx,1),Results.DistStats_Std(log_idx,1))];
                 Results.DetailsV(log_idx,1) = ((exp(Results.DetailsV(log_idx,1).^2) - 1).*exp(2.*Results.bhat(log_idx) + Results.DetailsV(log_idx,1).^2)).^0.5; % We use analytical formula instead of simulated moment
                 Results.DetailsV(log_idx,3:4) = [Results.DistStats_Std(log_idx,3),pv(Results.DetailsV(log_idx,1),Results.DistStats_Std(log_idx,3))];
-                %%%% XYZ new %%%%
                 if EstimOpt.NVarM > 0
                     Results.DistStatsM_Coef = reshape(median(bhatM_new,1),[EstimOpt.NVarA,5]);
                     Results.DistStatsM_Std = reshape(std(bhatM_new,[],1),[EstimOpt.NVarA,5]);
@@ -1407,7 +1325,6 @@ elseif EstimOpt.FullCov == 1
                     Results.DetailsM(log_idx,1) = exp(Results.DetailsA_underlying(log_idx,1) + Results.DetailsM(log_idx,1) + Results.DetailsV_underlying(log_idx,1).^2./2) - Results.DetailsA(log_idx,1); % We use analytical formula instead of simulated moments
                     Results.DetailsM(log_idx,3:4) = [Results.DistStatsM_Std(log_idx,1), pv(Results.DetailsM(log_idx,1), Results.DistStatsM_Std(log_idx,1))];
                 end
-                %%%% XYZ_end %%%%
             catch % theErrorInfo
                 Results.DetailsA(log_idx,[1,3:4]) = NaN;
                 Results.DetailsV(log_idx,[1,3:4]) = NaN;
@@ -1449,7 +1366,6 @@ elseif EstimOpt.FullCov == 1
         Results.DetailsV(EstimOpt.Dist == 5,3:4) = [2*btmp(EstimOpt.Dist == 5).*stdtmp(EstimOpt.Dist == 5),pv(btmp(EstimOpt.Dist == 5).^2,2*btmp(EstimOpt.Dist == 5).*stdtmp(EstimOpt.Dist == 5))];
     end
     
-    %%%% WZ new %%%%
     if sum(EstimOpt.Dist == 9) > 0
         Results.DetailsA(EstimOpt.Dist == 9,1) = exp(Results.bhat(EstimOpt.Dist == 9));
         Results.DetailsA(EstimOpt.Dist == 9,3:4) = [exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9), pv(exp(Results.bhat(EstimOpt.Dist == 9)), exp(Results.bhat(EstimOpt.Dist == 9)).*Results.std(EstimOpt.Dist == 9))];
@@ -1551,17 +1467,10 @@ elseif EstimOpt.FullCov == 1
         %Results.DetailsV(EstimOpt.Dist == 17,3:4) = ...
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
-    %%%% WZ_end %%%%
 
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
-        %%%% XYZ # %%%%
         Results.DetailsM = [];
-%         for i=1:EstimOpt.NVarM
-%             Results.DetailsM(1:NVarA,4*i-3) = Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i));
-%             Results.DetailsM(1:NVarA,4*i-1:4*i) = [Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),pv(Results.bhat(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)),Results.std(NVarA*(NVarA/2+0.5+i)+1:NVarA*(NVarA/2+1.5+i)))];
-%         end
-        %%%% XYZ_end %%%%
         Results.R = [Results.R,Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0
@@ -1603,15 +1512,7 @@ elseif EstimOpt.FullCov == 1
     Results.chol = [Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)),pv(Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)))];
     Results.DetailsVcov = tril(ones(NVarA));
     choltmp = Results.chol(:,1);
-    %%%% WZ change %%%%
-%     if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
-%         choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5)) = 1;
-%     end
-%     Results.DetailsVcov(Results.DetailsVcov == 1) = choltmp;
-%     if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5) > 0
-%         choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:).^2,2));
-%         Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:) = Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5,:)./choltmp(:,ones(1,NVarA));
-%     end
+
     if sum(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17) > 0
         choltmp(EstimOpt.DiagIndex(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17)) = 1;
     end
@@ -1620,7 +1521,7 @@ elseif EstimOpt.FullCov == 1
         choltmp = sqrt(sum(Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:).^2,2));
         Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:) = Results.DetailsVcov(EstimOpt.Dist >= 3 & EstimOpt.Dist <= 5 | EstimOpt.Dist == 9 | EstimOpt.Dist == 10 | EstimOpt.Dist == 11 | EstimOpt.Dist == 12 | EstimOpt.Dist == 13 | EstimOpt.Dist == 14 | EstimOpt.Dist == 15 | EstimOpt.Dist == 16 | EstimOpt.Dist == 17,:)./choltmp(:,ones(1,EstimOpt.NVarA));
     end
-    %%%% WZ_end %%%%
+
     Results.DetailsVcov = Results.DetailsVcov*Results.DetailsVcov';
     Results.DetailsVcor = corrcov(Results.DetailsVcov);
 end
