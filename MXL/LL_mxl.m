@@ -72,20 +72,19 @@ b0a = b0(1:NVarA);  % first parameters of the distributions
 
 % Additional variables for distributions other than normal
 % Introduction of new variables requires zeroing the corresponding elements of the parameters vector
-if any(Dist == 3)   % triangular distribution
-    b0triang_c = exp(b0a(Dist == 3)) + Triang'; % exp of parameters' values
-    b0a(Dist == 3) = 0; % Set the first parameter to mu of standard normal (0)
+if any(Dist == 3)
+    b0triang_c = exp(b0a(Dist == 3)) + Triang';
+    b0a(Dist == 3) = 0;
 end
-if any(Dist == 4)   % weibull distribution
+if any(Dist == 4)
     b0weibA = exp(b0a(Dist == 4));
     b0a(Dist == 4) = 0;
 end
-if any(Dist == 5)   % Sinh-Arcsinh distribution
+if any(Dist == 5)
     b0sinhA = b0a(Dist == 5);
     b0a(Dist == 5) = 0;
 end
 
-%%%% WZ1. %%%%
 if any(Dist == 9)   % Uni-Log distribution
     b0UniLogA = exp(b0a(Dist == 9));
     b0a(Dist == 9) = 0;
@@ -131,31 +130,26 @@ if any(Dist == 17)   % Exponential distribution
     b0a(Dist == 17) = 0;
 end
 
-%%%% koniec WZ1. %%%%
 
 %% Second parameters of the distributions (std devs as default)
-if FullCov == 0 % no covariance, only variances
-    b0v = (b0(NVarA+1:NVarA*2));    % Second parameters of the distributions (std devs as default)
-    if any(Dist == 3)   % tiangular
-        b0triag_b = exp(b0v(Dist == 3)) + b0triang_c;
-        b0v(Dist == 3) = 1; % Set the second parameter to sigma of standard normal (1)
+if FullCov == 0
+    b0v = (b0(NVarA+1:NVarA*2));
+    if any(Dist == 3)
+        b0triang_b = exp(b0v(Dist == 3)) + b0triang_c;
+        b0v(Dist == 3) = 1;
     end
-    if any(Dist == 4)   % weibull
-        b0weibB = exp(-b0v(Dist == 4)); % b0weibB = 1/exp(b0v(Dist == 4))
+    if any(Dist == 4)
+        b0weibB = exp(-b0v(Dist == 4));
         b0v(Dist == 4) = 1;
     else
-        % WZ.poprawka/dopisanie %
         b0weibA = [];
-        % WZ.poprawka/dopisanie koniec %
-        
-        b0weibB = []; % initialize variable for parfor loop
+        b0weibB = [];
     end
-    if any(Dist == 5)   % sinh-arcsinh
+    if any(Dist == 5)
         b0sinhB = b0v(Dist == 5).^2;
         b0v(Dist == 5) = 1;
     end
     
-    %%%% WZ2. %%%%
     
     if any(Dist == 9)   % Uni-Log
         b0UniLogB = exp(b0v(Dist == 9));
@@ -229,39 +223,33 @@ if FullCov == 0 % no covariance, only variances
         % b0ExpB = []; % initialize variable for parfor loop
     end
     
-    %%%% koniec WZ2. %%%%
     
     %     b0v = b0v.^2;
-    VC = diag(b0v); % no covariance elements (varcov matrix; here var only)
+    VC = diag(b0v);
     b0m = b0(NVarA*2+1:NVarA*(NVarM+2));
-    b0m = reshape(b0m,[NVarA,NVarM]);   % means
-    b0s = b0(NVarA*(NVarM+2)+1:NVarA*(NVarM+2)+NVarS);  % scale
-    b0t = b0(NVarA*(NVarM+2)+NVarS+1:NVarA*(NVarM+2)+NVarS+NVarNLT);    % nonlinear transformation
-    b0j = b0(NVarA*(NVarM+2)+NVarS+NVarNLT+1:NVarA*(NVarM+2)+NVarS+NVarNLT+2*Johnson);  % Johnson distribution additional parameters
-else    % with covariance elements
-    b0v = b0(NVarA+1:NVarA+sum(1:NVarA));   % second parameters of the distributions (with covariance)
-    tmp = b0v(DiagIndex);   % second parameters of the distributions (std devs as default)
+    b0m = reshape(b0m,[NVarA,NVarM]);
+    b0s = b0(NVarA*(NVarM+2)+1:NVarA*(NVarM+2)+NVarS);
+    b0t = b0(NVarA*(NVarM+2)+NVarS+1:NVarA*(NVarM+2)+NVarS+NVarNLT);
+    b0j = b0(NVarA*(NVarM+2)+NVarS+NVarNLT+1:NVarA*(NVarM+2)+NVarS+NVarNLT+2*Johnson);
+else
+    b0v = b0(NVarA+1:NVarA+sum(1:NVarA));
+    tmp = b0v(DiagIndex);
     
-    %%%% WZ4. dopisanie %%%%
     b0v(DiagIndex(Dist >=3 & Dist <=5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)) = 1;    % triangular, weibull, sinh-arcsinh, uni-log(reciprocal), pareto, lomax, logistic, log-logistic, gumbel, cauchy, rayleigh, exponential distributions
-    %%%% WZ4. koniec %%%%
-    
+
     if any(Dist == 3)
-        b0triag_b = exp(tmp(Dist == 3)) + b0triang_c;
+        b0triang_b = exp(tmp(Dist == 3)) + b0triang_c;
     end
     if any(Dist == 4)
         b0weibB = exp(-tmp(Dist == 4));
     else
-        % WZ.poprawka/dopisanie %
         b0weibA = [];
-        % WZ.poprawka/dopisanie koniec %
-        b0weibB = [];
+        b0weibB = [];        
     end
     if any(Dist == 5)
         b0sinhB = tmp(Dist == 5).^2;
     end
     
-    %%%% WZ5. %%%%
     if any(Dist == 9)
         b0UniLogB = exp(tmp(Dist == 9));
     else
@@ -317,17 +305,14 @@ else    % with covariance elements
         % b0ExpB = [];
     end
     
-    %%%% WZ5. koniec %%%%
     
-    VC = tril(ones(NVarA)); % with covariance elements
+    VC = tril(ones(NVarA));
     VC(VC == 1) = b0v;
     
-    %%%% WZ6. dopsianie %%%%
     if any(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17)
         tmp = sqrt(sum(VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:).^2,2));
         VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:) = VC(Dist >= 3 & Dist <= 5 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17,:)./tmp;
     end
-    %%%% WZ6. koniec %%%%
     
     b0m = b0(NVarA*(NVarA/2+1.5)+1:NVarA*(NVarA/2+1.5+NVarM));
     b0m = reshape(b0m,[NVarA,NVarM]);
@@ -340,12 +325,12 @@ end
 if NVarNLT > 0
     % IndTransNon0 = (abs(bt) > 0.00001)';
     IndTransNon0 = (abs(b0t) > eps)';
-    Xt = XXa(:,NLTVariables,:);	% nonlinearly transformed variables
+    Xt = XXa(:,NLTVariables,:);
     %     bt_tmp = permute(b0t(:, ones(NAlt*NCT,1), ones(NP,1)), [2 1 3]);
     bt_tmp = b0t(:,ones(NAlt*NCT,1))';
     bt_tmp = bt_tmp(:,:,ones(1,1,NP));
     
-    % Transform variables with the chosen transformation type (Box-Cox, Yeo-Johnson)
+    % Transform variables with the chosen transformation type (Box-Cox, Yeo-Johnson)    
     if NLTType == 1 % BC
         Xt(:,IndTransNon0,:) = -(Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
         Xt(:,~IndTransNon0,:) = -log(Xt(:,~IndTransNon0,:));
@@ -378,7 +363,7 @@ if NVarNLT > 0
         end
     end
     XXa(:,NLTVariables,:) = Xt;
-else	% No nonlinear transformation
+else
     %     if EstimOpt.NumGrad == 0
     XXt = zeros(0,0,NP);
     %     end
@@ -387,7 +372,7 @@ end
 %% Transformation from standard normal to normal(mu, sig2) draws
 b0n = b0a + b0m*XXm;
 b0n = reshape(b0n((1:size(b0n,1))'*ones(1,NRep),(1:size(b0n,2))'),[NVarA,NRep*NP]);  % NVarA x NRep*NP
-b_mtx = b0n + VC*err;  % NVarA x NRep*NP;	transformation line
+b_mtx = b0n + VC*err;  % NVarA x NRep*NP
 % draws for distributions 3, 4 and 5 remain standard normal in b_mtx
 % and are adjusted below
 
@@ -401,13 +386,13 @@ end
 if sum(Dist == 3) > 0 % Triangular
     tmp = normcdf(b_mtx(Dist == 3,:));
     Triang = Triang(ones(NRep*NP,1),:)';
-    Ftriang = (b0triang_c - Triang)./(b0triag_b - Triang);
+    Ftriang = (b0triang_c - Triang)./(b0triang_b - Triang);
     bmtx_triang = zeros(size(tmp));
-    tmp2 = (b0triag_b - Triang).*(b0triang_c - Triang);
+    tmp2 = (b0triang_b - Triang).*(b0triang_c - Triang);
     bmtx_triang(tmp < Ftriang) = Triang(tmp < Ftriang)+ sqrt(tmp(tmp < Ftriang).*tmp2(tmp < Ftriang));
-    tmp2 = (b0triag_b - Triang).*(b0triag_b-b0triang_c);
-    %bmtx_triang(tmp >= Ftriang) = b0triag_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
-    bmtx_triang(tmp >= Ftriang) = b0triag_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    tmp2 = (b0triang_b - Triang).*(b0triang_b-b0triang_c);
+    %bmtx_triang(tmp >= Ftriang) = b0triang_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    bmtx_triang(tmp >= Ftriang) = b0triang_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
     b_mtx(Dist == 3,:) = bmtx_triang;
 end
 if sum(Dist == 4) > 0 % Weibull
@@ -437,7 +422,6 @@ if sum(Dist >= 5) > 0 % Johnson
     end
 end
 
-%%%% WZ7. %%%%
 if sum(Dist == 9) > 0 % Uni-Log
     tmpUniLog = normcdf(b_mtx(Dist == 9,:));
     b_mtx(Dist == 9,:) = exp(log(b0UniLogA)+tmpUniLog.*(log(b0UniLogB)-log(b0UniLogA)));   % inverse CDF function (dziala)
@@ -528,7 +512,6 @@ else
     tmpExp = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
 end
 
-%%%% WZ7. koniec %%%%
 
 if WTP_space > 0
     b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
@@ -543,7 +526,7 @@ if NVarS > 0
 end
 
 b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
-p0 = zeros(NP,1); % simulated choice probabilities
+p0 = zeros(NP,1);
 % p0 = zeros([NP,1],'gpuArray');
 
 
@@ -552,22 +535,22 @@ p0 = zeros(NP,1); % simulated choice probabilities
 if nargout == 1 % function value only
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
-        % chosen alternative indicator
-        YYy = (YY == 1);
+        % chosen alternative indicator        
+        YYy = YY == 1;
         % calculation of the chosen alternative probability estimator for
-        % each individual
+        % each individual        
         parfor n = 1:NP   % for each person
-            % utility function
+            % utility function            
             U = reshape(XXa(:,:,n)*b_mtx(:,:,n),[NAlt,NCT,NRep]);
             U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
             % denominator term of the conditional probability fraction
-            % (denominator of the logit probability (sum over alternatives))
+            % (denominator of the logit probability (sum over alternatives))            
             U_sum = reshape(sum(U,1),[NCT,NRep]);
             YYy_n = YYy(:,n);
-            % numerator term of the conditional probability fraction
+            % numerator term of the conditional probability fraction            
             U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
             % calculate probability estimator for the chosen alternative
-            % prod for panel data, mean for simulated probability
+            % prod for panel data, mean for simulated probability            
             p0(n) = mean(prod(U_selected./U_sum,1),2);
         end
     else
@@ -637,19 +620,20 @@ elseif nargout == 2 %% function value + gradient
     end
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
-        YYy = (YY == 1);              
+        YYy = (YY == 1);
+               
         parfor n = 1:NP % for each person
             F3sum = [];
             b_mtx_n = b_mtx(:,:,n);
             XXa_n = XXa(:,:,n);
             U = reshape(XXa_n*b_mtx_n,[NAlt,NCT,NRep]);  % NAlt x NCT x NRep
             U = exp(U - max(U,[],1));  % rescale utility to avoid exploding
-            % probability for each alternative
+            % probability for each alternative            
             U_prob = U./sum(U,1); % NAlt x NCT x NRep
             YYy_n = YYy(:,n);
-            % probability for the chosen alternative (prod for panel data)
+            % probability for the chosen alternative (prod for panel data)            
             U_prod = prod(reshape(U_prob(YYy_n(:,ones(NRep,1))),[NCT,NRep]),1);  % 1 x NRep
-            % averaging for getting the chosen alternative probability estimator
+            % averaging for getting the chosen alternative probability estimator            
             if RealMin == 1
                 p0(n) = max(mean(U_prod,2),realmin);
             else
@@ -659,17 +643,16 @@ elseif nargout == 2 %% function value + gradient
             U_prob = reshape(U_prob,[NAlt*NCT,1,NRep]);  % NAlt*NCT x NVarA x NRep
             if WTP_space == 0
                 % auxiliary variables for gradient calculation
-                % summing over the first dimension -- alternatives
+                % summing over the first dimension -- alternatives                
                 X_hat = sum(reshape(U_prob.*XXa_n,[NAlt,NCT,NVarA,NRep]),1);
-                F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
-                if NVarS > 0
-                    FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
-                    % FScale = squeeze(sum(FScale,1));
-                    % FScale = reshape(sum(FScale,1),[1,NRep]);
-                    FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
-                end
-                % sum over choice tasks/situations
-                sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
+                    F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
+                    if NVarS > 0
+                        FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
+%                         FScale = squeeze(sum(FScale,1));
+                        FScale = reshape(sum(FScale.*Xs_sliced(:,:,n),1),[NVarS,NRep]);
+                    end
+                % sum over choice tasks/situations                    
+                    sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
                 if sum(Dist == 1) > 0
                     sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
                 end
@@ -684,7 +667,7 @@ elseif nargout == 2 %% function value + gradient
                     XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3,1,2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
                     F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep
-                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep                                        
+                    F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep
                 end
             else % WTP_space > 0
                 Xalpha = XXa_n(:,1:end-WTP_space).*reshape(b_mtx_n(WTP_matrix,:),[1,NVarA-WTP_space,NRep]);
@@ -719,27 +702,26 @@ elseif nargout == 2 %% function value + gradient
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n*b_mtx_n(NLTVariables,:,:); %NAlt*NCT x NRep
                     X_hat_lam = sum(reshape(squeeze(U_prob(:,1,:)).*XXtt,[NAlt,NCT,NRep]),1);
-%                     F3 = XXtt(YY(:,n) == 1,:) - squeeze(X_hat_lam) ; % CT x NRep
-                    F3 = XXtt(YY(:,n) == 1,:) - reshape(X_hat_lam,[NCT,NRep]) ; % CT x NRep                                        
+                    F3 = XXtt(YY(:,n) == 1,:) - reshape(X_hat_lam,[NCT,NRep]) ; % CT x NRep  
                     F3sum = sum(F3,1); % 1  x NRep
                 elseif NVarNLT > 1
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n.*permute(b_mtx_n(NLTVariables,:,ones(NCT*NAlt,1)),[3 1 2]); %NAlt*NCT x NVarNLT x NRep
                     X_hat_lam = sum(reshape(U_prob.*XXtt,[NAlt,NCT,NVarNLT,NRep]),1);
-%                     F3 = XXtt(YY(:,n) == 1,:,:) - squeeze(X_hat_lam); % CT x NVarNLT x NRep
-                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep                                        
+                    F3 = XXtt(YY(:,n) == 1,:,:) - reshape(X_hat_lam,[NCT,NVarNLT,NRep]); % CT x NVarNLT x NRep                      
                     F3sum = squeeze(sum(F3,1)); % NVarNLT  x NRep
                 end
             end
             
             if FullCov == 0
+                sumVC2tmp = sumFsqueezed.*VC2(:,:,n);  % NVarA x NRep
+                gtmp = -mean([sumFsqueezed.*U_prod;sumVC2tmp.*U_prod],2)./p0(n);
                 sumFtmp1 = ones(NVarA, NRep);
                 sumVC2tmp2 = ones(NVarA, NRep);
                 
                 % check which attributes has normal/lognormal or weibull distribution
                 normDist = logical(sum([Dist == 0; Dist == 1], 1));
                 weibDist = (Dist == 4);
-                %%%% WZ8. %%%%
                 UniLogDist = (Dist == 9);
                 ParetoDist = (Dist == 10);
                 LomaxDist = (Dist == 11);
@@ -749,7 +731,7 @@ elseif nargout == 2 %% function value + gradient
                 CaucDist = (Dist == 15);
                 RayDist = (Dist == 16);
                 ExpDist = (Dist == 17);
-                %%%% WZ8. koniec %%%%
+                IfDist = (Dist == 4 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17);
                 
                 % calculations for gradient columns for normal and lognormal distributions
                 if any(normDist ~= 0)
@@ -758,7 +740,6 @@ elseif nargout == 2 %% function value + gradient
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
                 
-                %%%% WZ9. poprawka %%%%
                 % calculations for gradient columns for Weibull distr.
                 if any(weibDist ~= 0)
                     tmpWeib_n = tmpWeib(:, :, n);
@@ -766,9 +747,7 @@ elseif nargout == 2 %% function value + gradient
                     sumVC2tmp2(weibDist, :) = ...
                         sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*b0weibA.*b0weibB.*log(tmpWeib_n).*tmpWeib_n.^(b0weibB)); 
                 end                
-                %%%% WZ9. koniec %%%%
                 
-                %%%% WZ10. %%%%
                 if any(UniLogDist ~= 0)
                     tmpUniLog_n = tmpUniLog(:, :, n);
                     sumFtmp1(UniLogDist, :) = sumFsqueezed(UniLogDist, :).*(1-tmpUniLog_n).*(b0UniLogB.^tmpUniLog_n).*(b0UniLogA.^(1-tmpUniLog_n));
@@ -833,9 +812,10 @@ elseif nargout == 2 %% function value + gradient
                         sumFsqueezed(ExpDist, :).*(b_mtx_n(Dist == 17,:)).*0;
                 end
 
-                %%%% WZ10. koniec %%%%
                 
-                gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
+                gtmp2 = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
+                gtmp(IfDist,:) = gtmp2(IfDist,:);
+                
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
                 gtmp = -mean([sumFsqueezed.*U_prod;sumVC2tmp.*U_prod],2)./p0(n);
@@ -850,8 +830,8 @@ elseif nargout == 2 %% function value + gradient
         end
         
     else % data has missing choices
-        
-% save tmp1
+       
+% save tmp1        
         parfor n = 1:NP
             YYy_n = YY(:,n) == 1;
             YnanInd = ~isnan(YY(:,n));
@@ -998,26 +978,108 @@ elseif nargout == 2 %% function value + gradient
             end
             
             if FullCov == 0
+                sumVC2tmp = sumFsqueezed.*VC2(:,:,n);  % NVarA x NRep
+                gtmp = -mean([sumFsqueezed.*U_prod;sumVC2tmp.*U_prod],2)./p0(n);
                 sumFtmp1 = ones(NVarA, NRep);
                 sumVC2tmp2 = ones(NVarA, NRep);
                 
                 % check which attributes has normal/lognormal or weibull distribution
                 normDist = logical(sum([Dist == 0; Dist == 1], 1));
                 weibDist = (Dist == 4);
+                UniLogDist = (Dist == 9);
+                ParetoDist = (Dist == 10);
+                LomaxDist = (Dist == 11);
+                LogDist = (Dist == 12);
+                LogLDist = (Dist == 13);
+                GumDist = (Dist == 14);
+                CaucDist = (Dist == 15);
+                RayDist = (Dist == 16);
+                ExpDist = (Dist == 17);
+                IfDist = (Dist == 4 | Dist == 9 | Dist == 10 | Dist == 11 | Dist == 12 | Dist == 13 | Dist == 14 | Dist == 15 | Dist == 16 | Dist == 17);
+                
                 % calculations for gradient columns for normal and lognormal distributions
                 if any(normDist ~= 0)
                     sumFtmp1(normDist, :) = sumFsqueezed(normDist, :);
                     sumVC2tmp2(normDist, :) = ...
                         sumFsqueezed(normDist, :).*VC2(normDist,:,n);  % NVarA x NRep
                 end
+                
                 % calculations for gradient columns for Weibull distr.
                 if any(weibDist ~= 0)
                     tmpWeib_n = tmpWeib(:, :, n);
-                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*tmpWeib_n.^b0weibB;
+                    sumFtmp1(weibDist, :) = sumFsqueezed(weibDist, :).*b0weibA.*tmpWeib_n.^b0weibB;
                     sumVC2tmp2(weibDist, :) = ...
-                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*log(tmpWeib_n).*b0weibB.^2);
+                        sumFsqueezed(weibDist, :).*(-b_mtx_n(Dist == 4,:).*b0weibA.*b0weibB.*log(tmpWeib_n).*tmpWeib_n.^(b0weibB)); 
+                end                
+
+                if any(UniLogDist ~= 0)
+                    tmpUniLog_n = tmpUniLog(:, :, n);
+                    sumFtmp1(UniLogDist, :) = sumFsqueezed(UniLogDist, :).*(1-tmpUniLog_n).*(b0UniLogB.^tmpUniLog_n).*(b0UniLogA.^(1-tmpUniLog_n));
+                    sumVC2tmp2(UniLogDist, :) = ...
+                        sumFsqueezed(UniLogDist, :).*(b_mtx_n(Dist == 9,:)).*tmpUniLog_n.*(b0UniLogA.^(1-tmpUniLog_n)).*(b0UniLogB.^tmpUniLog_n);
                 end
-                gtmp = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
+                                
+                if any(ParetoDist ~= 0)
+                    tmpPareto_n = tmpPareto(:, :, n);
+                    sumFtmp1(ParetoDist, :) = sumFsqueezed(ParetoDist, :).*b0ParetoA.*(1./((1-tmpPareto_n).^(1./b0ParetoB)));
+                    sumVC2tmp2(ParetoDist, :) = ...
+                        sumFsqueezed(ParetoDist, :).*(b_mtx_n(Dist == 10,:)).*b0ParetoA.*(1./b0ParetoB).*log(1-tmpPareto_n).*(1./((1-tmpPareto_n).^(1./b0ParetoB)));
+                end
+                
+                if any(LomaxDist ~= 0)
+                    tmpLomax_n = tmpLomax(:, :, n);
+                    sumFtmp1(LomaxDist, :) = sumFsqueezed(LomaxDist, :).*(-b0LomaxB./b0LomaxA).*log(1./(1-tmpLomax_n)).*((1./(1-tmpLomax_n)).^(1./b0LomaxA));
+                    sumVC2tmp2(LomaxDist, :) = ...
+                        sumFsqueezed(LomaxDist, :).*(b_mtx_n(Dist == 11,:)).*b0LomaxB.*(((1./(1-tmpLomax_n)).^(1./b0LomaxA))-1);
+                end
+                
+                if any(LogDist ~= 0)
+                    tmpLog_n = tmpLog(:, :, n);
+                    sumFtmp1(LogDist, :) = sumFsqueezed(LogDist, :).*b0LogA;
+                    sumVC2tmp2(LogDist, :) = ...
+                        sumFsqueezed(LogDist, :).*(b_mtx_n(Dist == 12,:)).*(b0LogB).*log(tmpLog_n./(1-tmpLog_n));
+                end
+                
+                if any(LogLDist ~= 0)
+                    tmpLogL_n = tmpLogL(:, :, n);
+                    sumFtmp1(LogLDist, :) = sumFsqueezed(LogLDist, :).*b0LogLA.*((1./((1./tmpLogL_n)-1)).^(1./b0LogLB));
+                    sumVC2tmp2(LogLDist, :) = ...
+                        sumFsqueezed(LogLDist, :).*(b_mtx_n(Dist == 13,:)).*(-1).*b0LogLA.*(1./b0LogLB).*log(1./((1./tmpLogL_n)-1)).*((1./((1./tmpLogL_n)-1)).^(1./b0LogLB)); 
+                end
+
+                if any(GumDist ~= 0)
+                    tmpGum_n = tmpGum(:, :, n);
+                    sumFtmp1(GumDist, :) = sumFsqueezed(GumDist, :).*b0GumA;
+                    sumVC2tmp2(GumDist, :) = ...
+                        sumFsqueezed(GumDist, :).*(b_mtx_n(Dist == 14,:)).*b0GumB.*log(1./log(1./tmpGum_n)); 
+                end 
+                
+                if any(CaucDist ~= 0)
+                    tmpCauc_n = tmpCauc(:, :, n);
+                    sumFtmp1(CaucDist, :) = sumFsqueezed(CaucDist, :).*b0CaucA;
+                    sumVC2tmp2(CaucDist, :) = ...
+                        sumFsqueezed(CaucDist, :).*(b_mtx_n(Dist == 15,:)).*(-1).*b0CaucB.*(1./(tan(pi.*tmpCauc_n)));
+                        %sumFsqueezed(CaucDist, :).*(b_mtx_n(Dist == 15,:)).*b0CaucB.*tan(pi.*tmpCauc_n-pi./2);
+                end
+                
+                if any(RayDist ~= 0)
+                    tmpRay_n = tmpRay(:, :, n);
+                    sumFtmp1(RayDist, :) = sumFsqueezed(RayDist, :).*((2.*(b0RayA.^2).*log(1./(1-tmpRay_n))).^(1/2));
+                    sumVC2tmp2(RayDist, :) = ...
+                        sumFsqueezed(RayDist, :).*(b_mtx_n(Dist == 16,:)).*0;
+                end
+                
+                if any(ExpDist ~= 0)
+                    tmpExp_n = tmpExp(:, :, n);
+                    sumFtmp1(ExpDist, :) = sumFsqueezed(ExpDist, :).*(-1).*(1./b0ExpA).*log(1./(1-tmpExp_n));
+                    sumVC2tmp2(ExpDist, :) = ...
+                        sumFsqueezed(ExpDist, :).*(b_mtx_n(Dist == 17,:)).*0;
+                end
+
+                
+                gtmp2 = -mean([sumFtmp1.*U_prod;sumVC2tmp2.*U_prod],2)./p0(n);
+                gtmp(IfDist,:) = gtmp2(IfDist,:);
+                
             else % FullCov = 1
                 sumVC2tmp = sumFsqueezed(indx1,:).*VC2f(indx2,:,n);
                 gtmp = -mean([sumFsqueezed.*U_prod;sumVC2tmp.*U_prod],2)./p0(n);
