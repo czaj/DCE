@@ -54,6 +54,9 @@ Results.R = [];
 Results.R_out = {};
 Results.stats = [];
 
+EstimOpt.NVarA = size(INPUT.Xa,2);
+NVarA = EstimOpt.NVarA;
+
 
 %% Check data and inputs
 
@@ -86,7 +89,6 @@ if EstimOpt.Display ~= 0
     
     disp('in preference-space ...')
 end
-EstimOpt.NVarA = size(INPUT.Xa,2);
 if isfield(EstimOpt,'FullCov') == 0
     EstimOpt.FullCov = 0;
 end
@@ -150,7 +152,7 @@ else
         error('Incorrect no. of random parameters'' distributions provided')
     end
 end
-disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal'])
+disp(['Random parameters distributions: ',num2str(EstimOpt.Dist),' (-1 - constant, 0 - normal, 1 - lognormal)'])
 
 if isfield(INPUT,'Xm') == 0
     INPUT.Xm = zeros(size(INPUT.Y,1),0);
@@ -223,9 +225,47 @@ if isfield(EstimOpt,'BActive')
 else
     EstimOpt.BActive = ones(length(b0),1);
 end
+
+if sum(EstimOpt.Dist == -1) > 0
+%     if isfield(EstimOpt,'BActive') == 0 || isempty(EstimOpt.BActive)
+%         EstimOpt.BActive = ones(1,length(b0));
+%     end
+    if EstimOpt.FullCov == 0
+        EstimOpt.BActive(NVarA+find(EstimOpt.Dist == -1)) = 0;
+    elseif EstimOpt.FullCov == 1
+        Vt = tril(ones(NVarA));
+        Vt(EstimOpt.Dist == -1,:) = 0;
+        EstimOpt.BActive(NVarA+1:NVarA+sum(1:NVarA)) = EstimOpt.BActive(NVarA+1:NVarA+sum(1:NVarA)).*(Vt(tril(ones(size(Vt)))~=0)');
+    end
+end
+
 if isfield(EstimOpt,'ConstVarActive') == 0 
     EstimOpt.ConstVarActive = 0;
 end    
+
+if EstimOpt.ConstVarActive == 1
+    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
+        error ('Are there any constraints on model parameters (EstimOpt.ConstVarActive)? Constraints not provided (EstimOpt.BActive).')
+    elseif length(b0) ~= length(EstimOpt.BActive)
+        error('Check no. of constraints')
+    end
+    disp(['Initial values: ' mat2str(b0',2)])
+    disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
+else
+    if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
+        EstimOpt.BActive = ones(1,length(b0));
+        disp(['Initial values: ' mat2str(b0',2)])
+    else
+        if length(b0) ~= length(EstimOpt.BActive)
+            error('Check no. of constraints')
+        else
+            disp(['Initial values: ' mat2str(b0',2)])
+            disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
+        end
+    end
+end
+
+
 if isfield(EstimOpt,'HessEstFix') == 0 
     EstimOpt.HessEstFix = 0;
 end 
@@ -356,6 +396,7 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
 % Results.ihess = inv(Results.hess);
+
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);

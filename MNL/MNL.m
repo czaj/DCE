@@ -401,7 +401,7 @@ idx = reshape(idx(ones(EstimOpt.NAlt,1),:),[EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.
 INPUT.Y = INPUT.Y(idx == 0);
 INPUT.Xa(INPUT.MissingInd == 1,:) = NaN;
 INPUT.Xs(INPUT.MissingInd == 1,:) = NaN;
-%Xa and Xs has NaNs where there is missing alternative
+%Xa and Xs has NaNs where there is a missing alternative
 
 INPUT.Xa = INPUT.Xa(idx == 0,:);
 if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
@@ -484,6 +484,7 @@ Results.b0_old = b0;
 if isfield(EstimOpt,'R2type') == 0
     EstimOpt.R2type = 0;
 end
+
 
 Results.LLdetailed = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
