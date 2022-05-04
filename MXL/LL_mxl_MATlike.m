@@ -15,6 +15,14 @@ if isequal(OptimOpt.GradObj,'on')
             %j = j.*W(:, ones(1,size(j,2)));
             j = j.*W;
             g = sum(j);
+
+%             for test
+%         EstimOpt.NumGrad = 1;
+%         j2 = numdiff(LLfun,f,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+%         j2 = j2.*W;
+%         g2 = sum(j2,1); 
+%         [g', g2', abs(g-g2)']
+%         pause
             if isequal(OptimOpt.Hessian,'user-supplied') == 1
                 h = j'*j;
             end

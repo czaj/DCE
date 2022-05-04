@@ -92,10 +92,14 @@ end
 
 % computing utility levels
 if NVarM > 0 && (WTP_space > 0 || NVarNLT > 0)
-    betaX = zeros(size(Xa,1),1);
-    for i = 1:NP
-        NCTno = sum(NCTMiss(1:i-1));
-        betaX(NCTno*NAlt+1:(NCTno+NCTMiss(i))*NAlt) = Xa(NCTno*NAlt+1:(NCTno+NCTMiss(i))*NAlt,:)*ba(:,i);
+    if EstimOpt.mCT == 0
+        betaX = zeros(size(Xa,1),1);
+        for i = 1:NP
+            NCTno = sum(NCTMiss(1:i-1));
+            betaX(NCTno*NAlt+1:(NCTno+NCTMiss(i))*NAlt) = Xa(NCTno*NAlt+1:(NCTno+NCTMiss(i))*NAlt,:)*ba(:,i);
+        end
+    else
+        betaX = sum(Xa.*ba',2);
     end
 else
     betaX = Xa*B(1:NVarA,1); %clear XX b_mtx

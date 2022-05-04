@@ -50,6 +50,7 @@ NAltMissIndExp = EstimOpt.NAltMissIndExp;
 MissingCT = EstimOpt.MissingCT;
 RealMin = EstimOpt.RealMin;
 ExpB = EstimOpt.ExpB;
+mCT = EstimOpt.mCT; % = 1 if Xm is CT or Alt specific
 
 % if nargout == 3
 %    XXX = permute(mmx('square',permute(XXa,[2,4,1,3]),[]),[3,1,2,4]);
@@ -370,12 +371,18 @@ else
 end
 
 %% Transformation from standard normal to normal(mu, sig2) draws
-b0n = b0a + b0m*XXm;
-b0n = reshape(b0n((1:size(b0n,1))'*ones(1,NRep),(1:size(b0n,2))'),[NVarA,NRep*NP]);  % NVarA x NRep*NP
-b_mtx = b0n + VC*err;  % NVarA x NRep*NP
-% draws for distributions 3, 4 and 5 remain standard normal in b_mtx
-% and are adjusted below
-
+if mCT == 0
+    b0n = b0a + b0m*XXm;
+    b0n = reshape(b0n((1:size(b0n,1))'*ones(1,NRep),(1:size(b0n,2))'),[NVarA,NRep*NP]);  % NVarA x NRep*NP
+    b_mtx = b0n + VC*err;  % NVarA x NRep*NP
+    % draws for distributions 3, 4 and 5 remain standard normal in b_mtx
+    % and are adjusted below
+else
+    Xmfit = reshape(b0m*XXm, [NVarA, 1, NAlt*NCT,NP]); 
+    b_mtx = reshape(b0a + VC*err,[NVarA, NRep, 1, NP]);  % NVarA x NRep*NP
+    b_mtx = reshape(b_mtx + Xmfit, [NVarA, NRep*NAlt*NCT*NP]);
+    
+end
 %% Transformations for other distributions
 if sum(Dist == 1) > 0 % Log-normal
     b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
@@ -514,7 +521,11 @@ end
 
 
 if WTP_space > 0
-    b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
+    if mCT == 0
+        b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
+    else
+        b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NAlt*NCT, NP]); % needed for gradient calculation in WTP_space
+    end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:);
 else
     b_mtx_grad = zeros(0,0,NP);
@@ -524,8 +535,11 @@ if NVarS > 0
     cs = reshape(exp(Xs*b0s),[NAlt*NCT,1,NP]);
     XXa = XXa .* cs;
 end
-
-b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
+if mCT == 0
+    b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
+else
+    b_mtx = permute(reshape(b_mtx,[NVarA,NRep,NAlt*NCT, NP]), [3, 1, 2, 4]); % NAlt*NCT x NvarA x NRep x NP
+end
 p0 = zeros(NP,1);
 % p0 = zeros([NP,1],'gpuArray');
 
@@ -540,8 +554,12 @@ if nargout == 1 % function value only
         % calculation of the chosen alternative probability estimator for
         % each individual        
         parfor n = 1:NP   % for each person
-            % utility function            
-            U = reshape(XXa(:,:,n)*b_mtx(:,:,n),[NAlt,NCT,NRep]);
+            % utility function    
+            if mCT == 0
+                U = reshape(XXa(:,:,n)*b_mtx(:,:,n),[NAlt,NCT,NRep]);
+            else
+                U = reshape(sum(XXa(:,:,n).*b_mtx(:,:,:,n),2), [NAlt, NCT, NRep]);
+            end
             U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
             % denominator term of the conditional probability fraction
             % (denominator of the logit probability (sum over alternatives))            
@@ -560,13 +578,21 @@ if nargout == 1 % function value only
             NAltMissIndExp_n = NAltMissIndExp(:,n);
             NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
             if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
-                U = reshape(XXa_n(YnanInd,:)*b_mtx(:,:,n),[NAltMiss(n),NCTMiss(n),NRep]);
+                if mCT == 0
+                    U = reshape(XXa_n(YnanInd,:)*b_mtx(:,:,n),[NAltMiss(n),NCTMiss(n),NRep]);
+                else
+                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n),NCTMiss(n), NRep]);
+                end
                 U = exp(U - max(U,[],1));
                 U_sum = reshape(sum(U,1),[NCTMiss(n),NRep]);
             else
                 NAltMissInd_n = NAltMissInd(:,n);
                 NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
-                U = XXa_n(YnanInd,:)*b_mtx(:,:,n);
+                if mCT == 0
+                    U = XXa_n(YnanInd,:)*b_mtx(:,:,n);
+                else
+                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n)*NCTMiss(n), NRep]);
+                end
                 Uniq = unique(NAltMissIndExp_n);
                 U_sum = zeros(NCTMiss(n),NRep);
                 if length(Uniq) == 2
@@ -605,6 +631,14 @@ elseif nargout == 2 %% function value + gradient
         Xs_sliced = reshape(Xs,[NAlt*NCT,NP,0]);
         Xs_sliced = permute(Xs_sliced,[1,3,2]);
     end
+    if mCT > 0
+        Xm_grad = reshape(XXm, [NVarM, NAlt*NCT, NP]);
+        gmm = zeros(NP, NVarA*NVarM);
+    else
+        gmm = zeros(0, NVarA*NVarM);
+        Xm_grad = zeros(0, 0, NP);
+    end
+
     if FullCov == 0
 %         g = zeros([NP,2*NVarA+NVarNLT+NVarS],'gpuArray');
         g = zeros(NP,2*NVarA+NVarNLT+NVarS);
@@ -624,9 +658,14 @@ elseif nargout == 2 %% function value + gradient
                
         parfor n = 1:NP % for each person
             F3sum = [];
-            b_mtx_n = b_mtx(:,:,n);
             XXa_n = XXa(:,:,n);
-            U = reshape(XXa_n*b_mtx_n,[NAlt,NCT,NRep]);  % NAlt x NCT x NRep
+            if mCT == 0
+                b_mtx_n = b_mtx(:,:,n);
+                U = reshape(XXa_n*b_mtx_n,[NAlt,NCT,NRep]);  % NAlt x NCT x NRep
+            else
+                b_mtx_n = b_mtx(:,:,:,n);
+                U = reshape(sum(XXa_n.*b_mtx_n,2), [NAlt, NCT, NRep]);
+            end
             U = exp(U - max(U,[],1));  % rescale utility to avoid exploding
             % probability for each alternative            
             U_prob = U./sum(U,1); % NAlt x NCT x NRep
@@ -643,9 +682,16 @@ elseif nargout == 2 %% function value + gradient
             U_prob = reshape(U_prob,[NAlt*NCT,1,NRep]);  % NAlt*NCT x NVarA x NRep
             if WTP_space == 0
                 % auxiliary variables for gradient calculation
-                % summing over the first dimension -- alternatives                
-                X_hat = sum(reshape(U_prob.*XXa_n,[NAlt,NCT,NVarA,NRep]),1);
+                % summing over the first dimension -- alternatives  
+                if mCT == 0 || (mCT ~= 0 && sum(Dist == 1) == 0)
+                    X_hat = sum(reshape(U_prob.*XXa_n,[NAlt,NCT,NVarA,NRep]),1);
                     F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
+                else
+                    XXa_n_tmp = XXa_n(:,:, ones(1, NRep));
+                    XXa_n_tmp(:,Dist == 1,:)  = XXa_n_tmp(:,Dist == 1,:).*b_mtx_n(:,Dist == 1,:);
+                    X_hat = sum(reshape(U_prob.*XXa_n_tmp,[NAlt,NCT,NVarA,NRep]),1);
+                    F = XXa_n_tmp(YYy_n,:,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
+                end
                     if NVarS > 0
                         FScale = sum(F.*reshape(b_mtx_n,[1,NVarA,NRep]),2);
 %                         FScale = squeeze(sum(FScale,1));
@@ -653,8 +699,22 @@ elseif nargout == 2 %% function value + gradient
                     end
                 % sum over choice tasks/situations                    
                     sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
-                if sum(Dist == 1) > 0
-                    sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
+                if mCT == 0
+                    if sum(Dist == 1) > 0
+                        sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_n(Dist == 1,:);
+                    end
+                else
+                    Xm_n = Xm_grad(:,:,n)'; % NAlt*NCT x NVarM x 
+                    X_hat_m = U_prob.*XXa_n;
+                    XXa_n_tmp = XXa_n(YYy_n,:,ones(1, NRep));
+                    if sum(Dist == 1) > 0
+                        X_hat_m(:,Dist == 1,:) = X_hat_m(:,Dist == 1,:).*b_mtx_n(:,Dist == 1,:);
+                        XXa_n_tmp(:,Dist == 1,:) = XXa_n_tmp(:,Dist == 1,:).*b_mtx_n(YYy_n,Dist == 1,:);
+                    end
+                    X_hat_m = sum(reshape(X_hat_m(:,repmat(1:NVarA,[1,NVarM]),:).*Xm_n(:, kron(1:NVarM,ones(1,NVarA))),[NAlt,NCT,NVarA*NVarM,NRep]),1);
+                    X_tmp = XXa_n_tmp(:,repmat(1:NVarA,[1,NVarM]),:).*Xm_n(YYy_n, kron(1:NVarM,ones(1,NVarA)));
+                    Fm = X_tmp - reshape(X_hat_m,[NCT,NVarA*NVarM,NRep]);  %NCT x NVarA*NVarM x NRep
+                    sumFsqueezed_m = reshape(sum(Fm,1),[NVarA*NVarM,NRep]);  %NVarA x NRep
                 end
                 if NVarNLT == 1
                     XXt_n = XXt(:,:,n);
@@ -827,6 +887,9 @@ elseif nargout == 2 %% function value + gradient
                 gtmp = [gtmp;-mean(F3sum.*U_prod,2)./p0(n)];
             end
             g(n,:) = gtmp';
+            if mCT ~= 0
+                gmm(n,:) = -mean(sumFsqueezed_m.*U_prod,2)./p0(n);
+            end
         end
         
     else % data has missing choices
@@ -1089,11 +1152,14 @@ elseif nargout == 2 %% function value + gradient
             end
             
             g(n,:) = gtmp';
-            
         end
     end
     if NVarM > 0
-        gm =  g(:,repmat(1:NVarA,[1,NVarM])).*(XXm(kron(1:NVarM,ones(1,NVarA)),:)');
+        if mCT == 0
+            gm =  g(:,repmat(1:NVarA,[1,NVarM])).*(XXm(kron(1:NVarM,ones(1,NVarA)),:)');
+        else
+            gm = gmm;
+        end
         if FullCov == 0
             g = [g(:,1:2*NVarA),gm,g(:,2*NVarA+1:end)];
         else

@@ -830,9 +830,25 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 % INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP)==1;
 %INPUT.YY = reshape(INPUT.YYY,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP);
 
-INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
 
+INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0; 
+if EstimOpt.mCT == 0
+    INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
+else
+    INPUT.XXm = INPUT.Xm';
+    if any(EstimOpt.Dist > 1) 
+        error('Choice task specific Xm works only with normal and log-normal distributions.')
+    end
+    if EstimOpt.WTP_space > 0 && EstimOpt.NumGrad == 0
+        EstimOpt.NumGrad = 1;
+        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm in WTP-space. \n')
+    end
+    if any(isnan(INPUT.XXa(:)))
+        EstimOpt.NumGrad = 1;
+        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm with missing choice tasks or alternatives. \n')
+    end
+end
 
 err_mtx = err_mtx';
 % change err_mtx from NRep*NP x NVarA to NP*NRep x NVarA (incrasing the no. of draws only adds new draws for each respondent, does not change all draws per individual)
