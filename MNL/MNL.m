@@ -405,7 +405,14 @@ INPUT.Xs(INPUT.MissingInd == 1,:) = NaN;
 
 INPUT.Xa = INPUT.Xa(idx == 0,:);
 if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
-    INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
+    XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+    EstimOpt.mCT = sum(sum(std(XXm, [], 2),1),3) ~= 0; 
+    if EstimOpt.mCT == 0
+        INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
+    else
+        EstimOpt.NumGrad = 1;
+        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm in WTP-space. \n')
+    end
     EstimOpt.XmIndx = zeros(sum(EstimOpt.NCTMiss),1);
     EstimOpt.XmIndx2 = zeros(sum(EstimOpt.NCTMiss)*EstimOpt.NAlt,1);
     for i = 1:EstimOpt.NP

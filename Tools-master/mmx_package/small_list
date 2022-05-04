@@ -1,0 +1,9 @@
+dpotrf_
+dposv_
+dgesv_
+dgelsy_
+dgemm_
+dsymm_
+dsyrk_
+dsyr2k_
+dtrsm_
