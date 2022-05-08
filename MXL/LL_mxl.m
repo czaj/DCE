@@ -525,6 +525,7 @@ if WTP_space > 0
         b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space
     else
         b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NAlt*NCT, NP]); % needed for gradient calculation in WTP_space
+        b_mtx_grad = permute(b_mtx_grad, [3 1 2 4]);
     end
     b_mtx(1:end-WTP_space,:) = b_mtx(1:end-WTP_space,:).*b_mtx(WTP_matrix,:);
 else
@@ -730,14 +731,44 @@ elseif nargout == 2 %% function value + gradient
                     F3sum = reshape(sum(F3,1),[NVarNLT,NRep]); % NVarNLT  x NRep
                 end
             else % WTP_space > 0
-                Xalpha = XXa_n(:,1:end-WTP_space).*reshape(b_mtx_n(WTP_matrix,:),[1,NVarA-WTP_space,NRep]);
+                % b_mtx = permute(reshape(b_mtx,[NVarA,NRep,NAlt*NCT, NP]), [3, 1, 2, 4]); % NAlt*NCT x NvarA x NRep x NP
+                if mCT == 0
+                    Xalpha = XXa_n(:,1:end-WTP_space).*reshape(b_mtx_n(WTP_matrix,:),[1,NVarA-WTP_space,NRep]);
+                    % for cost variables
+                    b_mtx_grad_n = b_mtx_grad(:,:,n);
+                else
+                    Xm_n = Xm_grad(:,:,n)'; % NAlt*NCT x NVarM x 
+                    Xalpha = XXa_n(:,1:end-WTP_space).*b_mtx_n(:,WTP_matrix,:);
+                    b_mtx_grad_n = b_mtx_grad(:,:,:,n);
+                    if sum(Dist(1:end-WTP_space) == 1) > 0
+                        Xalpha(:,Dist(1:end-WTP_space) == 1,:) = Xalpha(:,Dist(1:end-WTP_space) == 1,:).*b_mtx_grad_n(:,Dist == 1 & (1:NVarA) < NVarA,:);
+                    end
+                    Xalpha_m = Xalpha(:,repmat(1:(NVarA-1),[1,NVarM]),:).*Xm_n(:, kron(1:NVarM,ones(1,NVarA-1)));
+                    X_hat1_m = sum(reshape(U_prob.*Xalpha_m,[NAlt,NCT,(NVarA-WTP_space)*NVarM,NRep]),1);
+                    F1_m = Xalpha_m(YY(:,n) == 1,:,:) - reshape(X_hat1_m,[NCT,(NVarA-WTP_space)*NVarM,NRep]);  %NCT x NVarA-WTP_space x NRep
+                end
                 % for non-cost variables
                 X_hat1 = sum(reshape(U_prob.*Xalpha,[NAlt,NCT,NVarA-WTP_space,NRep]),1);
                 F1 = Xalpha(YY(:,n) == 1,:,:) - reshape(X_hat1,[NCT,NVarA-WTP_space,NRep]);  %NCT x NVarA-WTP_space x NRep
-                % for cost variables
-                b_mtx_grad_n = b_mtx_grad(:,:,n);
+
                 if WTP_space == 1 % without starting the loop
-                    pX = XXa_n(:,NVarA) + XXa_n(:,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:);
+                    if mCT == 0
+                        pX = XXa_n(:,NVarA) + XXa_n(:,1:end-WTP_space)*b_mtx_grad_n(1:end-WTP_space,:);
+                    else
+                        pX = XXa_n(:,NVarA) + sum(XXa_n(:,1:end-WTP_space).*b_mtx_grad_n(:,1:end-WTP_space,:),2);
+                        if sum(Dist(end) == 1) > 0
+                            pX = pX.*b_mtx_grad_n(:,NVarA,:);
+                        end
+                        pX_m = pX.*Xm_n; % NAlt*NCT, NVarM, NRep
+                        pX = reshape(pX, [NAlt*NCT, NRep]);
+                        X_hat2_m = sum(reshape(U_prob.*pX_m,[NAlt,NCT,NVarM,NRep]),1);
+                        F2_m = pX_m(YY(:,n) == 1,:,:) - reshape(X_hat2_m,[NCT,NVarM,NRep]);  %NCT x NVarM x NRep
+                        F1_m = reshape(sum(F1_m,1), [NVarA-1, NVarM, NRep]);
+                        F2_m = reshape(sum(F2_m,1), [1, NVarM, NRep]);
+                        sumFsqueezed_m = cat(1,F1_m,F2_m);
+                        sumFsqueezed_m = reshape(sumFsqueezed_m,[NVarA*NVarM,NRep]);  %NVarA x NRep
+
+                    end
                     X_hat2 = sum(reshape(reshape(U_prob,[NAlt*NCT,NRep]).*pX,[NAlt,NCT,WTP_space,NRep]),1);
                     F2 = pX(YY(:,n) == 1,:) - reshape(X_hat2,[NCT,NRep]);  %NCT x WTP_space x NRep
                 else
@@ -755,9 +786,10 @@ elseif nargout == 2 %% function value + gradient
                     FScale = reshape(sum(FScale,1),[NVarS,NRep]);
                 end
                 sumFsqueezed = [reshape(sum(F1,1),[NVarA-WTP_space,NRep]);reshape(sum(F2,1),[WTP_space,NRep])];  %NVarA x NRep
-                if sum(Dist == 1) > 0
-                    sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_grad_n(Dist == 1,:);
+                if sum(Dist == 1) > 0 && mCT == 0
+                      sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1,:).*b_mtx_grad_n(Dist == 1,:);
                 end
+
                 if NVarNLT == 1
                     XXt_n = XXt(:,:,n);
                     XXtt = XXt_n*b_mtx_n(NLTVariables,:,:); %NAlt*NCT x NRep

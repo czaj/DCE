@@ -840,9 +840,9 @@ else
     if any(EstimOpt.Dist > 1) 
         error('Choice task specific Xm works only with normal and log-normal distributions.')
     end
-    if EstimOpt.WTP_space > 0 && EstimOpt.NumGrad == 0
+    if EstimOpt.WTP_space > 1 && EstimOpt.NumGrad == 0
         EstimOpt.NumGrad = 1;
-        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm in WTP-space. \n')
+        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm with EstimOpt.WTP_space > 1. \n')
     end
     if any(isnan(INPUT.XXa(:)))
         EstimOpt.NumGrad = 1;
