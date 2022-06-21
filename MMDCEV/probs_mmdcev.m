@@ -141,7 +141,8 @@ betasZ = reshape(permute(betasZ, [1, 3, 2]), [NAlt, N, NRep]);
 % %betasZ = reshape(Xa*betas(1:NVarA), [NAlt, N]); % beta*X part of utility
 
 %% logarithms
-logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
+% logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
+logc_i = log(1 - alphas) - log(y + gammas) - log(priceMat); % (NAltxN)
 V = betasZ + (alphas - 1) .* log(y ./ gammas + 1) - log(priceMat);
 logV = V / scale; % NAlt x N x NRep
 
@@ -151,11 +152,12 @@ logV = V / scale; % NAlt x N x NRep
 % size(logf_i)
 % size(logV)
 
-priceRatio = priceMat ./ exp(logf_i);
+% priceRatio = priceMat ./ exp(logf_i);
+priceRatio = exp(-logc_i);
 sumV = sum(exp(logV), 1);
 
 logprobs = (1 - M) .* log(scale) + ...
-    sum(isChosen .* logf_i, 1) + ...
+    sum(isChosen .* logc_i, 1) + ...
     log(sum(isChosen .* priceRatio, 1)) + ...
     (sum(isChosen .* logV, 1) - M .* log(sumV)) + ...
     gammaln(M); % log(factorial(M-1)) = gammaln(M)
