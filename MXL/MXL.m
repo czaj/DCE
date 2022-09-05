@@ -832,7 +832,9 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 
 
 INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0; 
+% EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0;
+EstimOpt.mCT = any(any(range(INPUT.XXm,2))); % Test if Xm is choice-task specific    
+
 if EstimOpt.mCT == 0
     INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
 else

@@ -86,10 +86,7 @@ function Results = LC(INPUT,Results_old,EstimOpt,OptimOpt)
 % Example: 
 %    Results.LC = LC(INPUT,Results,EstimOpt,OptimOpt);
 %
-% Author: Mikolaj Czajkowski, Professor
-% University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
-% Website: http://czaj.org/#
+
 
 % save tmp_LC
 % return
