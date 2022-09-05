@@ -537,7 +537,11 @@ ST = [ST;{'DetailsScale'}];
 %% Header
 
 Head = cell(1,2);
-Head(1,1) = {'Mixed MDCEV'};
+if EstimOpt.FullCov == 0
+    Head(1,1) = {'Mixed MDCEV_d'};
+else
+    Head(1,1) = {'Mixed MDCEV'};
+end
 Head(1,2) = {'in preference-space'}; % Probably not needed
 
 %% Footer
