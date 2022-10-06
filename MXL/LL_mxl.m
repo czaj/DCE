@@ -656,8 +656,8 @@ elseif nargout == 2 %% function value + gradient
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = (YY == 1);
-               
-        parfor n = 1:NP % for each person
+% save tmp2               
+        for n = 1:NP % for each person
             F3sum = [];
             XXa_n = XXa(:,:,n);
             if mCT == 0

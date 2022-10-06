@@ -832,7 +832,9 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 
 
 INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0; 
+% EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0;
+EstimOpt.mCT = any(any(range(INPUT.XXm,2))); % Test if Xm is choice-task specific    
+
 if EstimOpt.mCT == 0
     INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
 else
@@ -1272,6 +1274,7 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
     Results.DetailsV = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
     Results.DetailsV = [Results.DetailsV(:,1),zeros(NVarA,1),Results.DetailsV(:,2:3)];
+    
     if EstimOpt.NVarM > 0
         Results.DetailsM = [];
         for i=1:EstimOpt.NVarM
@@ -1279,7 +1282,7 @@ elseif EstimOpt.FullCov == 1
             Results.DetailsM(1:EstimOpt.NVarA, 4*i-1:4*i) = [Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)), pv(Results.bhat(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)), Results.std(EstimOpt.NVarA*(EstimOpt.NVarA/2+0.5+i)+1:EstimOpt.NVarA*(EstimOpt.NVarA/2+1.5+i)))];
         end
     end
-    
+   
     if isfield(EstimOpt,'EffectiveMoments') && EstimOpt.EffectiveMoments == 1
         if any(EstimOpt.Dist == 1) %     transform normal to lognormal for display (simulation):
             Results.DetailsA_underlying = Results.DetailsA;
@@ -1486,7 +1489,7 @@ elseif EstimOpt.FullCov == 1
 
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
-        Results.DetailsM = [];
+%         Results.DetailsM = [];
         Results.R = [Results.R,Results.DetailsM];
     end
     if EstimOpt.NVarNLT > 0

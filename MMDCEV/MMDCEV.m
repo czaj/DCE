@@ -37,10 +37,7 @@ function Results = MMDCEV(INPUT,Results_old, EstimOpt,OptimOpt)
 % Example: 
 %    Results.MDCEV = MDCEV(INPUT,Results,EstimOpt,OptimOpt);
 %
-% Author: Mikolaj Czajkowski, Professor
-% University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
-% Website: http://czaj.org/#
+
 
 % save tmp_MNL
 % return
@@ -306,7 +303,7 @@ if EstimOpt.Display ~= 0
         end
     else
         if strcmp(OptimOpt.Hessian,'user-supplied')
-            if EstimOpt.ApproxHess == 1
+            if ~isfield(EstimOpt,'ApproxHess') || EstimOpt.ApproxHess == 1
                 cprintf('Hessian: '); cprintf('*Black','user-supplied, BHHH, ')
             else
                 cprintf('Hessian: '); cprintf('*Black','user-supplied, analytical, ')
@@ -537,7 +534,11 @@ ST = [ST;{'DetailsScale'}];
 %% Header
 
 Head = cell(1,2);
-Head(1,1) = {'Mixed MDCEV'};
+if EstimOpt.FullCov == 0
+    Head(1,1) = {'Mixed MDCEV_d'};
+else
+    Head(1,1) = {'Mixed MDCEV'};
+end
 Head(1,2) = {'in preference-space'}; % Probably not needed
 
 %% Footer
@@ -583,7 +584,7 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
-        if EstimOpt.ApproxHess == 1
+        if ~isfield(EstimOpt,'ApproxHess') || EstimOpt.ApproxHess == 1
             outHessian = 'user-supplied, BHHH, ';
         else
             outHessian = 'user-supplied, analytical, ';
