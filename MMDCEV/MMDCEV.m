@@ -82,7 +82,11 @@ if EstimOpt.Display ~= 0
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
     
-    disp('Estimating Mixed MDCEV model ...')
+    if any(INPUT.W ~= 1)
+        cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','Mixed MDCEV model...\n');
+    else
+        disp('Estimating Mixed MDCEV model ...')
+    end
     
     disp('in preference-space ...')
 end
@@ -266,7 +270,11 @@ end
 if isfield(EstimOpt,'HessEstFix') == 0 
     EstimOpt.HessEstFix = 0;
 end 
-INPUT.W = ones(EstimOpt.NP,1); % Weights not supported for now
+%INPUT.W = ones(EstimOpt.NP,1); % Weights not supported for now
+if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
+    INPUT.W = ones(EstimOpt.NP,1);
+    cprintf(rgb('DarkOrange'),'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
+end
 
 if isfield(EstimOpt,'NumGrad') == 0 || EstimOpt.NumGrad ~= 1
     EstimOpt.NumGrad = 1;
@@ -376,14 +384,18 @@ if isfield(EstimOpt,'R2type') == 0
 end
 
 Results.LLdetailed = probs_mmdcev(INPUT, EstimOpt, Results.bhat);
+W_NP = reshape(INPUT.W,EstimOpt.NCT,[])';
+W_NP = W_NP(:,1);
+Results.LLdetailed = Results.LLdetailed.*W_NP;
 
 if EstimOpt.HessEstFix == 1
     f = probs_mmdcev(INPUT, EstimOpt,Results.bhat);
     Results.jacobian = numdiff(@(B) -probs_mmdcev(INPUT, EstimOpt,B),-f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+    Results.jacobian = Results.jacobian.*W_NP;
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) -probs_mmdcev(INPUT, EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) -W_NP.*probs_mmdcev(INPUT, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(probs_mmdcev(INPUT,EstimOpt,B),1),Results.bhat);
+    Results.hess = hessian(@(B) -sum(W_NP.*probs_mmdcev(INPUT,EstimOpt,B),1),Results.bhat);
 % elseif EstimOpt.HessEstFix == 4 % analytical - missing
 %     Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 end
