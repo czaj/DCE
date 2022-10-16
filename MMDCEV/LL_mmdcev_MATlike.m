@@ -10,14 +10,19 @@ function [f,g,h]= LL_mmdcev_MATlike(data,EstimOpt,OptimOpt,b0)
 
 probsfun = @(B) probs_mmdcev(data,EstimOpt,B);
 
+W = reshape(data.W,EstimOpt.NCT,[])';
+W = W(:,1);
+
 if isequal(OptimOpt.GradObj,'on') 
     logprobs = probsfun(b0);
     if isequal(OptimOpt.Hessian,'user-supplied') == 1
         j = -numdiff(probsfun,logprobs,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        j=j.*W;
         g = sum(j,1)';
         h = j'*j;
     else
         j = -numdiff(probsfun,logprobs,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        j=j.*W;
         g = sum(j,1)';
     end
 
@@ -25,6 +30,6 @@ if isequal(OptimOpt.GradObj,'on')
 else
     EstimOpt.NumGrad = 1;
     logprobs = probsfun(b0);
-
+    logprobs = logprobs.*W;
     f = -sum(logprobs);   
 end
