@@ -116,12 +116,12 @@ function RESULTS=MATLAB_Ordered_Probit_Estimate1(INPUTS)
     for i=1:length(Field_Names)
         
         if strcmp(Field_Names{i},'DATA')
-    		if isnumeric(INPUTS.DATA) && size(INPUTS.DATA,2)>1 && size(INPUTS.DATA,1)>5
-            % Data is of numeric format.  ok to continue.
+%     		if isnumeric(INPUTS.DATA) && size(INPUTS.DATA,2)>1 && size(INPUTS.DATA,1)>5
+%             % Data is of numeric format.  ok to continue.
                 User_Specified.INPUTS.DATA=1;
-            else
-                error('MATLAB_Ordered_Probit_Estimate1:UnspecifiedInputData' , ' Input DATA must be of numeric format and atleast two columns and greater than five rows of data.');
-            end
+%             else
+%                 error('MATLAB_Ordered_Probit_Estimate1:UnspecifiedInputData' , ' Input DATA must be of numeric format and atleast two columns and greater than five rows of data.');
+%             end
         end
             
         if strcmp(Field_Names{i},'Display_Output_Switch')
