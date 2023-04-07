@@ -551,74 +551,138 @@ if nargout == 1 % function value only
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         % chosen alternative indicator        
         YYy = YY == 1;
-        % calculation of the chosen alternative probability estimator for
-        % each individual        
-        parfor n = 1:NP   % for each person
-            % utility function    
-            if mCT == 0
+
+        if mCT == 0 
+            % calculation of the chosen alternative probability estimator for
+            % each individual        
+            parfor n = 1:NP   % for each person
+                % utility function    
+                %if mCT == 0
                 U = reshape(XXa(:,:,n)*b_mtx(:,:,n),[NAlt,NCT,NRep]);
-            else
+
+                U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
+                % denominator term of the conditional probability fraction
+                % (denominator of the logit probability (sum over alternatives))            
+                U_sum = reshape(sum(U,1),[NCT,NRep]);
+                YYy_n = YYy(:,n);
+                % numerator term of the conditional probability fraction            
+                U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
+                % calculate probability estimator for the chosen alternative
+                % prod for panel data, mean for simulated probability            
+                p0(n) = mean(prod(U_selected./U_sum,1),2);
+            end            
+        else
+            % calculation of the chosen alternative probability estimator for
+            % each individual        
+            parfor n = 1:NP   % for each person
+                % utility function    
+                %if mCT ~= 0
                 U = reshape(sum(XXa(:,:,n).*b_mtx(:,:,:,n),2), [NAlt, NCT, NRep]);
-            end
-            U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
-            % denominator term of the conditional probability fraction
-            % (denominator of the logit probability (sum over alternatives))            
-            U_sum = reshape(sum(U,1),[NCT,NRep]);
-            YYy_n = YYy(:,n);
-            % numerator term of the conditional probability fraction            
-            U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
-            % calculate probability estimator for the chosen alternative
-            % prod for panel data, mean for simulated probability            
-            p0(n) = mean(prod(U_selected./U_sum,1),2);
+                
+                U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
+                % denominator term of the conditional probability fraction
+                % (denominator of the logit probability (sum over alternatives))            
+                U_sum = reshape(sum(U,1),[NCT,NRep]);
+                YYy_n = YYy(:,n);
+                % numerator term of the conditional probability fraction            
+                U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
+                % calculate probability estimator for the chosen alternative
+                % prod for panel data, mean for simulated probability            
+                p0(n) = mean(prod(U_selected./U_sum,1),2);
+            end 
         end
+
     else
-        parfor n = 1:NP
-            YnanInd = ~isnan(YY(:,n));
-            XXa_n = XXa(:,:,n);
-            NAltMissIndExp_n = NAltMissIndExp(:,n);
-            NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
-            if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
-                if mCT == 0
+        if mCT == 0
+            parfor n = 1:NP
+                YnanInd = ~isnan(YY(:,n));
+                XXa_n = XXa(:,:,n);
+                NAltMissIndExp_n = NAltMissIndExp(:,n);
+                NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
+                if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
+                    %if mCT == 0
                     U = reshape(XXa_n(YnanInd,:)*b_mtx(:,:,n),[NAltMiss(n),NCTMiss(n),NRep]);
+
+                    U = exp(U - max(U,[],1));
+                    U_sum = reshape(sum(U,1),[NCTMiss(n),NRep]);
                 else
-                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n),NCTMiss(n), NRep]);
-                end
-                U = exp(U - max(U,[],1));
-                U_sum = reshape(sum(U,1),[NCTMiss(n),NRep]);
-            else
-                NAltMissInd_n = NAltMissInd(:,n);
-                NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
-                if mCT == 0
+                    NAltMissInd_n = NAltMissInd(:,n);
+                    NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
+                    %if mCT == 0
                     U = XXa_n(YnanInd,:)*b_mtx(:,:,n);
-                else
-                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n)*NCTMiss(n), NRep]);
-                end
-                Uniq = unique(NAltMissIndExp_n);
-                U_sum = zeros(NCTMiss(n),NRep);
-                if length(Uniq) == 2
-                    U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
-                    U_tmp = reshape(U_tmp,[Uniq(1),size(U_tmp,1)/Uniq(1),NRep]);
-                    U_tmp = exp(U_tmp - max(U_tmp));
-                    U_sum(NAltMissInd_n == Uniq(1),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
-                    U(NAltMissIndExp_n == Uniq(1),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(1),NRep]);
-                    U_tmp = U(NAltMissIndExp_n == Uniq(2),:);
-                    U_tmp = reshape(U_tmp,[Uniq(2),size(U_tmp,1)/Uniq(2),NRep]);
-                    U_tmp = exp(U_tmp - max(U_tmp));
-                    U_sum(NAltMissInd_n == Uniq(2),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
-                    U(NAltMissIndExp_n == Uniq(2),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(2),NRep]);
-                else
-                    for i = 1:length(Uniq)
-                        U_tmp = U(NAltMissIndExp_n == Uniq(i),:);
-                        U_tmp = reshape(U_tmp,[Uniq(i),size(U_tmp,1)/Uniq(i),NRep]);
+
+                    Uniq = unique(NAltMissIndExp_n);
+                    U_sum = zeros(NCTMiss(n),NRep);
+                    if length(Uniq) == 2
+                        U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
+                        U_tmp = reshape(U_tmp,[Uniq(1),size(U_tmp,1)/Uniq(1),NRep]);
                         U_tmp = exp(U_tmp - max(U_tmp));
-                        U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
-                        U(NAltMissIndExp_n == Uniq(i),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(i),NRep]);
+                        U_sum(NAltMissInd_n == Uniq(1),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                        U(NAltMissIndExp_n == Uniq(1),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(1),NRep]);
+                        U_tmp = U(NAltMissIndExp_n == Uniq(2),:);
+                        U_tmp = reshape(U_tmp,[Uniq(2),size(U_tmp,1)/Uniq(2),NRep]);
+                        U_tmp = exp(U_tmp - max(U_tmp));
+                        U_sum(NAltMissInd_n == Uniq(2),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                        U(NAltMissIndExp_n == Uniq(2),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(2),NRep]);
+                    else
+                        for i = 1:length(Uniq)
+                            U_tmp = U(NAltMissIndExp_n == Uniq(i),:);
+                            U_tmp = reshape(U_tmp,[Uniq(i),size(U_tmp,1)/Uniq(i),NRep]);
+                            U_tmp = exp(U_tmp - max(U_tmp));
+                            U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                            U(NAltMissIndExp_n == Uniq(i),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(i),NRep]);
+                        end
                     end
                 end
-            end
-            YYy_n = YY(:,n)==1;
-            U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),[NCTMiss(n),NRep]);
-            p0(n) = mean(prod(U_selected./U_sum,1));
+                YYy_n = YY(:,n)==1;
+                U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),[NCTMiss(n),NRep]);
+                p0(n) = mean(prod(U_selected./U_sum,1));
+            end            
+        else
+            parfor n = 1:NP
+                YnanInd = ~isnan(YY(:,n));
+                XXa_n = XXa(:,:,n);
+                NAltMissIndExp_n = NAltMissIndExp(:,n);
+                NAltMissIndExp_n = NAltMissIndExp_n(YnanInd);
+                if var(NAltMissIndExp_n(NAltMissIndExp_n > 0)) == 0 % if NAlt is constant per individual (but can vary between individuals)
+                    %if mCT ~= 0
+                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n),NCTMiss(n), NRep]);
+
+                    U = exp(U - max(U,[],1));
+                    U_sum = reshape(sum(U,1),[NCTMiss(n),NRep]);
+                else
+                    NAltMissInd_n = NAltMissInd(:,n);
+                    NAltMissInd_n = NAltMissInd_n(MissingCT(:,n) == 0);
+                    %if mCT ~= 0
+                    U = reshape(sum(XXa_n(YnanInd,:).*b_mtx(YnanInd,:,:,n),2), [NAltMiss(n)*NCTMiss(n), NRep]);
+
+                    Uniq = unique(NAltMissIndExp_n);
+                    U_sum = zeros(NCTMiss(n),NRep);
+                    if length(Uniq) == 2
+                        U_tmp = U(NAltMissIndExp_n == Uniq(1),:);
+                        U_tmp = reshape(U_tmp,[Uniq(1),size(U_tmp,1)/Uniq(1),NRep]);
+                        U_tmp = exp(U_tmp - max(U_tmp));
+                        U_sum(NAltMissInd_n == Uniq(1),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                        U(NAltMissIndExp_n == Uniq(1),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(1),NRep]);
+                        U_tmp = U(NAltMissIndExp_n == Uniq(2),:);
+                        U_tmp = reshape(U_tmp,[Uniq(2),size(U_tmp,1)/Uniq(2),NRep]);
+                        U_tmp = exp(U_tmp - max(U_tmp));
+                        U_sum(NAltMissInd_n == Uniq(2),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                        U(NAltMissIndExp_n == Uniq(2),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(2),NRep]);
+                    else
+                        for i = 1:length(Uniq)
+                            U_tmp = U(NAltMissIndExp_n == Uniq(i),:);
+                            U_tmp = reshape(U_tmp,[Uniq(i),size(U_tmp,1)/Uniq(i),NRep]);
+                            U_tmp = exp(U_tmp - max(U_tmp));
+                            U_sum(NAltMissInd_n == Uniq(i),:) = reshape(sum(U_tmp,1),[size(U_tmp,2),NRep]);
+                            U(NAltMissIndExp_n == Uniq(i),:) = reshape(U_tmp,[size(U_tmp,2)*Uniq(i),NRep]);
+                        end
+                    end
+                end
+                YYy_n = YY(:,n)==1;
+                U_selected = reshape(U(YYy_n(YnanInd,ones(NRep,1))),[NCTMiss(n),NRep]);
+                p0(n) = mean(prod(U_selected./U_sum,1));
+            end              
         end
     end
     
@@ -656,7 +720,7 @@ elseif nargout == 2 %% function value + gradient
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = (YY == 1);
 % save tmp2               
-        for n = 1:NP % for each person
+        parfor n = 1:NP % for each person
             F3sum = [];
             XXa_n = XXa(:,:,n);
             if mCT == 0
