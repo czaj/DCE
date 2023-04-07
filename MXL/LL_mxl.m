@@ -519,7 +519,6 @@ else
     tmpExp = double.empty(0, 0, NP); % initialize variable for parfor loop (even thoough it is not used)
 end
 
-
 if WTP_space > 0
     if mCT == 0
         b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]); % needed for gradient calculation in WTP_space

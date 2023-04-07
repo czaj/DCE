@@ -552,8 +552,10 @@ if EstimOpt.RobustStd == 1
     for i = 2:EstimOpt.NP
         RobJacob(i,:) = sum(Results.jacobian(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i)),:),1);
     end
-    RobustHess = RobJacob'*RobJacob;
+    Results.jacobian = RobJacob;
+    RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
+        
 end
 Results.std = sqrt(diag(Results.ihess));
 
