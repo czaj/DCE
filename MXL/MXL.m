@@ -1001,11 +1001,11 @@ if EstimOpt.RobustStd == 1
         end        
     end
     % save tmp1
-    RobJacob = zeros(EstimOpt.NP,size(Results.jacobian,2));
-    RobJacob(1,:) = sum(Results.jacobian(1:EstimOpt.NCTMiss(1),:),1);
-    for i = 2:EstimOpt.NP
-        RobJacob(i,:) = sum(Results.jacobian(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i)),:),1);
-    end
+    % RobJacob = zeros(EstimOpt.NP,size(Results.jacobian,2));
+    % RobJacob(1,:) = sum(Results.jacobian(1:EstimOpt.NCTMiss(1),:),1);
+    % for i = 2:EstimOpt.NP
+    %     RobJacob(i,:) = sum(Results.jacobian(sum(EstimOpt.NCTMiss(1:(i-1)))+1:sum(EstimOpt.NCTMiss(1:i)),:),1);
+    % end
     RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
 end
