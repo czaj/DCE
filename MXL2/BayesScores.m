@@ -1,6 +1,6 @@
 function Score = BayesScores(YY,XXa,XXm,Xs,err,EstimOpt,b0)
 
-% save LL_mxl
+save tmp2
 % return
 
 NAlt = EstimOpt.NAlt; ...

@@ -1027,7 +1027,7 @@ else
 end
 
 if EstimOpt.Scores ~= 0
-    Results.Scores = BayesScores(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
+    Results.Scores = BayesScoresMXL(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,err_mtx,EstimOpt,Results.bhat);
 end
 
 % save out_MXL1

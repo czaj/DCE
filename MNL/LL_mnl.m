@@ -77,6 +77,7 @@ if NVarM > 0 && (WTP_space > 0 || NVarNLT > 0)
     b0m = reshape(B(NVarA+1:NVarA*(1+NVarM)),[NVarA,NVarM]);
     %ba = ba(:,ones(NP,1)) + b0m*Xm'; % NVarA x NP
     ba = ba + b0m*Xm';
+    % ba = ba + b0m*Xm(XmIndx2,:)';
 end
 
 N = nansum(y,1);

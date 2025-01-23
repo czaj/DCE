@@ -409,7 +409,7 @@ if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
     XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);    
 %     EstimOpt.mCT = sum(sum(std(XXm, [], 2,"omitnan"),1),3) ~= 0;
     EstimOpt.mCT = any(any(range(XXm,2))); % Test if Xm is choice-task specific    
-%     INPUT.Xm = INPUT.Xm(idx == 0,:);
+    INPUT.Xm = INPUT.Xm(idx == 0,:); % to chyba nie moze byc zakomentowane, bo nie dziala z Xm i brakujacymi alternatywami
 %     INPUT.Xm = INPUT.Xm(idx == 0,:);
 %     Xm = reshape(INPUT.Xm,[size(INPUT.Xa,1),1,EstimOpt.NVarM]);
     if EstimOpt.mCT == 0

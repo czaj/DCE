@@ -720,7 +720,7 @@ elseif nargout == 2 %% function value + gradient
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = (YY == 1);
 % save tmp2               
-        parfor n = 1:NP % for each person
+        for n = 1:NP % for each person
             F3sum = [];
             XXa_n = XXa(:,:,n);
             if mCT == 0
@@ -990,7 +990,7 @@ elseif nargout == 2 %% function value + gradient
     else % data has missing choices
        
 % save tmp1        
-        parfor n = 1:NP
+        for n = 1:NP
             YYy_n = YY(:,n) == 1;
             YnanInd = ~isnan(YY(:,n));
             b_mtx_n = b_mtx(:,:,n);
