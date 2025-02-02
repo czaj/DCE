@@ -333,8 +333,10 @@ if NVarNLT > 0
     
     % Transform variables with the chosen transformation type (Box-Cox, Yeo-Johnson)    
     if NLTType == 1 % BC
-        Xt(:,IndTransNon0,:) = -(Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
-        Xt(:,~IndTransNon0,:) = -log(Xt(:,~IndTransNon0,:));
+%         Xt(:,IndTransNon0,:) = -(Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
+%         Xt(:,~IndTransNon0,:) = -log(Xt(:,~IndTransNon0,:));
+        Xt(:,IndTransNon0,:) = (Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
+        Xt(:,~IndTransNon0,:) = log(Xt(:,~IndTransNon0,:));
     elseif NLTType == 2 % YJ
         IndXtNon0 = (Xt >= 0);
         IndXtCase1 = IndXtNon0 & IndTransNon0; % X >= 0, lam ~= 0
@@ -353,8 +355,10 @@ if NVarNLT > 0
     if EstimOpt.NumGrad == 0 %
         if NLTType == 1 % BC
             XXt = XXa(:,NLTVariables,:);
-            XXt(:,IndTransNon0,:) = -(XXt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:).*(bt_tmp(:,IndTransNon0,:).*log(XXt(:,IndTransNon0,:))-1)+1)./(bt_tmp(:,IndTransNon0,:).^2);
-            XXt(:,IndTransNon0 == 0,:) = -0.5*log(XXt(:,IndTransNon0 == 0)).^2;
+%             XXt(:,IndTransNon0,:) = -(XXt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:).*(bt_tmp(:,IndTransNon0,:).*log(XXt(:,IndTransNon0,:))-1)+1)./(bt_tmp(:,IndTransNon0,:).^2);
+%             XXt(:,IndTransNon0 == 0,:) = -0.5*log(XXt(:,IndTransNon0 == 0)).^2;
+            XXt(:,IndTransNon0,:) = (XXt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:).*(bt_tmp(:,IndTransNon0,:).*log(XXt(:,IndTransNon0,:))-1)+1)./(bt_tmp(:,IndTransNon0,:).^2);
+            XXt(:,IndTransNon0 == 0,:) = 0.5*log(XXt(:,IndTransNon0 == 0)).^2;
         elseif NLTType == 2 % YJ
             XXt = XXa(:,NLTVariables,:);
             XXt(IndXtCase1) = ((XXt(IndXtCase1)+1).^bt_tmp(IndXtCase1).*(bt_tmp(IndXtCase1).*log(XXt(IndXtCase1)+1)-1)+1)./(bt_tmp(IndXtCase1).^2);% X >= 0, lam ~= 0
