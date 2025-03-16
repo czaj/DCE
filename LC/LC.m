@@ -213,6 +213,10 @@ if ~isfield(EstimOpt,'BActiveClass') || isempty(EstimOpt.BActiveClass) || sum(Es
     EstimOpt.BActiveClass = ones(EstimOpt.NVarA,1);
 end
 
+if isfield(EstimOpt,'EM') == 0
+    EstimOpt.EM = 0; % Not using EM algorithm
+end
+
 % for later:
 % - covariates of scale (class-specific?)
 % - allow for non-constant scale parameters for classes
@@ -388,6 +392,7 @@ else
     end
 end
 
+
 %% Restructuring data
 
 INPUT.XXc = INPUT.Xc(1:EstimOpt.NCT*EstimOpt.NAlt:end,:); % NP x NVarC
@@ -418,6 +423,21 @@ if sum(EstimOpt.BActiveClass == 0,1) > 0
     clear bactive_1 b0_1 bactive_2 b0_2 b0x bactivex
 end
 
+%% Estimation with EM algorithm 
+if EstimOpt.EM == 1
+    if any(INPUT.MissingInd(:) == 1)
+        error('EM algorithm does not support missing choice tasks or alternatives')
+    end
+    if any(INPUT.W(:) ~= 1)
+        error('EM algorithm does not support weighting.')
+    end
+    if sum(EstimOpt.BActiveClass == 0,1) > 0
+        error('EM algorithm does not support BActiveClass.')
+    end
+    % TO DO: INPUT.MissingInd, BActiveClass, INPUT.W, gradient for fmnl, 
+    cprintf('*Black','LC model estimated using EM algorithm. Standard errors obtained using ML method. \n')
+    b0 = EM_LC(INPUT.Y,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd, EstimOpt,OptimOpt,b0);
+end
 %% Estimation
 
 LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,INPUT.W,EstimOpt,OptimOpt,B);
