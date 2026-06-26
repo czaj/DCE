@@ -22,6 +22,12 @@ MeaSpecMatrix = EstimOpt.MeaSpecMatrix;
 NVarMeaExp = EstimOpt.NVarMeaExp;
 MeaExpMatrix = EstimOpt.MeaExpMatrix;
 RealMin = EstimOpt.RealMin;
+if ~isfield(EstimOpt,'ProbMin') || isempty(EstimOpt.ProbMin), EstimOpt.ProbMin = 1e-300; end
+ProbMin = max(realmin,min(EstimOpt.ProbMin,1e-6));
+if ~isfield(EstimOpt,'MaxExp') || isempty(EstimOpt.MaxExp), EstimOpt.MaxExp = 50; end
+MaxExp = EstimOpt.MaxExp;
+if ~isfield(EstimOpt,'SigmaMin') || isempty(EstimOpt.SigmaMin), EstimOpt.SigmaMin = 1e-8; end
+SigmaMin = EstimOpt.SigmaMin;
 ScaleLV = EstimOpt.ScaleLV;
 MissingIndMea = EstimOpt.MissingIndMea;
 NAltMissIndExp = EstimOpt.NAltMissIndExp;
@@ -132,7 +138,22 @@ if nargout == 1 % function value only
             end
             b = bmea(l+1:l+size(X,2)+1);
             fit = reshape(X*b(1:end-1),[NRep,NP])';
-            L_mea(MissingIndMea(:,i) == 0,:) = L_mea(MissingIndMea(:,i) == 0,:).*normpdf(Xmea(MissingIndMea(:,i) == 0,i*ones(NRep,1)),fit(MissingIndMea(:,i) == 0,:),exp(b(end)));
+
+            % Missing OLS indicators are skipped. They contribute a
+            % likelihood factor of 1 and therefore do not update the latent
+            % variable through the measurement equation.
+            idxMea = MissingIndMea(:,i) == 0;
+            if any(idxMea)
+                y_i = Xmea(idxMea,i*ones(NRep,1));
+                fit_i = fit(idxMea,:);
+                sigma_i = max(exp(min(max(b(end),-MaxExp),MaxExp)),SigmaMin);
+                L_ols = normpdf(y_i,fit_i,sigma_i);
+                if RealMin >= 2
+                    L_ols(~isfinite(L_ols)) = 0;
+                    L_ols = max(ProbMin,L_ols);
+                end
+                L_mea(idxMea,:) = L_mea(idxMea,:).*L_ols;
+            end
             l = l + size(X,2) + 1;
         elseif MeaSpecMatrix(i) == 1 % MNL
             UniqueMea = unique(Xmea(:,i));
@@ -167,9 +188,13 @@ if nargout == 1 % function value only
             alpha = cumsum([b(sum(MeaMatrix(:,i))+tmp+1);exp(b(sum(MeaMatrix(:,i))+tmp+2:end))]);
             L = zeros(sum(MissingIndMea(:,i) == 0),NRep);
             L(Xmea(MissingIndMea(:,i) == 0,i) == min(UniqueMea),:) = normcdf(alpha(1)-Xb(Xmea(MissingIndMea(:,i) == 0,i) == min(UniqueMea),:));
-            L(Xmea(MissingIndMea(:,i) == 0,i) == max(UniqueMea),:) = 1 - normcdf(alpha(end)-Xb(Xmea(MissingIndMea(:,i) == 0,i) == max(UniqueMea),:));
+            L(Xmea(MissingIndMea(:,i) == 0,i) == max(UniqueMea),:) = normcdf(-(alpha(end)-Xb(Xmea(MissingIndMea(:,i) == 0,i) == max(UniqueMea),:)));
             for j = 2:k
                 L(Xmea(MissingIndMea(:,i) == 0,i) == UniqueMea(j),:) = normcdf(alpha(j)-Xb(Xmea(MissingIndMea(:,i) == 0,i) == UniqueMea(j),:)) - normcdf(alpha(j-1)-Xb(Xmea(MissingIndMea(:,i) == 0,i) == UniqueMea(j),:));
+            end
+            if RealMin >= 2
+                L(~isfinite(L)) = 0;
+                L = max(ProbMin,L);
             end
             L_mea(MissingIndMea(:,i) == 0,:) = L_mea(MissingIndMea(:,i) == 0,:).*L;
             l = l + k + size(X,2);
@@ -267,8 +292,11 @@ if nargout == 1 % function value only
     %     f = -log(mean(probs.*L_mea,2));
     if RealMin == 0
         f = -log(mean(probs.*L_mea,2));
-    else
+    elseif RealMin == 1
         f = -log(max(realmin,mean(probs.*L_mea,2)));
+    else
+        f = -log(max(ProbMin,mean(probs.*L_mea,2)));
+        f(~isfinite(f)) = -log(ProbMin);
     end
     
 else % function value + gradient
@@ -627,27 +655,41 @@ else % function value + gradient
             end
             b = bmea(l+1:l+size(X,2)+1);
             fit = reshape(X*b(1:end-1),[NRep,NP])';
-            fit = fit(MissingIndMea(:,i) == 0,:);
-            L_mea(MissingIndMea(:,i) == 0,:) = L_mea(MissingIndMea(:,i) == 0,:).*normpdf(Xmea(MissingIndMea(:,i) == 0,i*ones(NRep,1)),fit,exp(b(end)));
-            grad_tmp = - (fit - Xmea(MissingIndMea(:,i) == 0,i*ones(NRep,1)))/exp(2*b(end)); % NP x NRep
-            LVindx = find(MeaMatrix(:,i)' == 1);
-            if sum(MeaMatrix(:,i)' == 1) > 1
-                bx = b(2:1+sum(MeaMatrix(:,i)' == 1));
-                bx = permute(bx(:,ones(sum(MissingIndMea(:,i) == 0),1),ones(NRep,1),ones(NVarStr,1)),[2 3 4 1]);
-                gstr(MissingIndMea(:,i) == 0,:,:,LVindx) = gstr(MissingIndMea(:,i) == 0,:,:,LVindx) + grad_tmp(:,:,ones(NVarStr,1),ones(sum(MeaMatrix(:,i)' == 1),1)).*LV_der(MissingIndMea(:,i) == 0,:,:,LVindx).*bx;
-            else
-                gstr(MissingIndMea(:,i) == 0,:,:,LVindx) = gstr(MissingIndMea(:,i) == 0,:,:,LVindx) + grad_tmp.*LV_der(MissingIndMea(:,i) == 0,:,:,LVindx)*b(2);
-            end
-            
-            gmea(MissingIndMea(:,i) == 0,:,l+1) = grad_tmp; % constant
-            %LV_expand = permute(reshape(LV(MeaMatrix(:,i)' == 1,:)',NRep,NP,sum(MeaMatrix(:,i)' == 1)), [2 1 3])  ;
-            gmea(MissingIndMea(:,i) == 0,:,l+2:l+1+sum(MeaMatrix(:,i)' == 1)) = grad_tmp(:,:,ones(sum(MeaMatrix(:,i)' == 1),1)).*LV_expand(MissingIndMea(:,i) == 0,:,MeaMatrix(:,i)' == 1); % parameters for LV
-            if MeaExpMatrix(i) == 0
-                gmea(MissingIndMea(:,i) == 0,:,l+2+sum(MeaMatrix(:,i)' == 1)) = -1 + ((fit - Xmea(MissingIndMea(:,i) == 0,i*ones(NRep,1))).^2)/(exp(2*b(end))) ; % variance
-            else
-                gmea(MissingIndMea(:,i) == 0,:,l+2+sum(MeaMatrix(:,i)' == 1):l+1+sum(MeaMatrix(:,i)' == 1)+NVarMeaExp) = grad_tmp(:,:,ones(NVarMeaExp,1)).*Xmea_exp_expand(MissingIndMea(:,i) == 0,:,:);
-                gmea(MissingIndMea(:,i) == 0,:,l+2+sum(MeaMatrix(:,i)' == 1)+NVarMeaExp) = -1 + ((fit - Xmea(MissingIndMea(:,i) == 0,i*ones(NRep,1))).^2)/(exp(2*b(end))) ; % variance
-                
+
+            % Missing OLS indicators are skipped in both the likelihood and
+            % the analytical gradient. Missing rows keep L_mea = 1 and all
+            % measurement-gradient terms at zero.
+            idxMea = MissingIndMea(:,i) == 0;
+            if any(idxMea)
+                y_i = Xmea(idxMea,i*ones(NRep,1));
+                fit_i = fit(idxMea,:);
+                resid_i = y_i - fit_i;
+                sigma_i = max(exp(min(max(b(end),-MaxExp),MaxExp)),SigmaMin);
+                grad_tmp = resid_i/(sigma_i^2); % d log L / d fit
+                L_ols = normpdf(y_i,fit_i,sigma_i);
+                if RealMin >= 2
+                    L_ols(~isfinite(L_ols)) = 0;
+                    L_ols = max(ProbMin,L_ols);
+                end
+                L_mea(idxMea,:) = L_mea(idxMea,:).*L_ols;
+
+                LVindx = find(MeaMatrix(:,i)' == 1);
+                if sum(MeaMatrix(:,i)' == 1) > 1
+                    bx = b(2:1+sum(MeaMatrix(:,i)' == 1));
+                    bx = permute(bx(:,ones(sum(idxMea),1),ones(NRep,1),ones(NVarStr,1)),[2 3 4 1]);
+                    gstr(idxMea,:,:,LVindx) = gstr(idxMea,:,:,LVindx) + grad_tmp(:,:,ones(NVarStr,1),ones(sum(MeaMatrix(:,i)' == 1),1)).*LV_der(idxMea,:,:,LVindx).*bx;
+                elseif sum(MeaMatrix(:,i)' == 1) == 1
+                    gstr(idxMea,:,:,LVindx) = gstr(idxMea,:,:,LVindx) + grad_tmp.*LV_der(idxMea,:,:,LVindx)*b(2);
+                end
+
+                gmea(idxMea,:,l+1) = grad_tmp; % constant
+                gmea(idxMea,:,l+2:l+1+sum(MeaMatrix(:,i)' == 1)) = grad_tmp(:,:,ones(sum(MeaMatrix(:,i)' == 1),1)).*LV_expand(idxMea,:,MeaMatrix(:,i)' == 1); % parameters for LV
+                if MeaExpMatrix(i) == 0
+                    gmea(idxMea,:,l+2+sum(MeaMatrix(:,i)' == 1)) = -1 + (resid_i.^2)/(sigma_i^2) ; % variance
+                else
+                    gmea(idxMea,:,l+2+sum(MeaMatrix(:,i)' == 1):l+1+sum(MeaMatrix(:,i)' == 1)+NVarMeaExp) = grad_tmp(:,:,ones(NVarMeaExp,1)).*Xmea_exp_expand(idxMea,:,:);
+                    gmea(idxMea,:,l+2+sum(MeaMatrix(:,i)' == 1)+NVarMeaExp) = -1 + (resid_i.^2)/(sigma_i^2) ; % variance
+                end
             end
             l = l+size(X,2)+1;
         elseif MeaSpecMatrix(i) == 1 % MNL
@@ -706,13 +748,16 @@ else % function value + gradient
             L = zeros(sum(MissingIndMea(:,i) == 0),NRep);
             grad_tmp = zeros(sum(MissingIndMea(:,i) == 0),NRep);
             L(Xmea_i == min(UniqueMea),:) = normcdf(alpha(1)-Xb(Xmea_i == min(UniqueMea),:));
-            L(Xmea_i == max(UniqueMea),:) = 1 - normcdf(alpha(end)-Xb(Xmea_i == max(UniqueMea),:));
-            if RealMin == 1
+            L(Xmea_i == max(UniqueMea),:) = normcdf(-(alpha(end)-Xb(Xmea_i == max(UniqueMea),:)));
+            if RealMin == 0
+                grad_tmp(Xmea_i == min(UniqueMea),:) = normpdf(alpha(1)-Xb(Xmea_i == min(UniqueMea),:))./L(Xmea_i == min(UniqueMea),:);
+                grad_tmp(Xmea_i == max(UniqueMea),:) = -normpdf(alpha(end)-Xb(Xmea_i == max(UniqueMea),:))./L(Xmea_i == max(UniqueMea),:);
+            elseif RealMin == 1
                 grad_tmp(Xmea_i == min(UniqueMea),:) = normpdf(alpha(1)-Xb(Xmea_i == min(UniqueMea),:))./max(L(Xmea_i == min(UniqueMea),:),realmin);
                 grad_tmp(Xmea_i == max(UniqueMea),:) = -normpdf(alpha(end)-Xb(Xmea_i == max(UniqueMea),:))./max(L(Xmea_i == max(UniqueMea),:),realmin);
             else
-                grad_tmp(Xmea_i == min(UniqueMea),:) = normpdf(alpha(1)-Xb(Xmea_i == min(UniqueMea),:))./L(Xmea_i == min(UniqueMea),:);
-                grad_tmp(Xmea_i == max(UniqueMea),:) = -normpdf(alpha(end)-Xb(Xmea_i == max(UniqueMea),:))./L(Xmea_i == max(UniqueMea),:);
+                grad_tmp(Xmea_i == min(UniqueMea),:) = normpdf(alpha(1)-Xb(Xmea_i == min(UniqueMea),:))./max(L(Xmea_i == min(UniqueMea),:),ProbMin);
+                grad_tmp(Xmea_i == max(UniqueMea),:) = -normpdf(alpha(end)-Xb(Xmea_i == max(UniqueMea),:))./max(L(Xmea_i == max(UniqueMea),:),ProbMin);
             end
             
             for j = 2:k
@@ -972,12 +1017,17 @@ else % function value + gradient
     probs = probs.*L_mea;
     %     p = max(realmin,mean(probs,2));
     %     p = mean(probs,2);
-    if RealMin == 1
+    if RealMin == 0
+        p = mean(probs,2);
+    elseif RealMin == 1
         p = max(realmin,mean(probs,2));
     else
-        p = mean(probs,2);
+        p = max(ProbMin,mean(probs,2));
     end
     f = -log(p);
+    if RealMin >= 2
+        f(~isfinite(f)) = -log(ProbMin);
+    end
     
     gstr = reshape(gstr,[NP,NRep,NVarStr*NLatent]);
     gmnl = reshape(gmnl,[NP,NRep,NVarA*(1+NLatent)]);
@@ -999,6 +1049,9 @@ else % function value + gradient
     end
     
     g = -g./p;
+    if RealMin >= 2
+        g(~isfinite(g)) = 0;
+    end
     
 end
 

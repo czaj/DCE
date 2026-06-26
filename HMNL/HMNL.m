@@ -98,11 +98,7 @@ function Results = HMNL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 % Example: 
 %    Results.HMNL = HMNL(INPUT,Results,EstimOpt,OptimOpt);
-%
-% Author: Mikolaj Czajkowski, Professor
-% University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
-% Website: http://czaj.org/#
+
 
 global B_backup;
 
@@ -115,6 +111,27 @@ Results.bhat = [];
 Results.R = [];
 Results.R_out = {};
 Results.stats = [];
+
+% Save the screen output to ./output/HMNL_yyyy-mm-dd HHMM.txt by default.
+if ~isfield(EstimOpt,'SaveTxtOutput') || isempty(EstimOpt.SaveTxtOutput)
+    EstimOpt.SaveTxtOutput = 1;
+end
+if EstimOpt.SaveTxtOutput ~= 0
+    if ~isfield(EstimOpt,'OutputDir') || isempty(EstimOpt.OutputDir)
+        EstimOpt.OutputDir = fullfile(pwd,'output');
+    end
+    if ~exist(EstimOpt.OutputDir,'dir')
+        mkdir(EstimOpt.OutputDir);
+    end
+    Results.output_txt = fullfile(EstimOpt.OutputDir,['HMNL_' datestr(now,'yyyy-mm-dd HHMM') '.txt']);
+    diary(Results.output_txt);
+    diary on;
+    diaryCleanup = onCleanup(@() diary('off')); %#ok<NASGU>
+    disp(['HMNL screen output is also being saved to: ' Results.output_txt]);
+end
+
+global HMNL_OPT_STATE
+HMNL_OPT_STATE = struct();
 
 
 %% Check data and inputs
@@ -239,15 +256,27 @@ EstimOpt.NVarStr = size(INPUT.Xstr,2);  % no. of variables in structural equatio
 EstimOpt.NVarMea = sum(sum(EstimOpt.MeaMatrix)); % no of parameters for Measurments without couting cutoffs, constants etc
 EstimOpt.NVarMeaExp = size(INPUT.Xmea_exp,2);
 
-if isfield(EstimOpt,'MissingIndMea') == 0
-    EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea));
+% Missing measurement indicators are derived internally from INPUT.Xmea.
+% This avoids script-level size mismatches when DATA has been filtered before
+% INPUT is created.  If EstimOpt.MissingIndMea is supplied, accept either the
+% current long format (NAlt*NCT*NP x NXmea) or respondent-level format
+% (NP x NXmea), then combine it with the NaN/Inf-based indicator.
+AutoMissingIndMea = ~isfinite(INPUT.Xmea);
+if isfield(EstimOpt,'MissingIndMea') == 0 || isempty(EstimOpt.MissingIndMea)
+    EstimOpt.MissingIndMea = AutoMissingIndMea;
+elseif isequal(size(EstimOpt.MissingIndMea),size(INPUT.Xmea))
+    EstimOpt.MissingIndMea = (EstimOpt.MissingIndMea ~= 0) | AutoMissingIndMea;
+elseif size(INPUT.Xmea,1) == EstimOpt.NAlt*EstimOpt.NCT*EstimOpt.NP && isequal(size(EstimOpt.MissingIndMea),[EstimOpt.NP,size(INPUT.Xmea,2)])
+    RowPerP_tmp = EstimOpt.NAlt*EstimOpt.NCT;
+    RespInd_tmp = ceil((1:size(INPUT.Xmea,1))'/RowPerP_tmp);
+    EstimOpt.MissingIndMea = (EstimOpt.MissingIndMea(RespInd_tmp,:) ~= 0) | AutoMissingIndMea;
+    clear RowPerP_tmp RespInd_tmp;
+else
+    cprintf(rgb('DarkOrange'),'WARNING: EstimOpt.MissingIndMea has incompatible size - ignoring it and detecting missing Xmea from INPUT.Xmea.\n')
+    EstimOpt.MissingIndMea = AutoMissingIndMea;
 end
-
-if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
-    error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
-end
-
 INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
+clear AutoMissingIndMea;
 
 
 if isfield(INPUT,'Xm') == 0
@@ -268,21 +297,20 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
     end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+    if EstimOpt.MeaSpecMatrix(i) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
         end
     end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+    if EstimOpt.MeaSpecMatrix(i) > 0
         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-%             save tmp1
-%             return
-            % make unique values positive (avoid problems with dummyvar)
-            % INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
-            [Aval, ~, indAval] = unique(INPUT.Xmea(:,i));
-            Avalnew = 1:size(Aval,1);
-            INPUT.Xmea(:,i) = Avalnew(indAval);
-            clear Aval Avalnew indAval
+            % Make observed unique values positive (avoid problems with dummyvar),
+            % but leave missing measurement rows as NaN.
+            idxMNLtmp = INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0) & isfinite(INPUT.Xmea(:,i));
+            [~, ~, indAval] = unique(INPUT.Xmea(idxMNLtmp,i));
+            INPUT.Xmea(idxMNLtmp,i) = indAval;
+            INPUT.Xmea(~idxMNLtmp & EstimOpt.MissingIndMea(:,i) == 1,i) = NaN;
+            clear idxMNLtmp indAval
         end
     end
 end
@@ -354,12 +382,12 @@ end
 %         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
 %         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
 %     end
-%     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+%     if EstimOpt.MeaSpecMatrix(i) > 0
 %         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
 %             cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
 %         end
 %     end
-%     if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
+%     if EstimOpt.MeaSpecMatrix(i) > 0
 %         if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
 %             INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
 %         end
@@ -574,9 +602,20 @@ if any(EstimOpt.StrNorm > 0)
     INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - meanx(:,EstimOpt.StrNorm == 1))./stdx(:,EstimOpt.StrNorm == 1);
 end
 
-INPUT.Xmea = INPUT.Xmea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
-EstimOpt.MissingIndMea = EstimOpt.MissingIndMea(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
-EstimOpt.MissingInd_tmp = INPUT.MissingInd(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
+% Measurement variables are respondent-level. Collapse the long
+% missing-indicator matrix to NP x NMea before passing it to LL_hmnl.
+% Using any(...) is safer than taking only the first row, because it still
+% flags the measurement as missing if the NaN/Inf appears in any repeated
+% alternative/choice-task row.
+NMea_tmp = size(INPUT.Xmea,2);
+NRowsPerP_tmp = EstimOpt.NAlt*EstimOpt.NCT;
+MissingIndMea_tmp = reshape(EstimOpt.MissingIndMea,[NRowsPerP_tmp,EstimOpt.NP,NMea_tmp]);
+EstimOpt.MissingIndMea = reshape(squeeze(any(MissingIndMea_tmp,1)),[EstimOpt.NP,NMea_tmp]);
+
+INPUT.Xmea = INPUT.Xmea(1:NRowsPerP_tmp:end,:);
+INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
+EstimOpt.MissingInd_tmp = INPUT.MissingInd(1:NRowsPerP_tmp:end,:);
+clear NMea_tmp NRowsPerP_tmp MissingIndMea_tmp;
 
 if EstimOpt.NVarMeaExp > 0
     INPUT.Xmea_exp = INPUT.Xmea_exp(1:EstimOpt.NAlt*EstimOpt.NCT:end,:);
@@ -605,8 +644,14 @@ if size(INPUT.Xmea,2) > 0
     OptimOpt_0.Display = 'off';
     OptimOpt_0.FunValCheck = 'off';
     OptimOpt_0.Diagnostics = 'off';
-    LLfun0 = @(B) LL_hmnl0(INPUT.Xmea,EstimOpt, B);
-    [Results.MIMIC0.bhat,LL0] = fminunc(LLfun0,0.001*ones(EstimOpt.NVarcut0,1),OptimOpt_0);
+    LLfun0 = @(B) LL_hmnl0(INPUT.Xmea,EstimOpt,B);
+    b0_mimic0 = MIMIC0_starting_values(INPUT.Xmea,EstimOpt);
+    LL0_start = LLfun0(b0_mimic0);
+    if ~isfinite(LL0_start)
+        cprintf(rgb('DarkOrange'),'WARNING: MIMIC0 empirical starting values returned a non-finite objective; using small generic starts. \n')
+        b0_mimic0 = 0.001*ones(EstimOpt.NVarcut0,1);
+    end
+    [Results.MIMIC0.bhat,LL0] = fminunc(LLfun0,b0_mimic0,OptimOpt_0);
     Results.MIMIC0.LL = -LL0;
     Results.MIMIC0.LL = 0;
 else
@@ -874,37 +919,37 @@ end
 cprintf('Simulation with ');
 cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
+drawDim = EstimOpt.NLatent;
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,EstimOpt.NLatent+EstimOpt.NVarA+1); %to be cut down later
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,drawDim);
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
-    err_mtx = lhsnorm(zeros((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep);
-    err_mtx = reshape(err_mtx, EstimOpt.NRep*EstimOpt.NP, EstimOpt.NLatent);
+    err_mtx = lhsnorm(zeros(drawDim*EstimOpt.NP,1),diag(ones(drawDim*EstimOpt.NP,1)),EstimOpt.NRep);
+    err_mtx = reshape(err_mtx,EstimOpt.NRep*EstimOpt.NP,drawDim);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = haltonset(drawDim,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
         cprintf('*blue','Halton '); cprintf('draws with reverse radix scrambling (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = haltonset(drawDim,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'RR2');
     elseif EstimOpt.Draws == 5
         cprintf('*blue','Sobol '); cprintf('draws (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = sobolset(drawDim,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 6
         cprintf('*blue','Sobol '); cprintf('draws with random linear scramble and random digital shift (skip = '); cprintf(num2str(EstimOpt.HaltonSkip)); cprintf('; leap = '); cprintf(num2str(EstimOpt.HaltonLeap)); cprintf(') \n')
-        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
+        hm1 = sobolset(drawDim,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
     
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
-    err_mtx = err_mtx(:,2+EstimOpt.NVarA:end);
     if EstimOpt.NP*EstimOpt.NRep < 3e+7
         err_mtx= icdf('Normal',err_mtx,0,1); %to be cut down later
     else % this is for very large number of draws * variables
-        for i=1:EstimOpt.NLatent
+        for i=1:drawDim
             err_mtx(:,i) = icdf('Normal',err_mtx(:,i),0,1); %to be cut down later
         end
     end
@@ -912,10 +957,29 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
 end
 
 err_sliced = err_mtx'; % NLatent x NRep * NP
+clear err_mtx drawDim;
 
 if isfield(EstimOpt,'Drawskeep') && ~isempty(EstimOpt.Drawskeep) && EstimOpt.Drawskeep == 1
     Results.err = err_sliced;
 end
+
+% Robust optimization defaults. RealMin keeps backward compatibility:
+%   0 = no numerical repairs;
+%   1 = legacy realmin floors;
+%   2 = soft repair mode for non-finite likelihood/Jacobian values;
+%   3 = as 2 plus gradient clipping.
+if ~isfield(EstimOpt,'RealMin') || isempty(EstimOpt.RealMin), EstimOpt.RealMin = 0; end
+if ~isfield(EstimOpt,'ProbMin') || isempty(EstimOpt.ProbMin), EstimOpt.ProbMin = 1e-300; end
+if ~isfield(EstimOpt,'MaxExp') || isempty(EstimOpt.MaxExp), EstimOpt.MaxExp = 50; end
+if ~isfield(EstimOpt,'SigmaMin') || isempty(EstimOpt.SigmaMin), EstimOpt.SigmaMin = 1e-8; end
+if ~isfield(EstimOpt,'MaxAbsB') || isempty(EstimOpt.MaxAbsB), EstimOpt.MaxAbsB = 1000; end
+if ~isfield(EstimOpt,'MaxAbsGrad') || isempty(EstimOpt.MaxAbsGrad), EstimOpt.MaxAbsGrad = 1e12; end
+if ~isfield(EstimOpt,'BadEvalPenalty') || isempty(EstimOpt.BadEvalPenalty), EstimOpt.BadEvalPenalty = 1e50; end
+if ~isfield(EstimOpt,'StopOnExtremeB') || isempty(EstimOpt.StopOnExtremeB), EstimOpt.StopOnExtremeB = 1; end
+if ~isfield(EstimOpt,'ReportOptimizationDiagnostics') || isempty(EstimOpt.ReportOptimizationDiagnostics), EstimOpt.ReportOptimizationDiagnostics = 1; end
+if ~isfield(EstimOpt,'ProgressOutputFcn') || isempty(EstimOpt.ProgressOutputFcn), EstimOpt.ProgressOutputFcn = 0; end
+if ~isfield(EstimOpt,'DebugOptimizationEval') || isempty(EstimOpt.DebugOptimizationEval), EstimOpt.DebugOptimizationEval = 0; end
+if ~isfield(EstimOpt,'DebugEvalEvery') || isempty(EstimOpt.DebugEvalEvery), EstimOpt.DebugEvalEvery = 1; end
 
 
 %% Display Options
@@ -930,7 +994,7 @@ if any(EstimOpt.Dist == 2) && EstimOpt.NumGrad == 0
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient to numerical - spike distribution not supported by analytical gradient \n')
 end
 
-if any(EstimOpt.MeaSpecMatrix >= 3) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xmea(:,EstimOpt.MeaSpecMatrix >=3) > 100))
+if any(EstimOpt.MeaSpecMatrix(:) >= 3) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xmea(:,EstimOpt.MeaSpecMatrix >=3) > 100))
     cprintf(rgb('DarkOrange'),'WARNING: it is recommended to switch to numerical gradient, as analitycal can be not precise when Xmea take large values for NB \n')
 end
 
@@ -998,23 +1062,74 @@ end
 
 %% Estimation
 
-LLfun = @(B) LL_hmnl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
-if EstimOpt.ConstVarActive == 0
-    if EstimOpt.HessEstFix == 0
-        [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
-    else
-        [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
-    end
-elseif EstimOpt.ConstVarActive == 1 % equality constraints
-    EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
-    EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:)=[];
-    EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
-    if EstimOpt.HessEstFix == 0
-        [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g,Results.hess] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
-    else
-        [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
-    end
+oldOutputFcn = [];
+try
+    oldOutputFcn = OptimOpt.OutputFcn;
+catch
+    oldOutputFcn = [];
 end
+if EstimOpt.StopOnExtremeB ~= 0 || EstimOpt.ProgressOutputFcn ~= 0
+    OptimOpt.OutputFcn = @(x,optimValues,state) HMNL_outputfcn(x,optimValues,state,EstimOpt,oldOutputFcn);
+end
+
+LLfun = @(B) LL_hmnl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
+try
+    if EstimOpt.ConstVarActive == 0
+        if EstimOpt.HessEstFix == 0
+            [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
+        else
+            [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
+        end
+    elseif EstimOpt.ConstVarActive == 1 % equality constraints
+        EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
+        EstimOpt.CONS1(sum(EstimOpt.CONS1,1)==0,:)=[];
+        EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
+        if EstimOpt.HessEstFix == 0
+            [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g,Results.hess] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
+        else
+            [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
+        end
+    end
+catch ME
+    Results.OptimizationError = ME;
+    Results.exitf = -999;
+    Results.output.message = ME.message;
+    try
+        Results.output.error_report = getReport(ME,'extended','hyperlinks','off');
+    catch
+        Results.output.error_report = ME.message;
+    end
+    fprintf(2,'WARNING: HMNL optimization stopped with an error:\n%s\n',Results.output.error_report);
+    global HMNL_OPT_STATE
+    if isstruct(HMNL_OPT_STATE) && isfield(HMNL_OPT_STATE,'best_B') && ~isempty(HMNL_OPT_STATE.best_B)
+        Results.bhat = HMNL_OPT_STATE.best_B(:);
+        LL = HMNL_OPT_STATE.best_LL;
+        Results.g = HMNL_OPT_STATE.best_g;
+        Results.OptimizationDiagnostics = HMNL_OPT_STATE;
+        fprintf(2,'WARNING: Returning best finite parameter vector found before the error. Standard errors are not calculated for this partial result.\n');
+    else
+        Results.bhat = b0(:);
+        LL = NaN;
+        Results.g = NaN(size(b0(:)));
+        Results.OptimizationDiagnostics = HMNL_OPT_STATE;
+        fprintf(2,'WARNING: No finite evaluation was recorded; returning starting values only. Standard errors are not calculated.\n');
+    end
+    Results.LL = -LL;
+    Results.b0_old = b0;
+    Results.EstimOpt = EstimOpt;
+    Results.OptimOpt = OptimOpt;
+    Results.INPUT = INPUT;
+    return
+end
+
+if exist('HMNL_OPT_STATE','var') && isstruct(HMNL_OPT_STATE)
+    Results.OptimizationDiagnostics = HMNL_OPT_STATE;
+end
+
+if Results.exitf == -1 && isfield(Results,'OptimizationDiagnostics') && isfield(Results.OptimizationDiagnostics,'best_B')
+    cprintf(rgb('DarkOrange'),'WARNING: Optimization was stopped by OutputFcn. Returning the optimizer result; best finite evaluation is stored in Results.OptimizationDiagnostics.best_B.\n')
+end
+
 
 %% Output
 

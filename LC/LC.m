@@ -438,7 +438,13 @@ if EstimOpt.EM == 1
     cprintf('*Black','LC model estimated using EM algorithm. Standard errors obtained using ML method. \n')
     b0 = EM_LC(INPUT.Y,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd, EstimOpt,OptimOpt,b0);
 end
+
+
 %% Estimation
+
+% this is temporary to evaluate EM algorithm
+OptimOpt.MaxIterations = 1;
+
 
 LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0

@@ -223,6 +223,12 @@ if EstimOpt.FullCov == 0
             error('No starting values - Estimate MDCEV first')
         end   
     end
+
+    if sum(EstimOpt.Dist == -1) > 0 % Fixed
+        indx = find(EstimOpt.Dist == -1);
+        b0(indx+EstimOpt.NVarA) = 0;   % second parameters equal to 0 (variances as default)
+    end
+
 else
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarP*(1+EstimOpt.NVarU) + 1
         b0 = B_backup(:);

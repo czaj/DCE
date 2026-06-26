@@ -10,6 +10,7 @@ function [f,g,h]= LL_mmdcev_MATlike(data,EstimOpt,OptimOpt,b0)
 
 LLfun = @(B) probs_mmdcev(data,EstimOpt,B);
 
+% W = data.W;
 W = reshape(data.W,EstimOpt.NCT,[])';
 W = W(:,1);
 

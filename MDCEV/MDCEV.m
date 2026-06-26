@@ -77,7 +77,7 @@ if EstimOpt.Display ~= 0
     disp('__________________________________________________________________________________________________________________');
     disp(' ');
     
-    if any(INPUT.W ~= 1)
+    if isfield(INPUT,"W") && any(INPUT.W ~= 1)
         cprintf('Black','Estimating '); cprintf('*Black','weighted '); cprintf('Black','MDCEV model...\n');
     else
         disp('Estimating MDCEV model ...')

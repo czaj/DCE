@@ -318,13 +318,18 @@ end
 
 fx = mean(p0,2); % NP x 1
 Score = zeros(NP,NVarA);
+
+
 if WTP_space > 0
+
     b_score = reshape(b_score,[NVarA,NRep,NP]);
     for j = 1:NVarA
         bx = squeeze(b_score(j,:,:))'; % NP x NRep
         Score(:,j) = mean(p0.*bx,2)./fx;
     end
-else 
+
+else % WTP_space = 0
+
     b_score = reshape(b_score,[NVarA,NRep,NP]);
 
 % This calculates individual scores in terms of WTP, even for PS models. 

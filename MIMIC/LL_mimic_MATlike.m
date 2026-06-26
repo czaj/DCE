@@ -2,6 +2,12 @@ function [LL,g,h] = LL_mimic_MATlike(Xstr,Xmea,Xmea_exp,err,W,EstimOpt,OptimOpt,
 
 LLfun = @(B) LL_mimic(Xstr,Xmea,Xmea_exp,err,EstimOpt,B);
 
+if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive)
+    EstimOpt.BActive = ones(1,length(b0));
+else
+    EstimOpt.BActive = EstimOpt.BActive(:)';
+end
+
 if isequal(OptimOpt.GradObj,'on')
     if EstimOpt.NumGrad == 0
         [f,j] = LLfun(b0);

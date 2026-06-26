@@ -517,7 +517,11 @@ else
     b_mtx = reshape(b_mtx + Xmfit, [NVarA, NRep*NAlt*NCT*NP]);
     
 end
+
+b_score = b_mtx;
+
 %% Transformations for other distributions
+
 if sum(Dist == 1) > 0 % Log-normal
     b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
 end
@@ -654,7 +658,7 @@ else
 end
 
 % save tmp1
-b_score = b_mtx;
+% b_score = b_mtx;
 
 if WTP_space > 0
     if mCT == 0
@@ -823,6 +827,7 @@ p0 = zeros(NP,NRep);
     end
 
     % save tmp1
+
 
 
 fx = mean(p0,2); % NP x 1

@@ -1618,9 +1618,9 @@ end
 
 Head = cell(1,2);
 if EstimOpt.FullCov == 0
-    Head(1,1) = {'MXL_d'};
+    Head(1,1) = {'MXL (no correlations)'};
 else
-    Head(1,1) = {'MXL'};
+    Head(1,1) = {'MXL (with correlations)'};
 end
 
 if EstimOpt.WTP_space > 0
