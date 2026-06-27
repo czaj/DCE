@@ -496,16 +496,20 @@ Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if any(INPUT.MissingInd == 1) % In case of some missing data
     idx = sum(reshape(INPUT.MissingInd,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP])) == EstimOpt.NAlt;
     idx = sum(reshape(idx,[EstimOpt.NCT,EstimOpt.NP]),1)'; % no. of missing NCT for every respondent
-    R2 = zeros(EstimOpt.NP,1);
+    R2 = NaN(EstimOpt.NP,1);
+    CrossEntropy = NaN(EstimOpt.NP,1);
     idx = EstimOpt.NCT - idx;
     l = 1;
     for i = 1:EstimOpt.NP
-        R2(i) = prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i));
-        Results.CrossEntropy = log(prod(exp(Results.LLdetailed(l:l-1+idx(i)))).^(1/idx(i)));
+        if idx(i) > 0
+            ll_i = Results.LLdetailed(l:l-1+idx(i));
+            R2(i) = prod(exp(ll_i)).^(1/idx(i));
+            CrossEntropy(i) = -log(R2(i));
+        end
         l = l+idx(i);
     end
-    R2 = mean(R2);
-    Results.CrossEntropy = mean(Results.CrossEntropy);
+    R2 = mean(R2(~isnan(R2)));
+    Results.CrossEntropy = mean(CrossEntropy(~isnan(CrossEntropy)));
 else
     R2 = mean(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT),2);
     Results.CrossEntropy = -mean(log(prod(reshape(exp(Results.LLdetailed),[EstimOpt.NCT,EstimOpt.NP]),1).^(1/EstimOpt.NCT)),2);
@@ -530,14 +534,14 @@ if sum(EstimOpt.BActive == 0) > 0
     elseif EstimOpt.HessEstFix == 0 || EstimOpt.HessEstFix == 3
         Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
     end
-    Results.ihess = inv(Results.hess);
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
     Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
     Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 else
     if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
         Results.hess = Results.jacobian'*Results.jacobian;
     end
-    Results.ihess = inv(Results.hess);
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
 end
 
 if EstimOpt.RobustStd == 1

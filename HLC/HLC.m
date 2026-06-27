@@ -264,15 +264,11 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
         cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
     end    
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
-            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
-        end
+    if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
+        cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \\n',i)
     end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
-        end
+    if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+        INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) = INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i) - min(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) + 1; % make unique values positive (avoid problems with dummyvar)
     end
 end
 
@@ -746,7 +742,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HLC');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1
@@ -810,7 +806,8 @@ bstr = reshape(Results.bhat(EstimOpt.NVarA*EstimOpt.NClass+(EstimOpt.NVarC+Estim
 bclass_sim = reshape([mvnrnd(Results.bhat(EstimOpt.NVarA*EstimOpt.NClass+1:EstimOpt.NVarA*EstimOpt.NClass+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)),Results.ihess(EstimOpt.NVarA*EstimOpt.NClass+1:EstimOpt.NVarA*EstimOpt.NClass+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1),EstimOpt.NVarA*EstimOpt.NClass+1:EstimOpt.NVarA*EstimOpt.NClass+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1)),NSdSim)';zeros(EstimOpt.NVarC+EstimOpt.NLatent,NSdSim)],[EstimOpt.NVarC+EstimOpt.NLatent,EstimOpt.NClass,NSdSim]);
 
 LV = INPUT.Xstr*bstr;
-V = exp([INPUT.XXc,LV]*bclass);% NP x NClass
+V = [INPUT.XXc,LV]*bclass;% NP x NClass
+V = exp(V - max(V,[],2));
 Vsum = sum(V,2);
 Results.PClass = zeros(1,4*EstimOpt.NClass);
 Results.PClass(1,1:4:EstimOpt.NClass*4-3) = mean(V./Vsum,1);
@@ -819,7 +816,8 @@ PClass_mean = zeros(NSdSim,EstimOpt.NClass);
 
 parfor i = 1:NSdSim
     bhat_sim_i = bclass_sim(:,:,i);
-    V_i = exp([INPUT.XXc,LV]*bhat_sim_i);
+    V_i = [INPUT.XXc,LV]*bhat_sim_i;
+    V_i = exp(V_i - max(V_i,[],2));
     Vsum_i = sum(V_i,2);
     PC_i = V_i./Vsum_i;
     PClass_mean(i,:) = mean(PC_i,1);

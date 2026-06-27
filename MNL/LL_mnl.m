@@ -34,19 +34,22 @@ B = b0(1:NVarA*(1+NVarM)+NVarS);
 
 if NVarNLT > 0
     bt = b0(NVarA*(1+NVarM)+NVarS+1:end);
-    IndTransNon0 = (abs(bt) > eps)';
+    IndTransNon0 = (abs(bt) > 1e-6)';
     Xt = Xa(:,NLTVariables);
     if NLTType == 1 % BC
 %         % Xt(:,IndTransNon0) = -(Xt(:,IndTransNon0 == 1).^(bt(IndTransNon0 == 1,ones(size(Xa,1),1))') - 1)./bt(IndTransNon0 == 1,ones(size(Xa,1),1))';
 %         Xt(:,IndTransNon0) = -(Xt(:,IndTransNon0 == 1).^(bt(IndTransNon0 == 1,:)') - 1)./bt(IndTransNon0 == 1,:)';
 %         Xt(:,~IndTransNon0) = -log(Xt(:,IndTransNon0 == 0));
+        if any(any(Xt(:,IndTransNon0 == 1) <= 0)) || any(any(Xt(:,IndTransNon0 == 0) <= 0))
+            error('LL_mnl: Box-Cox/log transform requires strictly positive inputs.');
+        end
         Xt(:,IndTransNon0) = (Xt(:,IndTransNon0 == 1).^(bt(IndTransNon0 == 1,:)') - 1)./bt(IndTransNon0 == 1,:)';
         Xt(:,~IndTransNon0) = log(Xt(:,IndTransNon0 == 0));
     elseif NLTType == 2 % YJ
         IndXtNon0 = (Xt >= 0);
         IndXtCase1 = IndXtNon0 & IndTransNon0; % X >= 0, lam ~= 0
         IndXtCase2 = IndXtNon0 & ~IndTransNon0; % X >= 0, lam = 0
-        IndTransNon2 = (abs(bt - 2) > eps)';
+        IndTransNon2 = (abs(bt - 2) > 1e-6)';
         IndXtCase3 = ~IndXtNon0 & IndTransNon2;  % X < 0, lam ~= 2
         IndXtCase4 = ~IndXtNon0 & ~IndTransNon2; % X < 0, lam = 2
         bt_tmp = bt(:,ones(size(Xa,1),1))';
@@ -168,7 +171,7 @@ if nargout == 2 % function value + gradient
         end
         if NVarNLT > 0
             if NVarS > 0
-               XXt = XXt.*Scale; 
+                XXt = XXt.*cs; 
             end
             XXtt = reshape(XXt,[NAlt,N,NVarNLT]);
             if IsNaN == 0

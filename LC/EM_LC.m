@@ -27,6 +27,7 @@ b_diff = 1;
 LL_diff = 1; 
 TolFun = OptimOpt.TolFun;
 TolX = OptimOpt.TolX;
+if ~isfield(EstimOpt,'EMMaxIter') || isempty(EstimOpt.EMMaxIter), EstimOpt.EMMaxIter = 1000; end
 
 
 Bclass = reshape(B(1:NClass*NVarA),[NVarA,NClass]);
@@ -37,7 +38,7 @@ Theta = B(NClass*(NVarA+NVarS)+1:end);
 LL = LL_lc(YY,Xa,Xc,Xs,MissingInd,EstimOpt,B);
 LL = -sum(LL);
 iter = 1;
-while (b_diff > TolX) && (LL_diff > TolFun)
+while ((b_diff > TolX) || (LL_diff > TolFun)) && iter < EstimOpt.EMMaxIter
     
     % Calculating posterior probability
     Eta = BayesProbs(YY,Xa,Xc, Xs, MissingInd,EstimOpt,B); % NP x NClass
@@ -66,6 +67,7 @@ while (b_diff > TolX) && (LL_diff > TolFun)
     LLnew = LL_lc(YY,Xa,Xc,Xs,MissingInd,EstimOpt,B);
     LLnew = -sum(LLnew);
     LL_diff = abs(LLnew - LL);
+    if LLnew < LL - 1e-8, warning('EM_LC: log-likelihood decreased at iteration %d (%.6g -> %.6g)', iter, LL, LLnew); end
     LL = LLnew;
 
     disp(num2str([iter, b_diff, LL_diff, LL],'Iteration: %1.0f | Parameters change: %1.2f | LL change: %1.2f | LL: %1.3f '))
@@ -85,9 +87,10 @@ function LL = LL_fmnl(Eta, Xc, EstimOpt, B)
     NVarC = EstimOpt.NVarC;
 %     NVarS = EstimOpt.NVarS;
 
-    PClass = exp(Xc*reshape([B;zeros(NVarC,1)],[NVarC,NClass]));
+    PClass = Xc*reshape([B;zeros(NVarC,1)],[NVarC,NClass]);
+    PClass = exp(PClass - max(PClass,[],2));
     PClass = PClass./sum(PClass,2); % NP x NClass
-    LL = sum(log(PClass).*Eta,2);
+    LL = sum(log(max(PClass,realmin)).*Eta,2);
 end
 
 function [f,g,h] = LL_fmnl_MATlike(Eta, Xc, EstimOpt, OptimOpt, b0)

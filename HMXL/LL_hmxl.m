@@ -113,7 +113,8 @@ end
 
 if sum(Dist == 1) > 0 % Log - normal
     b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
-elseif sum(Dist == 2) > 0 % Spike       
+end
+if sum(Dist == 2) > 0 % Spike       
     b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
 end
 
@@ -540,6 +541,7 @@ else % function value + gradient
 
         % For now this only works for NLatent == 1, for more some
         % additional indexing is needed
+        if EstimOpt.NLatent > 1, error('LL_hmxl: FullCov==2 analytic gradient supports only NLatent==1; set EstimOpt.NumGrad=1 for NLatent>1.'); end
         errGrad = errGrad(NVarA+1:end,:)./(NormVar.^3); % Nlatent x NRep*NP
         errGrad = errGrad.*VCGrad((NVarA+1),1:NVarA)';
         EpsDer = err_sliced(1:NVarA,:)/NormVar - errGrad; % NVarA X NRep*NP

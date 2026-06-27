@@ -14,6 +14,7 @@ VC(VC == 1) = B1;
 VC(VCtmp == 1) = 1;
 if Corr > -1
     VCtmp2 = sqrt(sum(VC(sum(EstimOpt.Dist ~= -1)+1:end,:).^2,2));
+    VCtmp2(VCtmp2==0) = 1;
     VC(sum(EstimOpt.Dist ~= -1)+1:end,:) = VC(sum(EstimOpt.Dist ~= -1)+1:end,:)./VCtmp2(:,ones(1, EstimOpt.NLatent+sum(EstimOpt.Dist ~= -1)));
 end
 COV = VC*VC';

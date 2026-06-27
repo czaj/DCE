@@ -28,6 +28,7 @@ CORRX = zeros(EstimOpt.NVarA+EstimOpt.NLatent,EstimOpt.NVarA+EstimOpt.NLatent,Es
 for i = 1:EstimOpt.NSdSim
     Vt_t(Vt == 1) = PRMX(i,:);
     tmp = sqrt(sum(Vt_t(EstimOpt.NVarA+1:end,:).^2,2));
+    tmp(tmp==0) = 1;
     Vt_t(EstimOpt.NVarA+1:end,:) = Vt_t(EstimOpt.NVarA+1:end,:)./tmp(:,ones(1,EstimOpt.NVarA+EstimOpt.NLatent));
     StdX = sqrt(diag(Vt_t*Vt_t'))';
     A = (StdX')*StdX;

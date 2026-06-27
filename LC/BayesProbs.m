@@ -19,11 +19,12 @@ end
 if EstimOpt.NVarS > 0
     bs = reshape(B(l+1:l+EstimOpt.NClass*EstimOpt.NVarS),[EstimOpt.NVarS,EstimOpt.NClass]);
     Scale = exp(Xs*bs);
-    U = exp(reshape((Xa*Bclass).*Scale,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass])); % NAlt*NCT*NP x NClass
+    U = reshape((Xa*Bclass).*Scale,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass]); % NAlt*NCT*NP x NClass
     l = l+EstimOpt.NClass*EstimOpt.NVarS;
 else
-    U = exp(reshape(Xa*Bclass,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass])); % NAlt*NCT*NP x NClass
+    U = reshape(Xa*Bclass,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass]); % NAlt*NCT*NP x NClass
 end
+U = exp(U - max(U,[],1));
 U(MissingInd == 1) = 0;% do not include alternatives which were not available
 
 P = reshape(sum(YY.*U./sum(U,1),1),[EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass]); % NCT x NP*NClass
@@ -31,8 +32,9 @@ P(reshape(MissingInd(1:EstimOpt.NAlt:end),[EstimOpt.NCT,EstimOpt.NP*EstimOpt.NCl
 probs = prod(P,1);
 probs = reshape(probs,[EstimOpt.NP,EstimOpt.NClass]);
 
-Pclass = exp(Xc*reshape([B(l+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]));
+Pclass = Xc*reshape([B(l+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
+Pclass = exp(Pclass - max(Pclass,[],2));
 Pclass = Pclass./sum(Pclass,2);
-Scores = probs.*Pclass./sum(probs.*Pclass,2);
+Scores = probs.*Pclass./max(sum(probs.*Pclass,2),realmin);
 
 end

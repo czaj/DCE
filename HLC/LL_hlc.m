@@ -5,7 +5,8 @@ if EstimOpt.WTP_space > 0
     beta(1:end-EstimOpt.WTP_space,:) = beta(1:end-EstimOpt.WTP_space,:).*beta(EstimOpt.WTP_matrix,:);
 end
 U = reshape(Xa*beta,[EstimOpt.NAlt,EstimOpt.NCT*EstimOpt.NP*EstimOpt.NClass]);
-U = exp(U - max(U)); ...% NAlt*NCT*NP x NClass U(isnan(U)) = 0;... % do not include alternatives which were not available
+U = exp(U - max(U)); % NAlt*NCT*NP x NClass
+U(isnan(U)) = 0; % do not include alternatives which were not available
 U_sum = nansum(U,1);
 P = reshape(sum(YY.*U./U_sum(ones(EstimOpt.NAlt,1),:),1),[EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass]); % NCT x NP*NClass
 P(isnan(reshape(YY(1,:),[EstimOpt.NCT,EstimOpt.NP*EstimOpt.NClass]))) = 1;
@@ -29,7 +30,8 @@ p = zeros(EstimOpt.NP,EstimOpt.NRep);
 for i = 1:EstimOpt.NP
     Xc_i = Xc(i,:);
     XXc = [Xc_i(ones(EstimOpt.NRep,1),:),LV(:,(i-1)*EstimOpt.NRep+1:i*EstimOpt.NRep)'];
-    Pclass = exp(XXc*bclass); % NRep x NClass
+    Pclass = XXc*bclass;
+    Pclass = exp(Pclass - max(Pclass,[],2)); % NRep x NClass
     Pclass = Pclass./sum(Pclass,2); % NRep x NClass
     p(i,:) = sum(Pclass.*probs(:,:,i),2)'; 
     
@@ -61,7 +63,8 @@ for i = 1:size(X_mea,2)
         else
             X = [ones(EstimOpt.NRep*EstimOpt.NP,1),LV(EstimOpt.MeaMatrix(:,i)' == 1,:)',Xmea_exp];
         end
-        V = exp(X*reshape([zeros(size(X,2),1);bmea(l+1:l+size(X,2)*k)],[size(X,2),k+1])); % NRep*NP x unique values of attitude
+        V = X*reshape([zeros(size(X,2),1);bmea(l+1:l+size(X,2)*k)],[size(X,2),k+1]); % NRep*NP x unique values of attitude
+        V = exp(V - max(V,[],2));
         V = permute(reshape(V./sum(V,2),[EstimOpt.NRep,EstimOpt.NP,k+1]),[2 1 3]); % NP x NRep x unique
         L = zeros(EstimOpt.NP,EstimOpt.NRep);
         for j = 1:length(UniqueMea)
@@ -138,5 +141,6 @@ for i = 1:size(X_mea,2)
     end
 end
 f = -log(max(realmin,mean(p.*L_mea,2)));
+f(~isfinite(f)) = -log(realmin);
 
 end

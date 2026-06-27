@@ -735,7 +735,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'GMXL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1

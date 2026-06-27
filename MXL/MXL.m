@@ -987,7 +987,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MXL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -1530,8 +1530,8 @@ elseif EstimOpt.FullCov == 1
         end
         DetailsS0 = NaN(EstimOpt.NVarS,4);
         DetailsS0(1:EstimOpt.NVarS,1:4) = Results.DetailsS;
-        if EstimOpt.NVarS == NVarA % will not work if NVarS > NVarA
-            Results.R = [Results.R,DetailsS0];
+        if EstimOpt.NVarS <= NVarA % will not work if NVarS > NVarA
+            Results.R = [Results.R;[DetailsS0,NaN(size(DetailsS0,1),size(Results.R,2)-size(DetailsS0,2))]];
         end
     end
     Results.chol = [Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)),pv(Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)))];

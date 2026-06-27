@@ -557,7 +557,7 @@ disp(' ');
 
 
 Results.clocknote = clocknote;
-Results.tocnote = clocknote;
+Results.tocnote = tocnote;
 
 % save(EstimOpt.fnameout, 'Results')
     

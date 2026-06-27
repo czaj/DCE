@@ -291,16 +291,18 @@ if isfield(EstimOpt,'R2type') == 0
     EstimOpt.R2type = 0;
 end
 
+W_task = reshape(repmat(INPUT.W(:)', EstimOpt.NCT, 1), [], 1);
+
 Results.LLdetailed = probs_mdcev(INPUT, EstimOpt, Results.bhat);
-Results.LLdetailed = Results.LLdetailed.*INPUT.W;
+Results.LLdetailed = Results.LLdetailed.*W_task;
 
 if EstimOpt.HessEstFix == 1
     f = probs_mdcev(INPUT, EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) -INPUT.W.*probs_mdcev(INPUT, EstimOpt,B),-INPUT.W.*f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+    Results.jacobian = numdiff(@(B) -W_task.*probs_mdcev(INPUT, EstimOpt,B),-W_task.*f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
 elseif EstimOpt.HessEstFix == 2
-    Results.jacobian = jacobianest(@(B) -INPUT.W.*probs_mdcev(INPUT, EstimOpt,B),Results.bhat);
+    Results.jacobian = jacobianest(@(B) -W_task.*probs_mdcev(INPUT, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(INPUT.W.*probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
+    Results.hess = hessian(@(B) -sum(W_task.*probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 % elseif EstimOpt.HessEstFix == 4 % analytical - missing
 %     Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 end
@@ -313,7 +315,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MDCEV');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 

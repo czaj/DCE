@@ -401,7 +401,7 @@ else
     elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && ~isempty(Results_old.MXL_d.bhat) && ... % MXL exists
             (size(Results_old.MXL_d.bhat(:),1) == (NVarA*2 + Results_old.MXL_d.EstimOpt.NVarS)) && ... % MXL_d has correct no. of parameters
             all(Results_old.MXL_d.EstimOpt.Dist == 0 | Results_old.MXL_d.EstimOpt.Dist == 1) % all parameters were normally or log-normally distributed
-        EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_oldMXL_dMXL.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
+        EstimOpt.Bounds = [Results_old.MXL_d.bhat(1:NVarA) - 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2)),Results_old.MXL_d.bhat(1:NVarA) + 2*abs(Results_old.MXL_d.bhat(NVarA+1:NVarA*2))];
         EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1) = exp(EstimOpt.Bounds(Results_old.MXL_d.EstimOpt.Dist == 1)); %  median, not mean
     else % run quick MXL_d and use mean +/- 2*s.d.
         disp('Bounds not provided - using a quick MXL_d model to generate')
@@ -703,7 +703,7 @@ if EstimOpt.NoOutput == 0
     EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
     EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
     Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-    Results.ihess = inv(Results.hess);
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LML');
     Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
     Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 

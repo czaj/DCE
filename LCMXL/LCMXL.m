@@ -646,7 +646,7 @@ end
 Results.LL = -LL;
 if EstimOpt.Scores ~= 0
     %[Results.PScores,Results.BScores] = BayesScoresLCMXL(INPUT.YY,INPUT.XXa,INPUT.XXc,INPUT.Xs,err_sliced,EstimOpt,Results.bhat);
-    [Results.PScores,Results.BScores] = BayesScoresLCMXL(INPUT.YY,INPUT.XXa,INPUT.XXc,err_sliced,EstimOpt,Results.bhat);
+    [Results.PScores,Results.BScores] = BayesScoresLCMXL(INPUT.YY,INPUT.XXa,INPUT.XXc,INPUT.Xs,err_sliced,EstimOpt,Results.bhat);
 end
 
 if EstimOpt.HessEstFix == 1
@@ -669,7 +669,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LCMXL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1
@@ -741,9 +741,11 @@ NSdSim = 10000;
 bclass = reshape([Results.bhat(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
 bclass_sim = reshape([mvnrnd(Results.bhat(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),Results.ihess(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end,end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
 
-V = exp(INPUT.XXc*bclass);
+V = INPUT.XXc*bclass;
+V = exp(V - max(V,[],2));
 Results.PClass = zeros(1,4*EstimOpt.NClass);
 Results.PClass_mean = mean(V./sum(V,2),1);
+Results.PClass(1,1:4:EstimOpt.NClass*4-3) = Results.PClass_mean;
 for i = 1:length(Results.PClass_mean)
     Results.(['PClass',num2str(i)])(1) = Results.PClass_mean(i);
 end
@@ -752,7 +754,8 @@ PClass_mean = zeros(NSdSim,EstimOpt.NClass);
 XXc = INPUT.XXc;
 parfor i = 1:NSdSim
     bhat_sim_i = bclass_sim(:,:,i);
-    V_i = exp(XXc*bhat_sim_i);
+    V_i = XXc*bhat_sim_i;
+    V_i = exp(V_i - max(V_i,[],2));
     PC_i = V_i./sum(V_i,2);
     PClass_mean(i,:) = mean(PC_i,1);
 end

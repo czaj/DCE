@@ -1,4 +1,4 @@
-function Score = BayesScores(YY,XXa,XXm,Xs,err,EstimOpt,b0)
+function Score = BayesScoresMXL(YY,XXa,XXm,Xs,err,EstimOpt,b0)
 
 % save LL_mxl
 % return
@@ -459,7 +459,7 @@ end
 %% Nonlinear transformations
 if NVarNLT > 0
     % IndTransNon0 = (abs(bt) > 0.00001)';
-    IndTransNon0 = (abs(b0t) > eps)';
+    IndTransNon0 = (abs(b0t) > 1e-6)';
     Xt = XXa(:,NLTVariables,:);
     %     bt_tmp = permute(b0t(:, ones(NAlt*NCT,1), ones(NP,1)), [2 1 3]);
     bt_tmp = b0t(:,ones(NAlt*NCT,1))';
@@ -467,8 +467,11 @@ if NVarNLT > 0
     
     % Transform variables with the chosen transformation type (Box-Cox, Yeo-Johnson)    
     if NLTType == 1 % BC
-        Xt(:,IndTransNon0,:) = -(Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
-        Xt(:,~IndTransNon0,:) = -log(Xt(:,~IndTransNon0,:));
+        if any(reshape(Xt(:,IndTransNon0,:) <= 0,[],1)) || any(reshape(Xt(:,~IndTransNon0,:) <= 0,[],1))
+            error('BayesScoresMXL: Box-Cox/log transform requires strictly positive inputs.');
+        end
+        Xt(:,IndTransNon0,:) = (Xt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:) - 1)./bt_tmp(:,IndTransNon0,:);
+        Xt(:,~IndTransNon0,:) = log(Xt(:,~IndTransNon0,:));
     elseif NLTType == 2 % YJ
         IndXtNon0 = (Xt >= 0);
         IndXtCase1 = IndXtNon0 & IndTransNon0; % X >= 0, lam ~= 0
@@ -487,8 +490,8 @@ if NVarNLT > 0
     if EstimOpt.NumGrad == 0 %
         if NLTType == 1 % BC
             XXt = XXa(:,NLTVariables,:);
-            XXt(:,IndTransNon0,:) = -(XXt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:).*(bt_tmp(:,IndTransNon0,:).*log(XXt(:,IndTransNon0,:))-1)+1)./(bt_tmp(:,IndTransNon0,:).^2);
-            XXt(:,IndTransNon0 == 0,:) = -0.5*log(XXt(:,IndTransNon0 == 0)).^2;
+            XXt(:,IndTransNon0,:) = (XXt(:,IndTransNon0,:).^bt_tmp(:,IndTransNon0,:).*(bt_tmp(:,IndTransNon0,:).*log(XXt(:,IndTransNon0,:))-1)+1)./(bt_tmp(:,IndTransNon0,:).^2);
+            XXt(:,IndTransNon0 == 0,:) = 0.5*log(XXt(:,IndTransNon0 == 0)).^2;
         elseif NLTType == 2 % YJ
             XXt = XXa(:,NLTVariables,:);
             XXt(IndXtCase1) = ((XXt(IndXtCase1)+1).^bt_tmp(IndXtCase1).*(bt_tmp(IndXtCase1).*log(XXt(IndXtCase1)+1)-1)+1)./(bt_tmp(IndXtCase1).^2);% X >= 0, lam ~= 0
@@ -537,7 +540,7 @@ if sum(Dist == 3) > 0 % Triangular
     bmtx_triang(tmp < Ftriang) = Triang(tmp < Ftriang)+ sqrt(tmp(tmp < Ftriang).*tmp2(tmp < Ftriang));
     tmp2 = (b0triang_b - Triang).*(b0triang_b-b0triang_c);
     %bmtx_triang(tmp >= Ftriang) = b0triang_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
-    bmtx_triang(tmp >= Ftriang) = b0triang_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    bmtx_triang(tmp >= Ftriang) = b0triang_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
     b_mtx(Dist == 3,:) = bmtx_triang;
 end
 if sum(Dist == 4) > 0 % Weibull

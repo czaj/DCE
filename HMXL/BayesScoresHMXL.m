@@ -113,7 +113,8 @@ end
 
 if sum(Dist == 1) > 0 % Log - normal
     b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
-elseif sum(Dist == 2) > 0 % Spike       
+end
+if sum(Dist == 2) > 0 % Spike       
     b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
 end
 

@@ -103,6 +103,9 @@ elseif sum(Dist == 1) > 0  % Log - normal
     if Gamma0 == 0
         b_mtx  = b0n + VC*err(1:end-1,:);
         b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+        if any(Dist == 2)
+            b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
+        end
         if nargout == 2
             b_mtx_grad = reshape(b_mtx,[NVarA,NRep,NP]);
         else
@@ -112,21 +115,27 @@ elseif sum(Dist == 1) > 0  % Log - normal
     elseif Gamma0 == 1
         b_mtx = sigma.*b0n + VC*err(1:end-1,:);
         b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+        if any(Dist == 2)
+            b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
+        end
     else
         b_mtx = sigma.*(b0n + (1 - gamma)*VC*err(1:end-1,:)) + gamma*VC*err(1:end-1,:);
         b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+        if any(Dist == 2)
+            b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
+        end
     end
 elseif sum(Dist == 2) > 0  % Spike
     if Gamma0 == 0
         b_mtx  = b0n + VC*err(1:end-1,:);
-        b_mtx(Dist == 1,:) = max(b_mtx(Dist == 1,:),0);
+        b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
         b_mtx = sigma.*b_mtx;  % NVarA x NRep*NP
     elseif Gamma0 == 1
         b_mtx = sigma.*b0n + VC*err(1:end-1,:);
-        b_mtx(Dist == 1,:) = max(b_mtx(Dist == 1,:),0);
+        b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
     else
         b_mtx = sigma.*(b0n + (1 - gamma)*VC*err(1:end-1,:)) + gamma*VC*err(1:end-1,:);
-        b_mtx(Dist == 1,:) = max(b_mtx(Dist == 1,:),0);
+        b_mtx(Dist == 2,:) = max(b_mtx(Dist == 2,:),0);
     end
     if nargout == 2
         b_mtx_grad = zeros(NVarA,0,NP);
@@ -135,14 +144,14 @@ elseif sum(Dist == 5) > 0
     if sum(sum(VC.*(1-eye(size(b0n,1))) ~= 0)) ~= 0
         error('Weibull distribution can only be used with non-correlated parameters');
     end
-    if gma ~= 0
+    if gamma ~= 0
         error('Weibull distributed attriute parameters possible only with G-MNL Type II');
     else
         b_mtx = zeros(NVarA,NP*NRep);
         err2 = err(1:end-1,:);
         b_mtx(Dist == 0,:) = b0n(Dist == 0,:) + VC(Dist == 0,Dist == 0)*err2(Dist == 0,:);
         Wexp = (1./diag(VC(Dist == 5,Dist == 5)));
-        b_mtx(Dist == 5,:) = b0n(Dist == 5).*err2(Dist == 5,:).^Wexp;
+        b_mtx(Dist == 5,:) = b0n(Dist == 5,:).*err2(Dist == 5,:).^Wexp;
         b_mtx = b_mtx.*sigma;
     end
     if nargout == 2
@@ -230,9 +239,9 @@ else
                 F = XXa_n(YYy_n,:) - reshape(X_hat,[NCT,NVarA,NRep]);  %NCT x NVarA x NRep
                 sumFsqueezed = reshape(sum(F,1),[NVarA,NRep]);  %NVarA x NRep
             else
-                sumFsqueezed = reshape(XXa_n(YYy_n,:,n)-squeeze(X_hat),[NCT,NVarA,NRep]); %NVarA x NRep
+                sumFsqueezed = reshape(XXa_n(YYy_n,:)-squeeze(X_hat),[NCT,NVarA,NRep]); %NVarA x NRep
             end
-            b_mtx_grad_n = b_mtx_grad(:,:,n)
+            b_mtx_grad_n = b_mtx_grad(:,:,n);
             if Gamma0 == 0 && sum(Dist == 1) > 0
                 sumFsqueezed2 = sumFsqueezed;
                 sumFsqueezed(Dist == 1,:) = sumFsqueezed(Dist == 1, :).*b_mtx_grad_n(Dist == 1,:);
@@ -252,7 +261,7 @@ else
                 DerTau = (tau*errx_n + mSig_n).*DerTau;
             else
                 TauTmp = tau*errx_n.*cov_tau(n,:); %1 x Nrep
-                DerCovTau = (TauTmp.*XXt(n,:)') + mSigCov
+                DerCovTau = (TauTmp.*XXt(n,:)') + mSigCov;
                 DerCovTau = reshape(DerCovTau,[1,NVarT,NRep]).*reshape(DerTau,[NVarA,1,NRep]); %  NVarA x NVarT x NRep
                 DerCovTau = reshape(DerCovTau,[NVarA*NVarT,NRep]);
                 DerTau = (TauTmp + mSig_n).*DerTau;

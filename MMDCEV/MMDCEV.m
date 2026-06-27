@@ -113,6 +113,12 @@ end
 if isfield(EstimOpt,'RealMin') == 0
     EstimOpt.RealMin = 0;
 end
+if ~isfield(EstimOpt,'NumGrad') || isempty(EstimOpt.NumGrad)
+    EstimOpt.NumGrad = 1;
+end
+if ~isfield(EstimOpt,'ApproxHess') || isempty(EstimOpt.ApproxHess)
+    EstimOpt.ApproxHess = 1;
+end
 if isfield(EstimOpt,'NSdSim') == 0
     EstimOpt.NSdSim = 10000;
 end
@@ -437,7 +443,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MMDCEV');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 

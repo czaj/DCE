@@ -653,7 +653,6 @@ if size(INPUT.Xmea,2) > 0
     end
     [Results.MIMIC0.bhat,LL0] = fminunc(LLfun0,b0_mimic0,OptimOpt_0);
     Results.MIMIC0.LL = -LL0;
-    Results.MIMIC0.LL = 0;
 else
     Results.MIMIC0.bhat = [];
     Results.MIMIC0.LL = 0;
@@ -1158,7 +1157,7 @@ else
     EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
     Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 end
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HMNL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1
@@ -1167,7 +1166,7 @@ if EstimOpt.RobustStd == 1
         Results.jacobian = Results.jacobian.*INPUT.W;
     else
         Results.LLdetailed = LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,Results.bhat);
-        Results.jacobian = numdiff(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,B),INPUT.W.*Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian = numdiff(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),INPUT.W.*Results.LLdetailed,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
     end
     RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;

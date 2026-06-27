@@ -24,6 +24,7 @@ elseif nargout == 2
     P = GridProbs.*Fit_exp'; % NP x NRep
     P_sum = sum(P,2); % NP x 1
     
+    P_sum = max(P_sum,realmin);
     P_share = P./P_sum; % NP x NRep
     j = (P_share - Fit_exp').*permute(reshape(b_mtx,[NVar,NRep,NP]),[3,2,1]); % NP x NRep x NVar
     j = -reshape(sum(j,2),[NP,NVar]); % NP x NVar

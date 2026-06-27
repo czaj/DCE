@@ -260,19 +260,15 @@ for i = 1:size(EstimOpt.MeaMatrix,2)
         cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
     end    
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
-            cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \n',i)
-        end
+    if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
+        cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \\n',i)
     end
-    if numel(EstimOpt.MeaSpecMatrix(i) > 0) > 0
-        if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
-            idxMNLtmp = INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0) & isfinite(INPUT.Xmea(:,i));
-            [~, ~, indAval] = unique(INPUT.Xmea(idxMNLtmp,i));
-            INPUT.Xmea(idxMNLtmp,i) = indAval; % make unique values positive (avoid problems with dummyvar)
-            INPUT.Xmea(~idxMNLtmp & EstimOpt.MissingIndMea(:,i) == 1,i) = NaN;
-            clear idxMNLtmp indAval
-        end
+    if EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+        idxMNLtmp = INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0) & isfinite(INPUT.Xmea(:,i));
+        [~, ~, indAval] = unique(INPUT.Xmea(idxMNLtmp,i));
+        INPUT.Xmea(idxMNLtmp,i) = indAval; % make unique values positive (avoid problems with dummyvar)
+        INPUT.Xmea(~idxMNLtmp & EstimOpt.MissingIndMea(:,i) == 1,i) = NaN;
+        clear idxMNLtmp indAval
     end
 end
 
@@ -839,7 +835,7 @@ end
 EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
 EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MIMIC');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1

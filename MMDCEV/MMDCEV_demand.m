@@ -33,7 +33,8 @@ NCT = EstimOpt.NCT;
 
 FullCov = EstimOpt.FullCov;
 Dist = EstimOpt.Dist;
-NRep = EstimOpt.NRep; % May cause an error if NRep < NSim
+NRep = EstimOpt.NRep;
+assert(EstimOpt.NSim <= EstimOpt.NRep, 'MMDCEV_demand: NSim (%d) must not exceed NRep (%d).', EstimOpt.NSim, EstimOpt.NRep);
 
 Profile = EstimOpt.Profile; % Utility function version
 SpecProfile = EstimOpt.SpecProfile;

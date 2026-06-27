@@ -197,7 +197,7 @@ try
                     try
                         Results.LML = LML(INPUT,Results,EstimOpt,OptimOpt);
                         B_out(i-1,1:size(Results.LML.bhat,1),j,2) = Results.LML.bhat;
-                        LL(i-1,j,2) = Results.LML_d.LL;
+                        LL(i-1,j,2) = Results.LML.LL;
                         Summary(j + (i-2)*7,9:15) = [EstimOpt.NOrder,Dist,1,Results.LML.LL,Results.LML.stats(9,1),Results.LML.stats(5:6,1)'];
                         Res.bhat(i-1,j,2,1,1:length(Results.LML.bhat)) = Results.LML.bhat;
                         Res.LL(i-1,j,2,1) = Results.LML.LL;

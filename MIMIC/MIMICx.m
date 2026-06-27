@@ -30,10 +30,10 @@ elseif EstimOpt.HessEstFix == 3
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
-    Results.ihess = inv(Results.hess);  
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MIMICx');
     Results.std = sqrt(diag(Results.ihess));     
 else    
-    Results.ihess = inv(Results.hess);
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MIMICx');
     Results.std = sqrt(diag(Results.ihess)); 
 end   
 

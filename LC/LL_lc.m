@@ -45,11 +45,12 @@ probs = prod(P,1);
 probs = reshape(probs,[NP,NClass]);
 
 if sum(BActiveClass == 0,1) == 0
-    PClass = exp(Xc*reshape([B(NClass*(NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+    PClass = Xc*reshape([B(NClass*(NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]);
 else
-    PClass = exp(Xc*reshape([B((NClass-1)*sum(BActiveClass,1)+NVarA+NClass*NVarS+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+    PClass = Xc*reshape([B((NClass-1)*sum(BActiveClass,1)+NVarA+NClass*NVarS+1:end);zeros(NVarC,1)],[NVarC,NClass]);
 end
 
+PClass = exp(PClass - max(PClass,[],2));
 PClass = PClass./sum(PClass,2);
 
 probs_x = probs.*PClass;

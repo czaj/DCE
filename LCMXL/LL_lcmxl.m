@@ -38,8 +38,9 @@ if FullCov == 0
         b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,:) + diag(B(NVarA*NClass+(c-1)*NVarA+1:NVarA*(NClass+c)))*err((c-1)*NVarA+1:c*NVarA,:);
         if sum(Dist(:,c) == 1) > 0  % lognormal
             b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c));
-        elseif sum(Dist(:,c) == 2) > 0  % Spike
-            b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0);
+        end
+        if sum(Dist(:,c) == 2) > 0  % Spike
+            b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 2,:,c),0);
         end
         if WTP_space > 0
             if EstimOpt.NumGrad == 0
@@ -58,8 +59,9 @@ else
         b_mtx(:,:,c) = B((c-1)*NVarA+1:c*NVarA,ones(NP*NRep,1)) + VC*err((c-1)*NVarA+1:c*NVarA,:);
         if sum(Dist(:,c) == 1) > 0  % lognormal
             b_mtx(Dist(:,c) == 1,:,c) = exp(b_mtx(Dist(:,c) == 1,:,c));
-        elseif sum(Dist(:,c) == 2) > 0  % Spike
-            b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 1,:,c),0);
+        end
+        if sum(Dist(:,c) == 2) > 0  % Spike
+            b_mtx(Dist(:,c) == 2,:,c) = max(b_mtx(Dist(:,c) == 2,:,c),0);
         end
         if WTP_space > 0
             if EstimOpt.NumGrad == 0
@@ -93,7 +95,7 @@ if nargout == 1 % function value only
         parfor n = 1:NP
             U = reshape(XXa(:,:,n)*b_mtx(:,:,n),[NAlt,NCT,NRep,NClass]);
             if NVarS > 0
-               Scale_n = Scale(:,:,n,:)
+               Scale_n = Scale(:,:,n,:);
                U = U.*Scale_n; 
             end
             U = exp(U-max(U));
@@ -124,13 +126,14 @@ if nargout == 1 % function value only
     end
     
     if FullCov == 0
-        Pclass = exp(Xc*reshape([B(NClass*(2*NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+        Pclass = Xc*reshape([B(NClass*(2*NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]);
     else
-        Pclass = exp(Xc*reshape([B(NClass*(NVarA+NVarS+sum(1:NVarA))+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+        Pclass = Xc*reshape([B(NClass*(NVarA+NVarS+sum(1:NVarA))+1:end);zeros(NVarC,1)],[NVarC,NClass]);
     end
+    Pclass = exp(Pclass - max(Pclass,[],2));
     Pclass = Pclass./sum(Pclass,2); % NP x NClass
     
-    f = -log(sum(p.*Pclass,2));
+    f = -log(max(sum(p.*Pclass,2),realmin));
     
 elseif nargout == 2 % function value + gradient
     
@@ -153,10 +156,11 @@ elseif nargout == 2 % function value + gradient
         Xs_sliced = zeros(0,0,NP);
     end
     if FullCov == 0
-        Pclass = exp(Xc*reshape([B(NClass*(2*NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+        Pclass = Xc*reshape([B(NClass*(2*NVarA+NVarS)+1:end);zeros(NVarC,1)],[NVarC,NClass]);
     else
-        Pclass = exp(Xc*reshape([B(NClass*(NVarA+NVarS+sum(1:NVarA))+1:end);zeros(NVarC,1)],[NVarC,NClass]));
+        Pclass = Xc*reshape([B(NClass*(NVarA+NVarS+sum(1:NVarA))+1:end);zeros(NVarC,1)],[NVarC,NClass]);
     end
+    Pclass = exp(Pclass - max(Pclass,[],2));
     Pclass = Pclass./sum(Pclass,2); % NP x NClass
     f = zeros(NP,1);
     
@@ -175,7 +179,7 @@ elseif nargout == 2 % function value + gradient
             YYy_n = YYy(:,n);
             U_prod = prod(reshape(U_prob(YYy_n(:,ones(1,NRep),ones(1,1,NClass))),[NCT,NRep,NClass]),1); % 1 x NRep x NClass
             p(n,:) = mean(U_prod,2);
-            f(n) = sum(p(n,:).*Pclass(n,:),2);
+            f(n) = max(sum(p(n,:).*Pclass(n,:),2),realmin);
             U_prob = reshape(U_prob,[NAlt*NCT,1,NRep,NClass]); % NAlt*NCT x NVarA x NRep x NClass
             if WTP_space == 0
                 if NVarS > 0
@@ -302,7 +306,7 @@ elseif nargout == 2 % function value + gradient
             YYy_n = YY(:,n) == 1;
             U_prod = prod(reshape(U_prob(YYy_n(YnanInd,ones(1,NRep),ones(1,1,NClass))),[NCTMiss(n),NRep,NClass]),1); % 1 x NRep x NClass
             p(n,:) = mean(U_prod,2);
-            f(n) = sum(p(n,:).*Pclass(n,:),2);
+            f(n) = max(sum(p(n,:).*Pclass(n,:),2),realmin);
             U_prob = reshape(U_prob,[NAltMiss(n)*NCTMiss(n),1,NRep,NClass]); % NAlt*NCT x NVarA x NRep x NClass
             if WTP_space == 0
                 if NVarS > 0
@@ -317,7 +321,7 @@ elseif nargout == 2 % function value + gradient
                 sumFsqueezed(Dist1,:) = sumFsqueezed(Dist1,:).*b_mtx_n(Dist1,:);
                 sumFsqueezed = reshape(sumFsqueezed,[NVarA,NRep,NClass]);
                 if NVarS > 0
-                    bss = reshape(b_mtx_n,1,[NVarA,NRep,NClass]);
+                    bss = reshape(b_mtx_n,[1,NVarA,NRep,NClass]);
 %                     Fs = sum(F.*bss(ones(NCTMiss(n),1),:,:,:),2);
                     Fs = sum(F.*bss,2);
                     Xs_n = Xs_sliced(:,:,n); 
@@ -357,7 +361,7 @@ elseif nargout == 2 % function value + gradient
                 
                 if NVarS > 0
 %                     Fs = reshape(F2.*b_mtx_tmp(NVarA*ones(NCTMiss(n),1),:,:),[NCTMiss(n),1,NRep,NClass]); % NCT x 1 x NRep x NClass
-                    Fs = reshape(F2.*b_mtx_tmp,[NCTMiss(n),1,NRep,NClass]); % NCT x 1 x NRep x NClass
+                    Fs = reshape(F2.*b_mtx_tmp(NVarA,:,:),[NCTMiss(n),1,NRep,NClass]); % NCT x 1 x NRep x NClass
                     Xs_n = Xs_sliced(:,:,n);
                     Fs = Fs.*Xs_n(YCT(:,n),:,:,:); % NCT x NVarS x NRep x NClass
                     Fs = reshape(sum(Fs,1),[NVarS,NRep,NClass]); % NVarS x NRep x NClass

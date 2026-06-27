@@ -1143,7 +1143,7 @@ else
     EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
     Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 end
-Results.ihess = inv(Results.hess);
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HMXL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 if EstimOpt.RobustStd == 1
@@ -1284,8 +1284,8 @@ elseif EstimOpt.FullCov == 2
         
     if EstimOpt.NVarM > 0
         for i = 1:EstimOpt.NVarM
-            Results.DetailsCM(:,1) = Results.bhat(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i);
-            Results.DetailsCM(:,3:4) = [Results.std(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i),pv(Results.bhat(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i),Results.std(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i))];
+            Results.DetailsCM(:,4*i-3) = Results.bhat(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i);
+            Results.DetailsCM(:,4*i-1:4*i) = [Results.std(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i),pv(Results.bhat(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i),Results.std(l+1+(i-1)*EstimOpt.NVarA:l+EstimOpt.NVarA*i))];
         end
     else
         Results.DetailsCM = [];

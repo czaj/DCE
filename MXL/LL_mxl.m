@@ -403,7 +403,7 @@ if sum(Dist == 3) > 0 % Triangular
     bmtx_triang(tmp < Ftriang) = Triang(tmp < Ftriang)+ sqrt(tmp(tmp < Ftriang).*tmp2(tmp < Ftriang));
     tmp2 = (b0triang_b - Triang).*(b0triang_b-b0triang_c);
     %bmtx_triang(tmp >= Ftriang) = b0triang_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
-    bmtx_triang(tmp >= Ftriang) = b0triang_b- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
+    bmtx_triang(tmp >= Ftriang) = b0triang_b(tmp >= Ftriang)- sqrt((1-tmp(tmp >= Ftriang)).*tmp2(tmp >= Ftriang));
     b_mtx(Dist == 3,:) = bmtx_triang;
 end
 if sum(Dist == 4) > 0 % Weibull
@@ -1289,7 +1289,11 @@ elseif nargout == 3 % function value + gradient + hessian
     end
     hx1 = zeros(NVarG,NVarG,NP);
     hx2 = zeros(NVarG,NVarG,NP);
-    XXX = permute(mmx('square',permute(XXa,[2,4,1,3]),[]),[3,1,2,4]);
+    if exist('pagemtimes','builtin')==0 && exist('pagemtimes','file')==0
+        error('LL_mxl: pagemtimes (R2020b+) required for the analytic-Hessian path; use a newer MATLAB or set EstimOpt.NumGrad=1.');
+    end
+    tmpA = permute(XXa,[2,4,1,3]);
+    XXX = permute(pagemtimes(tmpA,'none',tmpA,'transpose'),[3,1,2,4]);
     
     if any(isnan(XXa(:))) == 0 % faster version for complete dataset
         YYy = (YY == 1);
@@ -1349,14 +1353,16 @@ elseif nargout == 3 % function value + gradient + hessian
                 hsb = (mean(hbbx.*(U_prod.*reshape(VC2(:,:,n),[1,NVarA,NRep])),3) + X_hat_U'*X_hat_tmp_VC./NRep)./p0(n);
                 VCxx = zeros(NVarA,NVarA,NRep);
                 VCxx(VCxx0 == 1) = sumFsqueezed.*VC3(:,:,n);
-                VCx_n = mmx('square',reshape(VC3(:,:,n)/2,[NVarA,1,NRep]),[]).*SIG;
+                tmpV = reshape(VC3(:,:,n)/2,[NVarA,1,NRep]);
+                VCx_n = pagemtimes(tmpV,'none',tmpV,'transpose').*SIG;
                 hss = (mean(U_prod.*(hbbx.*VCx_n + VCxx),3) + ...
                 reshape(reshape(X_hat_U,[NCT,NRep,NVarA]).*VC2_n_tmp,[NCT*NRep,NVarA])'*X_hat_tmp_VC./NRep)./p0(n);
             else
                 VC2_n_tmp = reshape(permute(VC2f(indx2,:,n),[2 1]),[1,NRep,NVarA*(NVarA-1)/2+NVarA]); % 1 x NRep x NVC
                 X_hat_tmp_VC = reshape(X_hat(:,:,indx1).*VC2_n_tmp,[NCT*NRep,NVarA*(NVarA-1)/2+NVarA]);
                 hsb = (mean((hbbx(:,indx1,:).*U_prod).*reshape(VC2f(indx2,:,n),[1,NVarA*(NVarA-1)/2+NVarA,NRep]),3) + X_hat_U'*X_hat_tmp_VC./NRep)./p0(n);
-                hss = (mean((U_prod.*hbbx(indx1,indx1,:)).*mmx('square',reshape(VC2f(indx2,:,n),[NVarA*(NVarA-1)/2+NVarA,1,NRep]),[]),3) + ...
+                tmpR = reshape(VC2f(indx2,:,n),[NVarA*(NVarA-1)/2+NVarA,1,NRep]);
+                hss = (mean((U_prod.*hbbx(indx1,indx1,:)).*pagemtimes(tmpR,'none',tmpR,'transpose'),3) + ...
                     reshape(reshape(X_hat_U(:,indx1),[NCT,NRep,NVarA*(NVarA-1)/2+NVarA]).*VC2_n_tmp,[NCT*NRep,NVarA*(NVarA-1)/2+NVarA])'*X_hat_tmp_VC./NRep)./ p0(n);
             end
             hx2(:,:,n) = [hbb,hsb;hsb',hss];
