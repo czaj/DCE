@@ -15,47 +15,47 @@ function Results = GWMNL(INPUT,Results_old,EstimOpt,OptimOpt)
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
 % GWMNL uses bandwidth:
-% ï	BandType = 1; by default uses global bandwidth, set to 2 for spatially varying bandwidth, set to 3 for square root of spatially varying bandwidth
-% ï	BandSearch = 0; model uses fixed bandwidth as provided in BandVal; set to 1 to find optimal bandwidth value
-% ï	BandVal = 3; default bandwidth value
-% ï	BandLower = 0; bandwidth lower bound
-% ï	BandUpper = 5; bandwidth upper bound
-% ï	Clustered = 1; uses clustered standard errors, set to 0 otherwise
-% ï	WeightSum = 1; no particular summing, set to 2 for summing to 1, set to 3 for summing to NP
-% ï	BStrap = 0; set to 1 for bootstrapping
+% ‚Ä¢	BandType = 1; by default uses global bandwidth, set to 2 for spatially varying bandwidth, set to 3 for square root of spatially varying bandwidth
+% ‚Ä¢	BandSearch = 0; model uses fixed bandwidth as provided in BandVal; set to 1 to find optimal bandwidth value
+% ‚Ä¢	BandVal = 3; default bandwidth value
+% ‚Ä¢	BandLower = 0; bandwidth lower bound
+% ‚Ä¢	BandUpper = 5; bandwidth upper bound
+% ‚Ä¢	Clustered = 1; uses clustered standard errors, set to 0 otherwise
+% ‚Ä¢	WeightSum = 1; no particular summing, set to 2 for summing to 1, set to 3 for summing to NP
+% ‚Ä¢	BStrap = 0; set to 1 for bootstrapping
 % o	NBStrap = 100; No of bootstrap replications
-% 
-% 
+%
+%
 % General basics:
-% ï	DataFile ñ path/name of the .mat data file
-% ï	Display ñ 1; shows output, set to 0 to hide it 
-% ï	ProjectName ñ Name of the project/model
-% ï	WTP_space ñ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% ï	NCT - Number of choice tasks per person 
-% ï	NAlt - Number of alternatives
-% ï	NP ñ Number of respondents
-% 
-% 
+% ‚Ä¢	DataFile ‚Äì path/name of the .mat data file
+% ‚Ä¢	Display ‚Äì 1; shows output, set to 0 to hide it
+% ‚Ä¢	ProjectName ‚Äì Name of the project/model
+% ‚Ä¢	WTP_space ‚Äì set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% ‚Ä¢	NCT - Number of choice tasks per person
+% ‚Ä¢	NAlt - Number of alternatives
+% ‚Ä¢	NP ‚Äì Number of respondents
+%
+%
 % Variables options:
-% ï	NamesA ñ Names of variables in list e.g. {'-Opt out';í-Cost (EUR)'}
-% ï	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% ‚Ä¢	NamesA ‚Äì Names of variables in list e.g. {'-Opt out';‚Äô-Cost (EUR)'}
+% ‚Ä¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% ï	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% ï	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% ‚Ä¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% ‚Ä¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% Example: 
+%
+% Example:
 %    Results.GWMNL = GWMNL(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 % save tmp_MNL
@@ -63,7 +63,7 @@ function Results = GWMNL(INPUT,Results_old,EstimOpt,OptimOpt)
 
 global B_backup
 
-tic 
+tic
 
 Results.bhat = [];
 Results.R = [];
@@ -97,9 +97,9 @@ end
 if EstimOpt.WTP_space > 0
     disp('in WTP-space ...')
 else
-    disp('in preference-space ...') 
+    disp('in preference-space ...')
 end
-if EstimOpt.WTP_space > 0 
+if EstimOpt.WTP_space > 0
 	if isfield(EstimOpt, 'WTP_matrix') == 0
         WTP_att = (EstimOpt.NVarA-EstimOpt.WTP_space)/EstimOpt.WTP_space;
         if rem(WTP_att,1) ~= 0
@@ -116,7 +116,7 @@ if EstimOpt.WTP_space > 0
 end
 
 
-if isfield(EstimOpt,'HessEstFix') == 0 
+if isfield(EstimOpt,'HessEstFix') == 0
     EstimOpt.HessEstFix = 1;
 end
 
@@ -144,13 +144,13 @@ if EstimOpt.BandType == 1
     disp('with global bandwidth')
 elseif EstimOpt.BandType == 2
     disp('with spatially varying bandwidth')
-elseif EstimOpt.BandType == 3    
+elseif EstimOpt.BandType == 3
     disp('with square root of spatially varying bandwidth')
 end
 
-    
+
 if isfield(EstimOpt, 'Clustered') == 0
-    EstimOpt.Clustered =1; 
+    EstimOpt.Clustered =1;
 end
 if isfield(EstimOpt, 'WeightSum') == 0
     EstimOpt.WeightSum =1; % no particular summing, 2 - summing to 1, 3- summing to NP
@@ -159,7 +159,7 @@ if isfield(EstimOpt, 'BandLower') == 0
     EstimOpt.BandLower =0; %
 end
 if isfield(EstimOpt, 'BandUpper') == 0
-    EstimOpt.BandUpper = 5; % 
+    EstimOpt.BandUpper = 5; %
 end
 
 if EstimOpt.Clustered == 1
@@ -173,10 +173,10 @@ else
 end
 
 if isfield(INPUT, 'Crds') == 0 || size(INPUT.Crds,1) ~= EstimOpt.NP || size(INPUT.Crds,2) ~= 2
-   error('Coordinates are misspecified - check INPUT.Crds') 
+   error('Coordinates are misspecified - check INPUT.Crds')
 end
 
-if isfield(INPUT, 'Crds2') == 0 || size(INPUT.Crds2,1) ~= EstimOpt.NP 
+if isfield(INPUT, 'Crds2') == 0 || size(INPUT.Crds2,1) ~= EstimOpt.NP
    disp('Only geographical weights included')
    EstimOpt.BandNo = 0;
 else
@@ -189,21 +189,21 @@ else
        EstimOpt.BandNo = length(unique(EstimOpt.BandIndx));
    end
    if isfield(EstimOpt, 'BandVal2') == 0 || length(EstimOpt.BandVal2)~= EstimOpt.BandNo
-      error('Misspecified values of bandwidth parameters for additional weights') 
+      error('Misspecified values of bandwidth parameters for additional weights')
    else
        EstimOpt.BandVal2 = EstimOpt.BandVal2(:);
    end
 end
 
 if EstimOpt.BandSearch == 1 && EstimOpt.BandNo > 0
-   error('BandSearch does not work with additional bandwidth parameters') 
+   error('BandSearch does not work with additional bandwidth parameters')
 end
 if isfield(EstimOpt, 'BStrap') == 0
-    EstimOpt.BStrap = 0; % No bootstraping  
+    EstimOpt.BStrap = 0; % No bootstraping
 end
 
 if isfield(EstimOpt, 'NBStrap') == 0
-    EstimOpt.NBStrap = 100; % No of bootstrap replications 
+    EstimOpt.NBStrap = 100; % No of bootstrap replications
 end
 %% Starting values
 
@@ -225,7 +225,7 @@ else
         Results_old.MNL.b0_old = Results_old.MNL.bhat;
         if length(Results_old.MNL.b0_old) ~= EstimOpt.NVarA
             cprintf(rgb('DarkOrange'), 'WARNING: Incorrect no. of starting values or model specification \n')
-            Results_old.MNL = rmfield(Results_old.MNL,'b0_old');        
+            Results_old.MNL = rmfield(Results_old.MNL,'b0_old');
         else
             b0 = Results_old.MNL.b0_old(:);
         end
@@ -233,7 +233,7 @@ else
         error('No starting values - run MNL first');
     end
     B_backup = b0(:, ones(EstimOpt.NP,1));
-    
+
 end
 
 %% Optimization Options
@@ -258,13 +258,13 @@ else
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')
-    cprintf('Hessian: '); cprintf('*Black','off, ')    
+    cprintf('Hessian: '); cprintf('*Black','off, ')
     switch EstimOpt.HessEstFix
         case 0
             cprintf('*Black','retained from optimization \n')
         case 1
             cprintf('*Black','ex-post using Dekker (2014) formula \n')
-        
+
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -278,29 +278,29 @@ else
         case 1
             cprintf('*Black','ex-post using Dekker (2014) formula \n')
     end
-end 
+end
 
 
 %% Weights computations and BandWidth search
-OptimOpt.Diagnostics = 'off'; 
+OptimOpt.Diagnostics = 'off';
 OptimOpt.Display = 'off';
 OptimOpt.OutputFcn = {};
 
 % finding set of unique coordinates
 if EstimOpt.BandNo == 0
-    Crds = unique(INPUT.Crds, 'rows'); 
+    Crds = unique(INPUT.Crds, 'rows');
     NoReg = size(Crds,1); % no. of local regressions to run
-    CrdsVec = pdist(INPUT.Crds); 
+    CrdsVec = pdist(INPUT.Crds);
     CrdsMat = squareform(CrdsVec);
 else
-    Crds = unique([INPUT.Crds, INPUT.Crds2], 'rows'); 
+    Crds = unique([INPUT.Crds, INPUT.Crds2], 'rows');
     NoReg = size(Crds,1); % no. of local regressions to run
-    CrdsVec = pdist(INPUT.Crds); 
+    CrdsVec = pdist(INPUT.Crds);
     CrdsMat = squareform(CrdsVec);
     CrdsMat2 = zeros(EstimOpt.NP,EstimOpt.NP,EstimOpt.BandNo);
     BandIndx = unique(EstimOpt.BandIndx);
     for i = 1:EstimOpt.BandNo
-        CrdsVec2 = pdist(INPUT.Crds2(:,EstimOpt.BandIndx==BandIndx(i))); 
+        CrdsVec2 = pdist(INPUT.Crds2(:,EstimOpt.BandIndx==BandIndx(i)));
         CrdsMat2(:,:, i) = squareform(CrdsVec2);
     end
 end
@@ -308,7 +308,7 @@ end
 
 
 
-if EstimOpt.BandSearch ~= 0 
+if EstimOpt.BandSearch ~= 0
     tic
     disp(' ')
     disp('Starting Bandwidth search... ')
@@ -329,13 +329,13 @@ end
 
 if EstimOpt.BandType == 1 % global kernel
     Weights = exp(-0.5*(CrdsMat/EstimOpt.BandVal).^2);
-    
+
 else % spatially varying kernel
-    CrdsVec2 = pdist(Crds); 
+    CrdsVec2 = pdist(Crds);
     CrdsMat2 = squareform(CrdsVec2);
-    Rij = zeros(EstimOpt.NP, EstimOpt.NP); 
+    Rij = zeros(EstimOpt.NP, EstimOpt.NP);
     for i = 1:NoReg
-        
+
        [B,I] = sort(CrdsMat2(:,i));
        Rtmp = (0:NoReg-1)';
        %Rtmp = Rtmp(I);
@@ -382,7 +382,7 @@ if EstimOpt.BStrap == 0
     Results.ihess = zeros(EstimOpt.NVarA,EstimOpt.NVarA, EstimOpt.NP);
     Results.LL = zeros(EstimOpt.NP,1);
     Results.exitf = zeros(EstimOpt.NP,1);
-    
+
     for n = 1:NoReg
         disp(['Estimating ', num2str(n,'%1.0f'), '/', num2str(NoReg, '%1.0f'), ' model'])
         if EstimOpt.BandNo == 0
@@ -403,7 +403,7 @@ if EstimOpt.BStrap == 0
         elseif EstimOpt.WeightSum == 3
             Weights_n = Weights(:,FindIndx(1))/sum(Weights(:,FindIndx(1)),1)*EstimOpt.NP;
         end
-        
+
         %Weights_n = ones(EstimOpt.NP,1);
        % Weights_n = ones(EstimOpt.NP,1)/4.34766037059130;
         LLfun = @(B) LL_gwmnl_MATlike(INPUT.Y, INPUT.Xa, Weights_n, EstimOpt,OptimOpt,B);
@@ -430,7 +430,7 @@ if EstimOpt.BStrap == 0
         Weights_tmp = Weights_n;
         Weights_n = reshape(Weights_n(:, ones(EstimOpt.NCT*(EstimOpt.NAlt-1),1))',EstimOpt.NCT*(EstimOpt.NAlt-1)*EstimOpt.NP,1) ;
         XXstar = Xstar.*sqrt(Weights_n(:, ones(EstimOpt.NVarA,1)));
-        % To doda≥em
+        % To doda≈Çem
         VXl = zeros(EstimOpt.NVarA, (EstimOpt.NAlt-1)*EstimOpt.NCT*EstimOpt.NP);
         for j = 1:EstimOpt.NCT*EstimOpt.NP
             Vloc = -LL(:,j)*LL(:,j)'+diag(LL(:,j));
@@ -439,7 +439,7 @@ if EstimOpt.BStrap == 0
         if EstimOpt.HessEstFix == 1 % use Dekker formula
             Omega = VXl*XXstar;
         else
-           Omega = hess; 
+           Omega = hess;
         end
         Indx1 = [];
         Indx2 = [];
@@ -447,7 +447,7 @@ if EstimOpt.BStrap == 0
             Indx1 = [Indx1, (FindIndx(j)-1)*EstimOpt.NCT*(EstimOpt.NAlt-1)+1:FindIndx(j)*EstimOpt.NCT*(EstimOpt.NAlt-1)];
             Indx2 = [Indx2, (FindIndx(j)-1)*EstimOpt.NCT+1:FindIndx(j)*EstimOpt.NCT];
         end
-        
+
         if EstimOpt.Clustered == 1
             InvOmega = inv(Omega);
             J = J.*Weights_n(1:EstimOpt.NAlt-1:end,ones(EstimOpt.NVarA,1));
@@ -458,7 +458,7 @@ if EstimOpt.BStrap == 0
         else
             InvOmega = inv(Omega);
         end
-        
+
         %InvOm = Omega\(XXstar');
         stdx = sqrt(diag(InvOmega));
         Results.ihess(:,:,FindIndx) = InvOmega(:,:, ones(LocNo,1));
@@ -560,5 +560,5 @@ Results.clocknote = clocknote;
 Results.tocnote = tocnote;
 
 % save(EstimOpt.fnameout, 'Results')
-    
+
 end

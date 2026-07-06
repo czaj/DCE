@@ -42,27 +42,27 @@ function Score = BayesScoresHMXL(Y,Xa,Xm,Xs,Xstr,Xmea,Xmea_exp,err_sliced,EstimO
     EstimOpt.Johnson = sum(EstimOpt.Dist >= 5);
 
 if FullCov == 0
-    ba = B(1:NVarA); % b atrybut體
+    ba = B(1:NVarA); % b atrybut贸w
     bv = B(NVarA+1:2*NVarA);
     %VC = diag(bv.^2);
     VC = diag(bv);
     bm = reshape(B(2*NVarA+1:NVarA*(NVarM+2)),[NVarA,NVarM]); % b mean covariates
     bl = reshape(B((2+NVarM)*NVarA+1:NVarA*(NLatent+2+NVarM)),[NVarA,NLatent]); % b interakcji z LV
     bs = B(NVarA*(NLatent+NVarM+2)+1:NVarA*(NLatent+NVarM+2)+NVarS); % b scale
-    bstr = reshape(B(NVarA*(NLatent+2+NVarM)+NVarS+1:(NVarA+NVarStr)*NLatent+(2+NVarM)*NVarA+NVarS),[NVarStr,NLatent]); % b r體nania struktury
+    bstr = reshape(B(NVarA*(NLatent+2+NVarM)+NVarS+1:(NVarA+NVarStr)*NLatent+(2+NVarM)*NVarA+NVarS),[NVarStr,NLatent]); % b r贸wnania struktury
     bmea = B((NVarA+NVarStr)*NLatent+(2+NVarM)*NVarA+NVarS+1:end); % b measurement    
 elseif FullCov == 1
-    ba = B(1:NVarA); % b atrybut體
+    ba = B(1:NVarA); % b atrybut贸w
     bv = B(NVarA+1:NVarA+sum(1:NVarA,2));
     VC = tril(ones(NVarA));
     VC(VC == 1) = bv;
     bm = reshape(B(NVarA+sum(1:NVarA,2)+1:NVarA*(NVarM+1)+sum(1:NVarA,2)),[NVarA,NVarM]); % b mean covariates
     bl = reshape(B(NVarA*(1+NVarM)+sum(1:NVarA,2)+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)),[NVarA,NLatent]); % b interakcji z LV
     bs = B(NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA,2)+NVarS); % b scale
-    bstr = reshape(B(NVarA*(NLatent+NVarM+1)+sum(1:NVarA,2)+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA,2)+NVarS),[NVarStr,NLatent]); % b r體nania struktury
+    bstr = reshape(B(NVarA*(NLatent+NVarM+1)+sum(1:NVarA,2)+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA,2)+NVarS),[NVarStr,NLatent]); % b r贸wnania struktury
     bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA,2)+NVarS+1:end); % b measurement
 elseif FullCov == 2
-    ba = B(1:NVarA); % b atrybut體
+    ba = B(1:NVarA); % b atrybut贸w
     bv = B(NVarA+1:NVarA+sum(1:NVarA+NLatent,2)-NLatent);
     VC = tril(ones(NVarA+NLatent));
     VCtmp2 = diag(ones(NLatent+NVarA,1));
@@ -76,7 +76,7 @@ elseif FullCov == 2
     bm = reshape(B(NVarA+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent),[NVarA,NVarM]); % b mean covariates
     bl = reshape(B(NVarA*(1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent),[NVarA,NLatent]); % b interakcji z LV
     bs = B(NVarA*(NLatent+1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+1:NVarA*(NLatent+1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS); % b scale
-    bstr = reshape(B(NVarA*(NLatent+NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS),[NVarStr,NLatent]); % b r體nania struktury
+    bstr = reshape(B(NVarA*(NLatent+NVarM+1)+sum(1:NVarA+NLatent,2)-NLatent+NVarS+1:(NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS),[NVarStr,NLatent]); % b r贸wnania struktury
     bmea = B((NVarA+NVarStr)*NLatent+NVarA*(1+NVarM)+sum(1:NVarA+NLatent,2)-NLatent+NVarS+1:end); % b measurement
     err = VC*err_sliced;
 end

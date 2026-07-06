@@ -66,7 +66,7 @@ for n = 1:NoReg
     Weights_n = reshape(Weights_n(:, ones(EstimOpt.NCT*(EstimOpt.NAlt-1),1))',EstimOpt.NCT*(EstimOpt.NAlt-1)*EstimOpt.NP,1) ;
     XXstar = Xstar.*sqrt(Weights_n(:, ones(EstimOpt.NVarA,1)));
     
-    % To doda≥em
+    % To doda≈Çem
     VXl = zeros(EstimOpt.NVarA, (EstimOpt.NAlt-1)*EstimOpt.NCT*EstimOpt.NP);
     for j = 1:EstimOpt.NCT*EstimOpt.NP
         Vloc = -LL(:,j)*LL(:,j)'+diag(LL(:,j));

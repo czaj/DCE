@@ -15,96 +15,96 @@ function Results = LML(INPUT,Results_old,EstimOpt,OptimOpt)
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
 % LML is a model with a flexible distribution of WTPs and the price/scale coefficient.
-% 
-% •	Dist = 0; distribution of random parameters, by default set to approximate normal. Set in a vector of numbers, each corresponding to specific distribution: 
-% o	0 - approximate normal, 
-% o	1 - approximate lognormal, 
-% o	2 - Legendre polynomial (normal), 
-% o	3 - Legendre polynomial (log-normal), 
-% o	4 - Step function, 
-% o	5 - Linear Spline, 
-% o	6 - Cubic Spline, 
-% o	7 - Piece-wise Cubic Spline, 
+%
+% â€¢	Dist = 0; distribution of random parameters, by default set to approximate normal. Set in a vector of numbers, each corresponding to specific distribution:
+% o	0 - approximate normal,
+% o	1 - approximate lognormal,
+% o	2 - Legendre polynomial (normal),
+% o	3 - Legendre polynomial (log-normal),
+% o	4 - Step function,
+% o	5 - Linear Spline,
+% o	6 - Cubic Spline,
+% o	7 - Piece-wise Cubic Spline,
 % o	8 - Piece-wise Cubic Hermite Interpolating Spline
-% •	NOrder = 3; auxiliary variable for distributions of random parameters:
-% o	dist=0 or dist=1 - for approximate it is Order of approximation, 
+% â€¢	NOrder = 3; auxiliary variable for distributions of random parameters:
+% o	dist=0 or dist=1 - for approximate it is Order of approximation,
 % o	dist=2 or dist=3 - for Legendre polynomial(s) it is their order,
 % o	dist=4 - for step function it is number of step function segments,
-% o	dist=5,6,7,8 - for splines it’s number of spline knots (including bonds)
-% •	NGrid = 1000; number of grids 
-% •	StepFun – user defined step function
-% •	PlotIndex = 0; not drawing plot, set to 1 to draw it
-% •	NoOutput = 0; set to 1 to create output
-% 
-% 
+% o	dist=5,6,7,8 - for splines itâ€™s number of spline knots (including bonds)
+% â€¢	NGrid = 1000; number of grids
+% â€¢	StepFun â€“ user defined step function
+% â€¢	PlotIndex = 0; not drawing plot, set to 1 to draw it
+% â€¢	NoOutput = 0; set to 1 to create output
+%
+%
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% 
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+%
+%
 % Variables options:
-% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
-% 
+% â€¢	NamesA â€“ Names of variables in list e.g. {'-Opt out';â€™-Cost (EUR)'}
+%
 % Numbers of variables are set automatically; you can check them in the following fields:
 % o	NVarA - Number of attributes
 %
-% 
+%
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% 
+%
+%
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
-% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
-% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
-% o	1 - pseudo-random, 
-% o	2 - Latin Hypercube, 
-% o	3 - Halton, 
-% o	4 - Halton RR scrambled, 
-% o	5 - Sobol, 
+% â€¢	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% â€¢	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% â€¢	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
+% o	1 - pseudo-random,
+% o	2 - Latin Hypercube,
+% o	3 - Halton,
+% o	4 - Halton RR scrambled,
+% o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
-% •	RealMin = by default 0, can be set to 1
-% •	NSdSim = 1e4; number of draws for simulating standard deviations
-%  
-% 
+% â€¢	NRep = 1e3; specify no. of draws for numerical simulation
+% â€¢	RealMin = by default 0, can be set to 1
+% â€¢	NSdSim = 1e4; number of draws for simulating standard deviations
+%
+%
 % Precision:
-% •	eps = 1.e-6; overall precision level
-% •	Otherwise:
+% â€¢	eps = 1.e-6; overall precision level
+% â€¢	Otherwise:
 % o	FunctionTolerance - df / gradient precision level
 % o	TolX - step precision level
 % o	OptimalityTolerance - dB precision level
-% 
-% 
-% Seeds by default:
-% •	Seed1 = 179424673
-% •	Seed2 = 7521436817
-% 
 %
-% Example: 
+%
+% Seeds by default:
+% â€¢	Seed1 = 179424673
+% â€¢	Seed2 = 7521436817
+%
+%
+% Example:
 %    Results.LML = LML(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 % save tmp_LML
@@ -249,7 +249,7 @@ if EstimOpt.WTP_space > 0
     end
 end
 
-if isfield(EstimOpt,'NGrid') == 0 
+if isfield(EstimOpt,'NGrid') == 0
     NGrid = 1000; % Train uses 1000
     EstimOpt.NGrid = NGrid;
 else
@@ -488,7 +488,7 @@ end
 % b_mtx = zeros(NVarA,NP*NRep);
 % for i = 1:size(b_GridMat,1)
 %     mod(i,NVarA)
-% %     b_mtx(i,:) = b_GridMat(i,err_mtx(mod(i,NVarA),:)); % NV x NP*NRep 
+% %     b_mtx(i,:) = b_GridMat(i,err_mtx(mod(i,NVarA),:)); % NV x NP*NRep
 % end
 
 for i = 1:NVarA
@@ -607,18 +607,18 @@ end
 
 GridProbs = zeros([NP,NRep]);
 XXa = INPUT.XXa;
-% parfor n = 1:NP    
+% parfor n = 1:NP
 if ~any(isnan(XXa(:))) % faster version for complete dataset
     YYy = INPUT.YY==1;
     for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
-        U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);    
+        U = reshape(XXa(:,:,n)*b_gird(:,:,n),[NAlt,NCT,NRep]);
         U = exp(U - max(U,[],1)); % rescale utility to avoid exploding
         U_sum = reshape(sum(U,1),[NCT,NRep]);
         YYy_n = YYy(:,n);
         U_selected = reshape(U(YYy_n(:,ones(NRep,1))),[NCT,NRep]);
         GridProbs(n,:) = prod(U_selected./U_sum,1);
     end
-else   
+else
     for n = 1:NP % switch parfor off for now and run Matlab in paralell processes instead
         YnanInd = ~isnan(INPUT.YY(:,n));
         XXa_n = XXa(:,:,n);
@@ -664,10 +664,10 @@ end
 %% Hessian calculations
 
 if EstimOpt.NoOutput == 0
-    
+
     LLfun2 = @(B) LL_lml(GridProbs,b_mtx,EstimOpt,B);
 
-   
+
     if EstimOpt.HessEstFix == 0 % this will fail if there is no gradient available!
         try
             [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
@@ -741,7 +741,7 @@ if EstimOpt.NoOutput == 0
     if EstimOpt.PlotIndx > 0
         EstimOpt.Plot = figure('units','normalized','outerposition',[0 0 1 1]);
         for i = 1:NVarA
-    %         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1); 
+    %         Grid_i = mean(reshape(GridMat(i,:), [10,NGrid/10]),1);
     %         P_tmp = sum(reshape(Results.P,[10,NGrid/10]),1);
             if rem(NVarA,2) == 0
                 subplot(NVarA/2,2,i);
@@ -774,11 +774,11 @@ if EstimOpt.NoOutput == 0
     %     Template1 = [Template1,{strcat('Details',num2str(i))}];
     %     Template2 = [Template2,{strcat('Details',num2str(i))}];
     %     Names.(strcat('Details',num2str(i))) = EstimOpt.NamesA;
-    %     if i == 1 && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %     if i == 1 && length(Results.bhat)/EstimOpt.NVarA ~= 1
     %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tc'};
-    %     elseif i<length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %     elseif i<length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1
     %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lc'};
-    %     elseif i == length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1 
+    %     elseif i == length(Results.bhat)/EstimOpt.NVarA && length(Results.bhat)/EstimOpt.NVarA ~= 1
     %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'lb'};
     %     else
     %         Heads.(strcat('Details',num2str(i))) = {strcat('Segment ',num2str(i));'tb'};
@@ -798,7 +798,7 @@ if EstimOpt.NoOutput == 0
         type = ' (spline knots)';
         CorNOrder = EstimOpt.NOrder+1;
     end
-        
+
     for i=1:length(Results.bhat)/EstimOpt.NVarA
         Results.Details(1:NVarA,i*4-3) = Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA);
         Results.Details(1:NVarA,i*4-1:i*4) = [Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),pv(Results.bhat(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA),Results.std(1+(i-1)*EstimOpt.NVarA:i*EstimOpt.NVarA))];

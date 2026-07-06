@@ -16,46 +16,46 @@ function Results = MNL(INPUT,Results_old,EstimOpt,OptimOpt)
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% 
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+%
+%
 % Variables options:
-% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
-% •	NamesM – Names of variables of means of random parameters
-% •	NamesS – Names of variables of Scale
-% •	NLTVariables – vector specifying which attributes are to subject to non-linear transformations
-% •	NLTType – Transformation for non-linear variables. By default it is set to Box-Cox transformation (1), set to 2 in order to use Yeo-Johnson transformation
-% 
-% 
+% â€¢	NamesA â€“ Names of variables in list e.g. {'-Opt out';â€™-Cost (EUR)'}
+% â€¢	NamesM â€“ Names of variables of means of random parameters
+% â€¢	NamesS â€“ Names of variables of Scale
+% â€¢	NLTVariables â€“ vector specifying which attributes are to subject to non-linear transformations
+% â€¢	NLTType â€“ Transformation for non-linear variables. By default it is set to Box-Cox transformation (1), set to 2 in order to use Yeo-Johnson transformation
+%
+%
 % Parameters options:
-% •	ExpB = vector of 0; for each parameter set it to 1 to use ExpB, otherwise 0
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% â€¢	ExpB = vector of 0; for each parameter set it to 1 to use ExpB, otherwise 0
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
 %
-% Example: 
+% Example:
 %    Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 % save tmp_MNL
@@ -351,7 +351,7 @@ if EstimOpt.Display ~= 0
     else
         cprintf('Gradient: '); cprintf('*Black',['built-in, ' OptimOpt.FinDiffType '\n'])
     end
-    
+
     if isequal(OptimOpt.Algorithm,'quasi-newton')
         cprintf('Hessian: '); cprintf('*Black','off, ')
         switch EstimOpt.HessEstFix
@@ -406,18 +406,19 @@ INPUT.Xs(INPUT.MissingInd == 1,:) = NaN;
 
 INPUT.Xa = INPUT.Xa(idx == 0,:);
 if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
-    XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);    
-%     EstimOpt.mCT = sum(sum(std(XXm, [], 2,"omitnan"),1),3) ~= 0;
-    EstimOpt.mCT = any(any(range(XXm,2))); % Test if Xm is choice-task specific    
+    XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+    Xm_varies = false(EstimOpt.NVarM,EstimOpt.NP);
+    for n = 1:EstimOpt.NP
+        for i = 1:EstimOpt.NVarM
+            x = XXm(i,:,n);
+            x = x(isfinite(x));
+            Xm_varies(i,n) = ~isempty(x) && any(x ~= x(1));
+        end
+    end
+    EstimOpt.mCT = any(Xm_varies(:)); % Test if Xm is choice-task specific
     INPUT.Xm = INPUT.Xm(idx == 0,:); % to chyba nie moze byc zakomentowane, bo nie dziala z Xm i brakujacymi alternatywami
 %     INPUT.Xm = INPUT.Xm(idx == 0,:);
 %     Xm = reshape(INPUT.Xm,[size(INPUT.Xa,1),1,EstimOpt.NVarM]);
-    if EstimOpt.mCT == 0
-%         INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
-    else
-        EstimOpt.NumGrad = 1;
-        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm in WTP-space. \n')
-    end
     EstimOpt.XmIndx = zeros(sum(EstimOpt.NCTMiss),1);
     EstimOpt.XmIndx2 = zeros(sum(EstimOpt.NCTMiss)*EstimOpt.NAlt,1);
     for i = 1:EstimOpt.NP
@@ -559,7 +560,7 @@ if EstimOpt.RobustStd == 1
     Results.jacobian = RobJacob;
     RobustHess = Results.jacobian'*Results.jacobian;
     Results.ihess = Results.ihess*RobustHess*Results.ihess;
-        
+
 end
 Results.std = sqrt(diag(Results.ihess));
 
@@ -597,7 +598,7 @@ Results.DetailsA(1:EstimOpt.NVarA,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Resul
 if NVarMOld > 0
     Results.DetailsM = zeros(EstimOpt.NVarA,4*NVarMOld);
     for i = 1:NVarMOld
-        Results.DetailsM(:,4*i-3) = Results.bhat(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)); 
+        Results.DetailsM(:,4*i-3) = Results.bhat(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1));
         Results.DetailsM(:,4*i-1:4*i) = [Results.std(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)),pv(Results.bhat(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)),Results.std(EstimOpt.NVarA*(i)+1:EstimOpt.NVarA*(i+1)))];
     end
 end

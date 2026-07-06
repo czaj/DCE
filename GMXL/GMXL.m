@@ -16,101 +16,101 @@ function Results = GMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
 % Scale and taste heterogeneity:
-% •	DistS - Scale parameter distribution:
-% o	-1 - constant, 
-% o	0 - normal, 
-% o	1 - lognormal, 
-% o	2 - spike, 
+% â€¢	DistS - Scale parameter distribution:
+% o	-1 - constant,
+% o	0 - normal,
+% o	1 - lognormal,
+% o	2 - spike,
 % o	5 - Weibull
-% •	Gamma0 = 0; variance of residual taste heterogeneity fully scaled, set to 1 for variance of residual taste heterogeneity not scaled
-% 
-% 
+% â€¢	Gamma0 = 0; variance of residual taste heterogeneity fully scaled, set to 1 for variance of residual taste heterogeneity not scaled
+%
+%
 % GMXL parameter options:
-% •	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
-% o	-1 - constant, 
-% o	0 - normal, 
-% o	1 - lognormal, 
-% o	2 - spike, 
-% o	3 - Triangular, 
-% o	4 - Weibull, 
-% o	5 - Sinh-Arcsinh, 
-% o	6 - Johnson Sb, 
+% â€¢	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
+% o	-1 - constant,
+% o	0 - normal,
+% o	1 - lognormal,
+% o	2 - spike,
+% o	3 - Triangular,
+% o	4 - Weibull,
+% o	5 - Sinh-Arcsinh,
+% o	6 - Johnson Sb,
 % o	7 - Johnson Su
-% •	FullCov = 0; set to 1 for correlated random parameters, 0 if not
-% 
-% 
+% â€¢	FullCov = 0; set to 1 for correlated random parameters, 0 if not
+%
+%
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% 
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+%
+%
 % Variables options:
-% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
-% •	NamesM – Names of variables of means of random parameters
-% •	NamesS – Names of variables of Scale
-% 
+% â€¢	NamesA â€“ Names of variables in list e.g. {'-Opt out';â€™-Cost (EUR)'}
+% â€¢	NamesM â€“ Names of variables of means of random parameters
+% â€¢	NamesS â€“ Names of variables of Scale
+%
 % Numbers of variables are set automatically; you can check them in the following fields:
 % o	NVarA - Number of attributes
 % o	NVarM - Number of covariates of means of random parameters
 % o	NVarS - Number of covariates of scale
-% 
-% 
+%
+%
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% 
+%
+%
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
-% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
-% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
-% o	1 - pseudo-random, 
-% o	2 - Latin Hypercube, 
-% o	3 - Halton, 
-% o	4 - Halton RR scrambled, 
-% o	5 - Sobol, 
+% â€¢	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% â€¢	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% â€¢	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
+% o	1 - pseudo-random,
+% o	2 - Latin Hypercube,
+% o	3 - Halton,
+% o	4 - Halton RR scrambled,
+% o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
-% •	RealMin = by default 0, can be set to 1
-% •	NSdSim = 1e4; number of draws for simulating standard deviations
-%  
-% 
+% â€¢	NRep = 1e3; specify no. of draws for numerical simulation
+% â€¢	RealMin = by default 0, can be set to 1
+% â€¢	NSdSim = 1e4; number of draws for simulating standard deviations
+%
+%
 % Precision:
-% •	eps = 1.e-6; overall precision level
-% •	Otherwise:
+% â€¢	eps = 1.e-6; overall precision level
+% â€¢	Otherwise:
 % o	FunctionTolerance - df / gradient precision level
 % o	TolX - step precision level
 % o	OptimalityTolerance - dB precision level
-% 
-% 
+%
+%
 % Seeds by default:
-% •	Seed1 = 179424673
-% •	Seed2 = 7521436817
+% â€¢	Seed1 = 179424673
+% â€¢	Seed2 = 7521436817
 %
 %
-% Example: 
+% Example:
 %    Results.GMXL = GMXL(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 % save tmp_GMXL

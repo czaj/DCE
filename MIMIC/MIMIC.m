@@ -15,74 +15,74 @@ function Results = MIMIC(INPUT,Results_old,EstimOpt,OptimOpt)
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
 % The user should define variables to structural and measurement equations by setting them in INPUT.Xstr and INPUT.Xmea accordingly.
-% •	MeaMatrix – matrix of measurement equations, by default model is assuming that every latent variable is in every measurement equation
-% •	MeaSpecMatrix - measurement specification matrix
-% •	NLatent = 1; number of latent variables
-% •	NClass = 2; number of latent classes
-% •	NamesC – names of classes
-% 
-% 
+% â€¢	MeaMatrix â€“ matrix of measurement equations, by default model is assuming that every latent variable is in every measurement equation
+% â€¢	MeaSpecMatrix - measurement specification matrix
+% â€¢	NLatent = 1; number of latent variables
+% â€¢	NClass = 2; number of latent classes
+% â€¢	NamesC â€“ names of classes
+%
+%
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% 
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+%
+%
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% 
+%
+%
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
-% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
-% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
-% o	1 - pseudo-random, 
-% o	2 - Latin Hypercube, 
-% o	3 - Halton, 
-% o	4 - Halton RR scrambled, 
-% o	5 - Sobol, 
+% â€¢	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% â€¢	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% â€¢	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
+% o	1 - pseudo-random,
+% o	2 - Latin Hypercube,
+% o	3 - Halton,
+% o	4 - Halton RR scrambled,
+% o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
-% •	RealMin = by default 0, can be set to 1
-% •	NSdSim = 1e4; number of draws for simulating standard deviations
-%  
-% 
+% â€¢	NRep = 1e3; specify no. of draws for numerical simulation
+% â€¢	RealMin = by default 0, can be set to 1
+% â€¢	NSdSim = 1e4; number of draws for simulating standard deviations
+%
+%
 % Precision:
-% •	eps = 1.e-6; overall precision level
-% •	Otherwise:
+% â€¢	eps = 1.e-6; overall precision level
+% â€¢	Otherwise:
 % o	FunctionTolerance - df / gradient precision level
 % o	TolX - step precision level
 % o	OptimalityTolerance - dB precision level
-% 
-% 
-% Seeds by default:
-% •	Seed1 = 179424673
-% •	Seed2 = 7521436817
-% 
 %
-% Example: 
+%
+% Seeds by default:
+% â€¢	Seed1 = 179424673
+% â€¢	Seed2 = 7521436817
+%
+%
+% Example:
 %    Results.MIMIC = MIMIC(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 
@@ -182,7 +182,7 @@ if isfield(EstimOpt,'MeaMatrix')
     elseif any(any(EstimOpt.MeaMatrix == 1) == 0)
         error('Measurment equations erroneously defined (some measurement variables unused)')
     end
-else        
+else
     EstimOpt.MeaMatrix = ones(EstimOpt.NLatent,size(INPUT.Xmea,2));
     disp('Assuming every Latent Variable in every measurment equation')
 end
@@ -248,18 +248,18 @@ EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 % 	end
 % end
 % if any(sum(EstimOpt.MeaMatrix,2) == 1) == 1
-%     error('There must be more than one attitude for every Latent Variable for model identification')    
+%     error('There must be more than one attitude for every Latent Variable for model identification')
 % end
 
 for i = 1:size(EstimOpt.MeaMatrix,2)
     if sum(isnan(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
         cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains NaN values - they will be treated as mising. \n', i)
-        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
+        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1;
     end
     if sum(isinf(INPUT.Xmea(INPUT.MissingInd==0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
         cprintf(rgb('DarkOrange'),'WARNING: Measurement variable %d contains Inf values - they will be treated as mising. \n', i)
-        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
-    end    
+        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1;
+    end
     if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
         cprintf(rgb('DarkOrange'),'WARNING: There are over 10 levels for measurement variable %d \\n',i)
     end
@@ -328,9 +328,9 @@ if EstimOpt.NLatent > 0
 end
 
 EstimOpt.Names = [];% Names of the models
-EstimOpt.NVarcut = 0; % no of cutoffs for ordered probits + constants + variances for OLS 
+EstimOpt.NVarcut = 0; % no of cutoffs for ordered probits + constants + variances for OLS
 EstimOpt.NVarcut0 = 0; % no of cutoffs for HMNL0
-EstimOpt.CutMatrix = zeros(1,size(INPUT.Xmea,2)); 
+EstimOpt.CutMatrix = zeros(1,size(INPUT.Xmea,2));
 EstimOpt.NamesMea_tmp = {};
 EstimOpt.MeaUnique = cell(1,size(INPUT.Xmea,2));
 EstimOpt.MeaNumLevels = zeros(1,size(INPUT.Xmea,2));
@@ -349,7 +349,7 @@ for i = 1:size(INPUT.Xmea,2)
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
@@ -362,18 +362,18 @@ for i = 1:size(INPUT.Xmea,2)
         EstimOpt.NVarcut = EstimOpt.NVarcut + 2 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0); %OLS: constant + sigma
         EstimOpt.CutMatrix(i) = 2 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
-        EstimOpt.Names = [EstimOpt.Names,'OLS ']; 
+        EstimOpt.Names = [EstimOpt.Names,'OLS '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Sigma'}];
-    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL 
-        EstimOpt.NVarcut = EstimOpt.NVarcut + (nLev_i - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (nLev_i - 1)*(1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0)); % constants + additional coefficients 
+    elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
+        EstimOpt.NVarcut = EstimOpt.NVarcut + (nLev_i - 2)*sum(EstimOpt.MeaMatrix(:,i)) + (nLev_i - 1)*(1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0)); % constants + additional coefficients
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + nLev_i - 1;
         EstimOpt.Names = [EstimOpt.Names,'MNL '];
         EstimOpt.CutMatrix(i) = (1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0) + sum(EstimOpt.MeaMatrix(:,i)))*(nLev_i - 1);
@@ -387,43 +387,43 @@ for i = 1:size(INPUT.Xmea,2)
                 EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
             end
         end
-    elseif EstimOpt.MeaSpecMatrix(i) == 3 % Poisson    
+    elseif EstimOpt.MeaSpecMatrix(i) == 3 % Poisson
         EstimOpt.NVarcut = EstimOpt.NVarcut + 1 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0); %Poiss: only constant
         EstimOpt.CutMatrix(i) = 1 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 1;
-        EstimOpt.Names = [EstimOpt.Names,'POISS ']; 
+        EstimOpt.Names = [EstimOpt.Names,'POISS '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
-    elseif EstimOpt.MeaSpecMatrix(i) == 4 % Negative Binomial   
+    elseif EstimOpt.MeaSpecMatrix(i) == 4 % Negative Binomial
         EstimOpt.NVarcut = EstimOpt.NVarcut + 2 + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0); %Poiss: only constant
         EstimOpt.CutMatrix(i) = 2 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
-        EstimOpt.Names = [EstimOpt.Names,'NB ']; 
+        EstimOpt.Names = [EstimOpt.Names,'NB '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Theta'}];
-    elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP   
+    elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP
         EstimOpt.NVarcut = EstimOpt.NVarcut + 2 + sum(EstimOpt.MeaMatrix(:,i)) + 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0); %Poiss: only constant
         EstimOpt.CutMatrix(i) = 2 + 2*sum(EstimOpt.MeaMatrix(:,i)) + 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 2;
-        EstimOpt.Names = [EstimOpt.Names,'ZIP ']; 
+        EstimOpt.Names = [EstimOpt.Names,'ZIP '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
@@ -431,35 +431,35 @@ for i = 1:size(INPUT.Xmea,2)
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
-    elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB  
+    elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
         EstimOpt.NVarcut = EstimOpt.NVarcut + 3 + sum(EstimOpt.MeaMatrix(:,i)) + 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0); %Poiss: only constant
         EstimOpt.CutMatrix(i) = 3 + 2*sum(EstimOpt.MeaMatrix(:,i)) + 2*EstimOpt.NVarMeaExp*(EstimOpt.MeaExpMatrix(i) ~= 0);
         EstimOpt.NVarcut0 = EstimOpt.NVarcut0 + 3;
-        EstimOpt.Names = [EstimOpt.Names,'ZINB ']; 
+        EstimOpt.Names = [EstimOpt.Names,'ZINB '];
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
-        
+
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Cons.'}];
         k = find(EstimOpt.MeaMatrix(:,i) == 1);
         for n = 1:sum(EstimOpt.MeaMatrix(:,i),1)
             EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;cellfun(@(x)[x num2str(k(n))],{'LV '},'UniformOutput',0)];
-        end    
+        end
         if EstimOpt.MeaExpMatrix(i) ~= 0
            EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;EstimOpt.NamesMeaExp];
         end
         EstimOpt.NamesMea_tmp = [EstimOpt.NamesMea_tmp;{'Theta'}];
     end
-    
+
 end
 
 if isfield(EstimOpt,'NamesStr') == 0 || isempty(EstimOpt.NamesStr) || length(EstimOpt.NamesStr) ~= EstimOpt.NVarStr
@@ -489,7 +489,7 @@ disp(['Using following models for attitudes: ' char(EstimOpt.Names)]);
 %     else
 %         if length(EstimOpt.StrNorm) == 1
 %             EstimOpt.StrNorm = EstimOpt.StrNorm(ones(EstimOpt.NVarStr,1),1);
-%         end       
+%         end
 %         INPUT.Xstr(:,EstimOpt.StrNorm == 1) = (INPUT.Xstr(:,EstimOpt.StrNorm == 1) - mean(INPUT.Xstr))./std(INPUT.Xstr);
 %     end
 % end
@@ -551,7 +551,7 @@ OptimOpt_0.Algorithm = 'quasi-newton';
 OptimOpt_0.GradObj = 'off';
 OptimOpt_0.Hessian = 'off';
 OptimOpt_0.Display = 'off';
-OptimOpt_0.FunValCheck = 'off'; 
+OptimOpt_0.FunValCheck = 'off';
 OptimOpt_0.Diagnostics = 'off';
 
 if size(INPUT.Xmea,2) > 0
@@ -591,40 +591,40 @@ if ~exist('b0','var')
     k = 0;
     for i = 1:size(INPUT.Xmea,2)
         if EstimOpt.MeaSpecMatrix(i) == 2 %Ordered probit: cutoffs
-            b0(l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+EstimOpt.MeaNumLevels(i)-1) = Results.MIMIC0.bhat(k+1:k+EstimOpt.MeaNumLevels(i)-1);            
+            b0(l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+1:l+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp+EstimOpt.MeaNumLevels(i)-1) = Results.MIMIC0.bhat(k+1:k+EstimOpt.MeaNumLevels(i)-1);
             l = l + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp + EstimOpt.MeaNumLevels(i) - 1;
             k = k + EstimOpt.MeaNumLevels(i) - 1;
         elseif EstimOpt.MeaSpecMatrix(i) == 0
             b0(l+1) = Results.MIMIC0.bhat(k+1);
             b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2);
             k = k + 2;
-            l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;        
-        elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL 
+            l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
+        elseif EstimOpt.MeaSpecMatrix(i) == 1 % MNL
             for n = 1:(EstimOpt.MeaNumLevels(i)-1)
                 b0(l+1) = Results.MIMIC0.bhat(k+1);
                 l = l + 1 + sum(EstimOpt.MeaMatrix(:,i)) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
                 k = k + 1;
             end
-        elseif EstimOpt.MeaSpecMatrix(i) == 3 % POISS 
+        elseif EstimOpt.MeaSpecMatrix(i) == 3 % POISS
             b0(l+1) = Results.MIMIC0.bhat(k+1);
             k = k + 1;
-            l = l + 1 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;     
+            l = l + 1 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
         elseif EstimOpt.MeaSpecMatrix(i) == 4 % NB
             b0(l+1) = Results.MIMIC0.bhat(k+1);
             b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % theta
             k = k + 2;
-            l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;  
+            l = l + 2 + sum(EstimOpt.MeaMatrix(:,i),1) + EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
         elseif EstimOpt.MeaSpecMatrix(i) == 5 % ZIP
             b0(l+1) = Results.MIMIC0.bhat(k+1);
             b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % second constant
             k = k + 2;
-            l = l + 2 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;     
+            l = l + 2 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
         elseif EstimOpt.MeaSpecMatrix(i) == 6 % ZINB
             b0(l+1) = Results.MIMIC0.bhat(k+1);
             b0(l+2+sum(EstimOpt.MeaMatrix(:,i),1)+EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+2); % Second constant
-            b0(l+3+2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+3); % Theta 
+            b0(l+3+2*sum(EstimOpt.MeaMatrix(:,i),1)+2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp) = Results.MIMIC0.bhat(k+3); % Theta
             k = k + 3;
-            l = l + 3 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;         
+            l = l + 3 + 2*sum(EstimOpt.MeaMatrix(:,i),1) + 2*EstimOpt.MeaExpMatrix(i)*EstimOpt.NVarMeaExp;
         end
     end
 end
@@ -650,11 +650,11 @@ if EstimOpt.ConstVarActive == 1
     end
     disp(['Initial values: ' mat2str(b0',2)])
     disp(['Parameters with zeros are constrained to their initial values: ' mat2str(EstimOpt.BActive')])
-else    
+else
     if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive) || sum(EstimOpt.BActive == 0) == 0
         EstimOpt.BActive = ones(1,length(b0));
         disp(['Initial values: ' mat2str(b0',2)])
-    else        
+    else
         if length(b0) ~= length(EstimOpt.BActive)
             error('Check no. of constraints')
         else
@@ -671,32 +671,32 @@ if isfield(EstimOpt,'Seed1') == 1
 end
 
 cprintf('Simulation with ');
-cprintf('*blue',[num2str(EstimOpt.NRep) ' ']); 
+cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,EstimOpt.NLatent+EstimOpt.NVarA+1); %to be cut down later   
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,EstimOpt.NLatent+EstimOpt.NVarA+1); %to be cut down later
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
-    err_mtx = lhsnorm(zeros((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep); 
+    err_mtx = lhsnorm(zeros((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep);
     err_mtx = reshape(err_mtx,[EstimOpt.NRep*EstimOpt.NP,EstimOpt.NLatent]);
-elseif EstimOpt.Draws >= 3 % Quasi random draws 
+elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
-        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
+        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
     elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
         cprintf('*blue','Halton '); cprintf(['draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
-        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); % 
+        hm1 = haltonset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); %
         hm1 = scramble(hm1,'RR2');
     elseif EstimOpt.Draws == 5
         cprintf('*blue','Sobol '); cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
-        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
+        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
     elseif EstimOpt.Draws == 6
         cprintf('*blue','Sobol '); cprintf(['draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
-        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap); 
+        hm1 = sobolset(EstimOpt.NLatent+EstimOpt.NVarA+1,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
-    
+
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
 	err_mtx = err_mtx(:,2+EstimOpt.NVarA:end);
@@ -706,7 +706,7 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
         for i=1:EstimOpt.NLatent
             err_mtx(:,i) = icdf('Normal',err_mtx(:,i),0,1); %to be cut down later
         end
-    end    
+    end
 end
 
 err_sliced = err_mtx'; % NLatent x NRep * NP
@@ -731,7 +731,7 @@ if any(EstimOpt.MeaSpecMatrix >= 3) && EstimOpt.NumGrad == 0 && any(any(INPUT.Xm
    cprintf(rgb('DarkOrange'),'WARNING: it is recommended to switch to numerical gradient, as analitycal can be not precise when Xmea take large values for NB \n')
 end
 
-% if any(EstimOpt.MeaSpecMatrix == 5) && EstimOpt.NumGrad == 0 
+% if any(EstimOpt.MeaSpecMatrix == 5) && EstimOpt.NumGrad == 0
 %    EstimOpt.NumGrad = 1;
 %    cprintf(rgb('DarkOrange'), 'WARNING: ZIP\n')
 % end
@@ -741,7 +741,7 @@ if (isfield(EstimOpt,'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && 
     OptimOpt.Hessian = 'off';
 end
 if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
-    EstimOpt.RobustStd = 0; 
+    EstimOpt.RobustStd = 0;
     cprintf(rgb('DarkOrange'),'WARNING: Setting off robust standard errors, they do not matter for BHHH aproximation of hessian \n')
 end
 
@@ -758,7 +758,7 @@ else
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')
-    cprintf('Hessian: '); cprintf('*Black','off, ')    
+    cprintf('Hessian: '); cprintf('*Black','off, ')
     switch EstimOpt.HessEstFix
         case 0
             cprintf('*Black','retained from optimization \n')
@@ -798,12 +798,12 @@ end
 %% Estimation
 
 LLfun = @(B) LL_mimic_MATlike(INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
-if EstimOpt.ConstVarActive == 0  
+if EstimOpt.ConstVarActive == 0
     if EstimOpt.HessEstFix == 0
         [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
     else
         [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
-    end      
+    end
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     EstimOpt.CONS1 = diag(1-EstimOpt.BActive);
     EstimOpt.CONS1(sum(EstimOpt.CONS1,1) == 0,:) = [];
@@ -876,7 +876,7 @@ Results.INPUT = INPUT;
 
 Head = cell(1,2);
 Head(1,1) = {'MIMIC'};
-if EstimOpt.NVarStr > 0 
+if EstimOpt.NVarStr > 0
     Template1 = {'DetailsS'};
     Template2 = {'DetailsS'};
     Names.DetailsS = EstimOpt.NamesStr;
@@ -986,7 +986,7 @@ if strcmp(OptimOpt.GradObj,'on')
     end
 else
     Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
-    
+
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')

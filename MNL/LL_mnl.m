@@ -18,6 +18,7 @@ end
 if isfield(EstimOpt,'XmIndx2')
     XmIndx2 = EstimOpt.XmIndx2;
 end
+mCT = isfield(EstimOpt,'mCT') && EstimOpt.mCT ~= 0 && NVarM > 0;
 NVarNLT = EstimOpt.NVarNLT;
 if NVarNLT > 0
     NLTVariables = EstimOpt.NLTVariables;
@@ -194,7 +195,11 @@ if nargout == 2 % function value + gradient
             %alphaX = Xa(:,1:(NVarA - WTP_space)).*(B(WTP_matrix,ones(NAlt*N,1))');
             alphaX = Xa(:,1:(NVarA - WTP_space)).*(B(WTP_matrix,:)');
         else
-            alphaX = Xa(:,1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,XmIndx2)';
+            if mCT
+                alphaX = Xa(:,1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,:)';
+            else
+                alphaX = Xa(:,1:(NVarA - WTP_space)).*ba_grad(WTP_matrix,XmIndx2)';
+            end
         end
         alphaXX = reshape(alphaX,[NAlt,N,NVarA - WTP_space]);
         if IsNaN == 0
@@ -204,11 +209,16 @@ if nargout == 2 % function value + gradient
             %Xhat1 = squeeze(nansum(P(:,:,ones(NVarA- WTP_space,1)).*alphaXX,1));
             Xhat1 = squeeze(nansum(P.*alphaXX,1));
         end
+        if NVarA - WTP_space == 1
+            Xhat1 = Xhat1';
+        end
         g1 = alphaX(y == 1,:) - Xhat1;
         % cost variables
         if WTP_space == 1
             if NVarM == 0
                 pX = Xa(:,NVarA) + Xa(:,1:NVarA-1)*b0(1:NVarA-1);
+            elseif mCT
+                pX = Xa(:,NVarA) + sum(Xa(:,1:NVarA-1).*ba_grad(1:NVarA-1,:)',2);
             else
                 pX = Xa(:,NVarA) + sum(Xa(:,1:NVarA-1).*ba_grad(1:NVarA-1,XmIndx2)',2);
             end
@@ -224,6 +234,8 @@ if nargout == 2 % function value + gradient
             for i = 1:WTP_space
                 if NVarM == 0
                     pX(:,i) = Xa(:,NVarA - WTP_space + i) + Xa(:,WTP_matrix == NVarA - WTP_space + i)*b0(WTP_matrix == NVarA - WTP_space + i);
+                elseif mCT
+                    pX(:,i) = Xa(:,NVarA - WTP_space + i) + sum(Xa(:, WTP_matrix == NVarA - WTP_space + i).*ba_grad(WTP_matrix == NVarA - WTP_space + i,:)',2);
                 else
                     pX(:,i) = Xa(:,NVarA - WTP_space + i) + sum(Xa(:, WTP_matrix == NVarA - WTP_space + i).*ba_grad(WTP_matrix == NVarA - WTP_space + i,XmIndx2)',2);
                 end
@@ -242,6 +254,8 @@ if nargout == 2 % function value + gradient
         if NVarS > 0
             if NVarM == 0
                 gScale = g2*B(NVarA-WTP_space+1:NVarA,:);
+            elseif mCT
+                gScale = sum(g2.*ba_grad(NVarA-WTP_space+1:end,y == 1)',2);
             else
                 gScale = sum(g2.*ba_grad(NVarA-WTP_space+1:end,XmIndx)',2);
             end
@@ -263,7 +277,24 @@ if nargout == 2 % function value + gradient
             g = [g,XXt(y == 1,:) - Xhatlam];
         end
         if NVarM > 0
-            gm = g(:,repmat(1:NVarA,[1,NVarM])).*(Xm(XmIndx,kron(1:NVarM,ones(1,NVarA))));
+            if mCT
+                Xg = [alphaX,pX];
+                Xg = reshape(Xg,[NAlt,N,NVarA]);
+                Xgm = zeros(N,NVarA*NVarM);
+                for i = 1:NVarM
+                    Zi = Xg.*reshape(Xm(:,i),[NAlt,N,1]);
+                    if IsNaN == 0
+                        Zhat = reshape(sum(P.*Zi,1),[N,NVarA]);
+                    else
+                        Zhat = reshape(nansum(P.*Zi,1),[N,NVarA]);
+                    end
+                    Zi = reshape(Zi,[NAlt*N,NVarA]);
+                    Xgm(:,(i-1)*NVarA+1:i*NVarA) = Zi(y == 1,:) - Zhat;
+                end
+                gm = Xgm;
+            else
+                gm = g(:,repmat(1:NVarA,[1,NVarM])).*(Xm(XmIndx,kron(1:NVarM,ones(1,NVarA))));
+            end
             g = [g(:,1:NVarA),gm,g(:,NVarA+1:end)];
         end
     end

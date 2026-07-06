@@ -13,90 +13,90 @@ function Results = HMNL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 % EstimOpt Options:
 % Set them by e.g. Estimopt.DataFile = 'Project'
-% 
+%
 % HMNL is MNL that allows for hidden (latent) variable.
 % The user should define variables to structural and measurement equations by setting them in INPUT.Xstr and INPUT.Xmea accordingly.
-% •	MeaMatrix – matrix of measurement equations, by default model is assuming that every latent variable is in every measurement equation
-% •	MeaSpecMatrix - measurement specification matrix
-% •	NLatent = 1; number of latent variables
-% 
-% 
+% â€¢	MeaMatrix â€“ matrix of measurement equations, by default model is assuming that every latent variable is in every measurement equation
+% â€¢	MeaSpecMatrix - measurement specification matrix
+% â€¢	NLatent = 1; number of latent variables
+%
+%
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% 
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+%
+%
 % Variables options:
-% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
-% •	NamesM – Names of variables of means of random parameters
-% •	NamesS – Names of variables of Scale
-% 
+% â€¢	NamesA â€“ Names of variables in list e.g. {'-Opt out';â€™-Cost (EUR)'}
+% â€¢	NamesM â€“ Names of variables of means of random parameters
+% â€¢	NamesS â€“ Names of variables of Scale
+%
 % Numbers of variables are set automatically; you can check them in the following fields:
 % o	NVarA - Number of attributes
 % o	NVarM - Number of covariates of means of random parameters
 % o	NVarS - Number of covariates of scale
-% 
-% 
+%
+%
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% •	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
-% o	-1 - constant, 
-% o	0 - normal, 
-% o	1 - lognormal, 
-% o	2 - spike, 
-% o	3 - Triangular, 
-% o	4 - Weibull, 
-% o	5 - Sinh-Arcsinh, 
-% o	6 - Johnson Sb, 
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+% â€¢	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
+% o	-1 - constant,
+% o	0 - normal,
+% o	1 - lognormal,
+% o	2 - spike,
+% o	3 - Triangular,
+% o	4 - Weibull,
+% o	5 - Sinh-Arcsinh,
+% o	6 - Johnson Sb,
 % o	7 - Johnson Su
-% 
-% 
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% 
+%
+%
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
-% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
-% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
-% o	1 - pseudo-random, 
-% o	2 - Latin Hypercube, 
-% o	3 - Halton, 
-% o	4 - Halton RR scrambled, 
-% o	5 - Sobol, 
+% â€¢	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% â€¢	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% â€¢	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
+% o	1 - pseudo-random,
+% o	2 - Latin Hypercube,
+% o	3 - Halton,
+% o	4 - Halton RR scrambled,
+% o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
-% •	RealMin = by default 0, can be set to 1
-% •	NSdSim = 1e4; number of draws for simulating standard deviations
-%  
-% 
+% â€¢	NRep = 1e3; specify no. of draws for numerical simulation
+% â€¢	RealMin = by default 0, can be set to 1
+% â€¢	NSdSim = 1e4; number of draws for simulating standard deviations
+%
+%
 % Precision:
-% •	eps = 1.e-6; overall precision level
-% •	Otherwise:
+% â€¢	eps = 1.e-6; overall precision level
+% â€¢	Otherwise:
 % o	FunctionTolerance - df / gradient precision level
 % o	TolX - step precision level
 % o	OptimalityTolerance - dB precision level
-% 
-% 
-% Seeds by default:
-% •	Seed1 = 179424673
-% •	Seed2 = 7521436817
 %
-% Example: 
+%
+% Seeds by default:
+% â€¢	Seed1 = 179424673
+% â€¢	Seed2 = 7521436817
+%
+% Example:
 %    Results.HMNL = HMNL(INPUT,Results,EstimOpt,OptimOpt);
 
 
@@ -291,11 +291,11 @@ EstimOpt.NVarS = size(INPUT.Xs,2); % Number of covariates of scale
 for i = 1:size(EstimOpt.MeaMatrix,2)
     if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
-        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
+        EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1;
     end
     if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
-        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
+        EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1;
     end
     if EstimOpt.MeaSpecMatrix(i) > 0
         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
@@ -366,21 +366,21 @@ end
 % if isfield(EstimOpt,'MissingIndMea') == 0
 %     EstimOpt.MissingIndMea = zeros(size(INPUT.Xmea)) ;
 % end
-% 
+%
 % if any(size(EstimOpt.MissingIndMea) ~= size(INPUT.Xmea))
 %     error('Incorrect size of EstimOpt.MissingIndMea matrix (must be NALT*NCT*NP x NXmea)')
 % end
-% 
+%
 % INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
 
 % for i = 1:size(EstimOpt.MeaMatrix,2)
 %     if sum(isnan(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
 %         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains NaN values \n' ,i)
-%         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1; 
+%         EstimOpt.MissingIndMea(isnan(INPUT.Xmea(:,i)),i) = 1;
 %     end
 %     if sum(isinf(INPUT.Xmea((INPUT.MissingInd == 0) & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 0
 %         cprintf(rgb('DarkOrange'),'WARNING:  Measurement variable %d contains Inf values \n',i)
-%         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1; 
+%         EstimOpt.MissingIndMea(isinf(INPUT.Xmea(:,i)),i) = 1;
 %     end
 %     if EstimOpt.MeaSpecMatrix(i) > 0
 %         if EstimOpt.MeaSpecMatrix(i) > 0 && numel(unique(INPUT.Xmea(INPUT.MissingInd == 0 & (EstimOpt.MissingIndMea(:,i) == 0),i))) > 10
@@ -398,7 +398,7 @@ if sum(any(EstimOpt.MissingIndMea == 1) & (EstimOpt.MeaSpecMatrix ~= 0 & EstimOp
     error('Missing Indicators possible only for OLS and Ordered Probit')
 end
 
-if EstimOpt.NLatent > 0 
+if EstimOpt.NLatent > 0
     if ~isfield(EstimOpt,'NamesLV') || isempty(EstimOpt.NamesLV) || length(EstimOpt.NamesLV) ~= EstimOpt.NLatent
         disp('Using autogenerated Latent Variables'' names');
         EstimOpt.NamesLV = {};
@@ -881,8 +881,32 @@ if ~exist('b0','var')
     end
 end
 
-% it must be after starting values
-INPUT.Xm = INPUT.Xm(1:EstimOpt.NCT*EstimOpt.NAlt:end,:);
+% It must be after starting values. Keep task-specific Xm when it changes
+% within a respondent; otherwise keep the historical respondent-level shape.
+if EstimOpt.NVarM > 0
+    Xm_tmp = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
+    Xm_resp = NaN(EstimOpt.NP,EstimOpt.NVarM);
+    Xm_varies = false(EstimOpt.NVarM,EstimOpt.NP);
+    for n = 1:EstimOpt.NP
+        for i = 1:EstimOpt.NVarM
+            x = Xm_tmp(i,:,n);
+            x = x(isfinite(x));
+            if ~isempty(x)
+                Xm_resp(n,i) = x(1);
+                Xm_varies(i,n) = any(x ~= x(1));
+            end
+        end
+    end
+    EstimOpt.mCT = any(Xm_varies(:));
+    if EstimOpt.mCT == 0
+        INPUT.Xm = Xm_resp; % NP x NVarM
+    else
+        INPUT.Xm = permute(Xm_tmp,[2 1 3]); % NAlt*NCT x NVarM x NP
+    end
+else
+    EstimOpt.mCT = 0;
+    INPUT.Xm = zeros(EstimOpt.NP,0);
+end
 
 
 %% Optimization Options
@@ -942,7 +966,7 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
         hm1 = sobolset(drawDim,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
-    
+
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
     if EstimOpt.NP*EstimOpt.NRep < 3e+7
@@ -952,7 +976,7 @@ elseif EstimOpt.Draws >= 3 % Quasi random draws
             err_mtx(:,i) = icdf('Normal',err_mtx(:,i),0,1); %to be cut down later
         end
     end
-    
+
 end
 
 err_sliced = err_mtx'; % NLatent x NRep * NP
@@ -1298,7 +1322,7 @@ for i = 1:size(INPUT.Xmea,2)
             end
         end
     end
-    
+
     if EstimOpt.MeaSpecMatrix(i) == 5 || EstimOpt.MeaSpecMatrix(i) == 6
         Heads.(strcat('Xmea',num2str(i)))(1:2,2) = [{'Probability of Non-participation (logit)'};{'lb'}];
         Results.(strcat('Xmea',num2str(i)))(:,1:4) = Results.DetailsM(k+1:k+floor(EstimOpt.CutMatrix(i)/2),:);
@@ -1384,7 +1408,7 @@ if strcmp(OptimOpt.GradObj,'on')
     end
 else
     Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
-    
+
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')

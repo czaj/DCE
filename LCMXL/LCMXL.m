@@ -15,96 +15,96 @@ function Results = LCMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % EstimOpt Options:
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
-% 
+%
 % LCMXL parameter options:
-% •	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
-% o	-1 - constant, 
-% o	0 - normal, 
-% o	1 - lognormal, 
-% o	2 - spike, 
-% o	3 - Triangular, 
-% o	4 - Weibull, 
-% o	5 - Sinh-Arcsinh, 
-% o	6 - Johnson Sb, 
+% â€¢	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
+% o	-1 - constant,
+% o	0 - normal,
+% o	1 - lognormal,
+% o	2 - spike,
+% o	3 - Triangular,
+% o	4 - Weibull,
+% o	5 - Sinh-Arcsinh,
+% o	6 - Johnson Sb,
 % o	7 - Johnson Su
-% •	FullCov = 0; set to 1 for correlated random parameters, 0 if not
-% 
-% 
+% â€¢	FullCov = 0; set to 1 for correlated random parameters, 0 if not
+%
+%
 % LCMXL class options:
-% •	NClass = 2; number of latent classes
-% •	NamesC – names of classes
-% •	BActiveClass vector of 0; for each class set it to 1 to constrain parameters of the attributes with zeros equal between classes
-% 
-% 
+% â€¢	NClass = 2; number of latent classes
+% â€¢	NamesC â€“ names of classes
+% â€¢	BActiveClass vector of 0; for each class set it to 1 to constrain parameters of the attributes with zeros equal between classes
+%
+%
 % General basics:
-% •	DataFile – path/name of the .mat data file
-% •	Display – 1; shows output, set to 0 to hide it 
-% •	ProjectName – Name of the project/model
-% •	WTP_space – set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
-% •	NCT - Number of choice tasks per person 
-% •	NAlt - Number of alternatives
-% •	NP – Number of respondents
-% •	
-% 
+% â€¢	DataFile â€“ path/name of the .mat data file
+% â€¢	Display â€“ 1; shows output, set to 0 to hide it
+% â€¢	ProjectName â€“ Name of the project/model
+% â€¢	WTP_space â€“ set to 1 for estimation in WTP space. If missing or set to 0, MNL uses Preference Space
+% â€¢	NCT - Number of choice tasks per person
+% â€¢	NAlt - Number of alternatives
+% â€¢	NP â€“ Number of respondents
+% â€¢
+%
 % Variables options:
-% •	NamesA – Names of variables in list e.g. {'-Opt out';’-Cost (EUR)'}
-% •	NamesS – Names of variables of Scale
-% 
+% â€¢	NamesA â€“ Names of variables in list e.g. {'-Opt out';â€™-Cost (EUR)'}
+% â€¢	NamesS â€“ Names of variables of Scale
+%
 % Numbers of variables are set automatically; you can check them in the following fields:
 % o	NVarA - Number of attributes
 % o	NVarS - Number of covariates of scale
-% 
-% 
+%
+%
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
-% •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values 
-% 
-% 
+% â€¢	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% â€¢	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
+%
+%
 % Modelling options from DataCleanDCE:
-% •	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
-% •	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
-% •	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
-% •	HessEstFix = 0; Options: 
-% o	0 - use optimization Hessian, 
-% o	1 - use jacobian-based (BHHH) Hessian, 
+% â€¢	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
+% â€¢	RobustStd = 0; by default not using robust standard errors, set to 1 to use them
+% â€¢	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical gradient
+% â€¢	HessEstFix = 0; Options:
+% o	0 - use optimization Hessian,
+% o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
-% o	3 - use numerical Hessian, 
+% o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
-% 
-% 
+%
+%
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
-% •	HaltonLeap = 0; specify no of rows in halton sequence to leap
-% •	Draws = 6; specify draws type, by default Sobol with scrambling. Options: 
-% o	1 - pseudo-random, 
-% o	2 - Latin Hypercube, 
-% o	3 - Halton, 
-% o	4 - Halton RR scrambled, 
-% o	5 - Sobol, 
+% â€¢	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% â€¢	HaltonLeap = 0; specify no of rows in halton sequence to leap
+% â€¢	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
+% o	1 - pseudo-random,
+% o	2 - Latin Hypercube,
+% o	3 - Halton,
+% o	4 - Halton RR scrambled,
+% o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
-% •	RealMin = by default 0, can be set to 1
-% •	NSdSim = 1e4; number of draws for simulating standard deviations
-%  
-% 
+% â€¢	NRep = 1e3; specify no. of draws for numerical simulation
+% â€¢	RealMin = by default 0, can be set to 1
+% â€¢	NSdSim = 1e4; number of draws for simulating standard deviations
+%
+%
 % Precision:
-% •	eps = 1.e-6; overall precision level
-% •	Otherwise:
+% â€¢	eps = 1.e-6; overall precision level
+% â€¢	Otherwise:
 % o	FunctionTolerance - df / gradient precision level
 % o	TolX - step precision level
 % o	OptimalityTolerance - dB precision level
-% 
-% 
+%
+%
 % Seeds by default:
-% •	Seed1 = 179424673
-% •	Seed2 = 7521436817
-% 
-% Example: 
+% â€¢	Seed1 = 179424673
+% â€¢	Seed2 = 7521436817
+%
+% Example:
 %    Results.LCMXL = LCMXL(INPUT,Results,EstimOpt,OptimOpt);
 %
 % Author: Mikolaj Czajkowski, Professor
 % University of Warsaw, Faculty of Economic Sciences
-% email address: mik@czaj.org 
+% email address: mik@czaj.org
 % Website: http://czaj.org/#
 
 % save tmp_LCMXL
@@ -219,8 +219,8 @@ EstimOpt.NVarC = size(INPUT.Xc,2); % no. of variables explaining class probabili
 
 if isfield(INPUT,'Xs') == 0 || numel(INPUT.Xs) == 0
     INPUT.Xs = zeros(size(INPUT.Y,1),0);
-end    
-EstimOpt.NVarS = size(INPUT.Xs,2); % no. of variables explaining class probabilities  
+end
+EstimOpt.NVarS = size(INPUT.Xs,2); % no. of variables explaining class probabilities
 
 if isfield(EstimOpt,'Scores') == 0
     EstimOpt.Scores = 0;
@@ -318,7 +318,7 @@ if EstimOpt.FullCov == 0
             error('No starting values available - run MNL, LC or MXL_d first')
         end
     end
-    
+
 else % EstimOpt.FullCov == 1
     if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NClass*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS) + EstimOpt.NVarC*(EstimOpt.NClass - 1)
         b0 = B_backup(:);
@@ -343,13 +343,13 @@ else % EstimOpt.FullCov == 1
 %                 vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*EstimOpt.NVarA:EstimOpt.NVarA*EstimOpt.NClass+i*EstimOpt.NVarA));
 %                 b0(EstimOpt.NVarA*EstimOpt.NClass+1+(i-1)*sum(1:EstimOpt.NVarA):EstimOpt.NVarA*EstimOpt.NClass+i*sum(1:EstimOpt.NVarA)) = vc_tmp(tril(ones(size(vc_tmp))) == 1);
 %             end
-            b0 = Results_old.LCMXL_d.bhat(1:EstimOpt.NVarA*EstimOpt.NClass); 
+            b0 = Results_old.LCMXL_d.bhat(1:EstimOpt.NVarA*EstimOpt.NClass);
             for i = 1:EstimOpt.NClass
                 vc_tmp = diag(Results_old.LCMXL_d.bhat(EstimOpt.NVarA*EstimOpt.NClass+(i-1)*EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NClass+(i-1)+1)));
                 vc_tmp(EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3,EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3) = vc_tmp(EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3,EstimOpt.Dist((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA) < 3).^2;
                 b0 = [b0;vc_tmp(tril(ones(size(vc_tmp))) == 1)]; %#ok<AGROW>
             end
-            b0 = [b0;Results_old.LCMXL_d.bhat(EstimOpt.NVarA*(EstimOpt.NClass+(EstimOpt.NClass-1)+1)+1:end)];            
+            b0 = [b0;Results_old.LCMXL_d.bhat(EstimOpt.NVarA*(EstimOpt.NClass+(EstimOpt.NClass-1)+1)+1:end)];
         elseif isfield(Results_old,'LC') && isfield(Results_old.LC,'bhat')
             disp('Using LC coefficients for starting values')
             Results_old.LC.bhat = Results_old.LC.bhat(:);
@@ -453,10 +453,10 @@ elseif EstimOpt.Draws >= 3 % Quasi random Draws
         hm1 = sobolset(EstimOpt.NClass*EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
         hm1 = scramble(hm1,'MatousekAffineOwen');
     end
-    
+
     err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
     clear hm1;
-    
+
     if EstimOpt.NP*EstimOpt.NRep < 3e+7
         err_mtx(:,EstimOpt.Dist < 3) = icdf('Normal',err_mtx(:,EstimOpt.Dist < 2),0,1); %to be cut down later
     else % this is for very large number of Draws * variables
@@ -607,15 +607,15 @@ end
 
 LLfun = @(B) LL_lcmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.XXc,INPUT.Xs,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0
-    
+
     if EstimOpt.HessEstFix == 0
         [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
     else
         [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
     end
-    
+
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
-    
+
     EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
     EstimOpt.CONS1(sum(EstimOpt.CONS1,1) == 0,:) = [];
     EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
@@ -689,23 +689,23 @@ Results.std(EstimOpt.BLimit == 1) = 0;
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 if EstimOpt.FullCov == 0
-    std_out = Results.std(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*EstimOpt.NVarA+EstimOpt.NClass*EstimOpt.NVarA); 
+    std_out = Results.std(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*EstimOpt.NVarA+EstimOpt.NClass*EstimOpt.NVarA);
     std_out(imag(Results.std(EstimOpt.NClass*EstimOpt.NVarA+1:EstimOpt.NClass*EstimOpt.NVarA+EstimOpt.NClass*EstimOpt.NVarA)) ~= 0) = NaN;
     for i = 1:EstimOpt.NClass
         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA);
         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA))];
         l = EstimOpt.NClass*EstimOpt.NVarA;
-        
+
         Results.DetailsV(1:EstimOpt.NVarA,4*i-3) = abs(Results.bhat(l+(i-1)*EstimOpt.NVarA+1:l+i*EstimOpt.NVarA));
         Results.DetailsV(1:EstimOpt.NVarA,4*i-1:4*i) = [std_out((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(abs(Results.bhat(l+(i-1)*EstimOpt.NVarA+1:l+i*EstimOpt.NVarA)),std_out((i-1)*EstimOpt.NVarA+1:i*EstimOpt.NVarA))];
         l = 2*EstimOpt.NClass*EstimOpt.NVarA;
-        
+
         if EstimOpt.NVarS > 0
             Results.(['DetailsS',num2str(i)])(:,1) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
             Results.(['DetailsS',num2str(i)])(:,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS),pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS),Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
             l = l+EstimOpt.NClass*EstimOpt.NVarS;
         end
-        
+
         if i ~= EstimOpt.NClass
             Results.(['DetailsC',num2str(i)])(:,1) = Results.bhat(1+l+EstimOpt.NVarC*(i-1):l+EstimOpt.NVarC*i);
             Results.(['DetailsC',num2str(i)])(:,3:4) = [Results.std(1+l+EstimOpt.NVarC*(i-1):l+EstimOpt.NVarC*i),pv(Results.bhat(1+l+EstimOpt.NVarC*(i-1):l+EstimOpt.NVarC*i),Results.std(1+l+EstimOpt.NVarC*(i-1):l+EstimOpt.NVarC*i))];
@@ -822,12 +822,12 @@ if EstimOpt.NVarS > 0
     end
     Template1tmp = cell(2, size(Temp,2));
     Template1tmp(1,1:EstimOpt.NClass) = Template1;
-    Template1tmp(2,:) = Temp; 
+    Template1tmp(2,:) = Temp;
     Template1 = Template1tmp;
     Template2tmp = cell(2, size(Temp,2));
     Template2tmp(1,1:EstimOpt.NClass) = Template2;
-    Template2tmp(2,:) = Temp; 
-    Template2 = Template2tmp;  
+    Template2tmp(2,:) = Temp;
+    Template2 = Template2tmp;
     Heads.DetailsS1(1,1) = {'Explanatory variables of scale'};
     Heads.DetailsS1(2,:) = {'lc','tc'};
 end
@@ -847,7 +847,7 @@ end
 if size(Template2,2) < size(Temp,2)
     Template2{1,size(Temp,2)} = [];
 end
-    
+
 Template1 = [Template1;Temp];
 Template2 = [Template2;Temp];
 
@@ -913,7 +913,7 @@ if strcmp(OptimOpt.GradObj,'on')
     end
 else
     Tail(16,2) = {['built-in, ',num2str(OptimOpt.FinDiffType)]};
-    
+
 end
 
 if isequal(OptimOpt.Algorithm,'quasi-newton')

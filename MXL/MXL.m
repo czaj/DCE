@@ -800,7 +800,7 @@ else
             cprintf('Hessian: '); cprintf('*Black','user-supplied, analytical, ')
         end
     else
-        cprintf('Hessian: '); cprintf('*Black',['built-in, ' OptimOpt.HessUpdate ', '])
+        cprintf('Hessian: '); cprintf('*Black',['built-in, ' optimHessianApproximation(OptimOpt), ', '])
     end
     switch EstimOpt.HessEstFix
         case 0
@@ -832,8 +832,15 @@ INPUT.YY = reshape(INPUT.Y,[EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
 
 
 INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-% EstimOpt.mCT = sum(sum(std(INPUT.XXm, [], 2),1),3) ~= 0;
-EstimOpt.mCT = any(any(range(INPUT.XXm,2))); % Test if Xm is choice-task specific    
+Xm_varies = false(EstimOpt.NVarM,EstimOpt.NP);
+for n = 1:EstimOpt.NP
+    for i = 1:EstimOpt.NVarM
+        x = INPUT.XXm(i,:,n);
+        x = x(isfinite(x));
+        Xm_varies(i,n) = ~isempty(x) && any(x ~= x(1));
+    end
+end
+EstimOpt.mCT = any(Xm_varies(:)); % Test if Xm is choice-task specific
 
 if EstimOpt.mCT == 0
     INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
@@ -841,14 +848,6 @@ else
     INPUT.XXm = INPUT.Xm';
     if any(EstimOpt.Dist > 1) 
         error('Choice task specific Xm works only with normal and log-normal distributions.')
-    end
-    if EstimOpt.WTP_space > 1 && EstimOpt.NumGrad == 0
-        EstimOpt.NumGrad = 1;
-        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm with EstimOpt.WTP_space > 1. \n')
-    end
-    if any(isnan(INPUT.XXa(:)))
-        EstimOpt.NumGrad = 1;
-        cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient off - analytical gradient not supported for choice task specific Xm with missing choice tasks or alternatives. \n')
     end
 end
 
@@ -1696,7 +1695,7 @@ else
             outHessian = 'user-supplied, analytical, ';
         end
     else
-        outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+        outHessian = ['built-in, ',optimHessianApproximation(OptimOpt),', '];
     end
     switch EstimOpt.HessEstFix
         case 0
@@ -1722,4 +1721,14 @@ if EstimOpt.Display~=0
 end
 
 
+end
+
+function label = optimHessianApproximation(OptimOpt)
+if isprop(OptimOpt,'HessUpdate')
+    label = char(OptimOpt.HessUpdate);
+elseif isprop(OptimOpt,'HessianApproximation')
+    label = char(OptimOpt.HessianApproximation);
+else
+    label = char(OptimOpt.Hessian);
+end
 end
