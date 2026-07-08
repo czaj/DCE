@@ -116,22 +116,15 @@ Results.R = [];
 Results.R_out = {};
 Results.stats = [];
 
-% Save the screen output to ./output/HMXL_yyyy-mm-dd HHMM.txt by default.
 if ~isfield(EstimOpt,'SaveTxtOutput') || isempty(EstimOpt.SaveTxtOutput)
     EstimOpt.SaveTxtOutput = 1;
 end
 if EstimOpt.SaveTxtOutput ~= 0
-    if ~isfield(EstimOpt,'OutputDir') || isempty(EstimOpt.OutputDir)
-        EstimOpt.OutputDir = fullfile(pwd,'output');
+    EstimOpt = setupDceOutputDefaults(EstimOpt);
+    if isfield(EstimOpt,'OutputLogFile') && ~isempty(EstimOpt.OutputLogFile)
+        Results.output_txt = EstimOpt.OutputLogFile;
+        disp(['HMXL screen output is also being saved to: ' Results.output_txt]);
     end
-    if ~exist(EstimOpt.OutputDir,'dir')
-        mkdir(EstimOpt.OutputDir);
-    end
-    Results.output_txt = fullfile(EstimOpt.OutputDir,['HMXL_' datestr(now,'yyyy-mm-dd HHMM') '.txt']);
-    diary(Results.output_txt);
-    diary on;
-    diaryCleanup = onCleanup(@() diary('off')); %#ok<NASGU>
-    disp(['HMXL screen output is also being saved to: ' Results.output_txt]);
 end
 
 global HMXL_OPT_STATE
@@ -1627,7 +1620,7 @@ end
 
 Tail(17,2) = {outHessian};
 
-%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xlsx
 
 if EstimOpt.Display ~= 0
     Results.Dist = EstimOpt.Dist;

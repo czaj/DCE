@@ -957,7 +957,7 @@ end
 Tail(17,2) = {outHessian};
 
 
-%%  Print to screen and .xls
+%%  Print to screen and .xlsx
 
 
 if EstimOpt.Display ~= 0

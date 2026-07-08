@@ -112,22 +112,15 @@ Results.R = [];
 Results.R_out = {};
 Results.stats = [];
 
-% Save the screen output to ./output/HMNL_yyyy-mm-dd HHMM.txt by default.
 if ~isfield(EstimOpt,'SaveTxtOutput') || isempty(EstimOpt.SaveTxtOutput)
     EstimOpt.SaveTxtOutput = 1;
 end
 if EstimOpt.SaveTxtOutput ~= 0
-    if ~isfield(EstimOpt,'OutputDir') || isempty(EstimOpt.OutputDir)
-        EstimOpt.OutputDir = fullfile(pwd,'output');
+    EstimOpt = setupDceOutputDefaults(EstimOpt);
+    if isfield(EstimOpt,'OutputLogFile') && ~isempty(EstimOpt.OutputLogFile)
+        Results.output_txt = EstimOpt.OutputLogFile;
+        disp(['HMNL screen output is also being saved to: ' Results.output_txt]);
     end
-    if ~exist(EstimOpt.OutputDir,'dir')
-        mkdir(EstimOpt.OutputDir);
-    end
-    Results.output_txt = fullfile(EstimOpt.OutputDir,['HMNL_' datestr(now,'yyyy-mm-dd HHMM') '.txt']);
-    diary(Results.output_txt);
-    diary on;
-    diaryCleanup = onCleanup(@() diary('off')); %#ok<NASGU>
-    disp(['HMNL screen output is also being saved to: ' Results.output_txt]);
 end
 
 global HMNL_OPT_STATE
@@ -1451,7 +1444,7 @@ end
 
 Tail(17,2) = {outHessian};
 
-%%  Print to screen and .xls
+%%  Print to screen and .xlsx
 
 % save tmp2
 

@@ -322,6 +322,11 @@ else
     b0j = b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarNLT+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarNLT+2*Johnson);
 end
 
+if mCT ~= 0 && WTP_space > 0 && FullCov == 0 && all(Dist == 0) && NVarS == 0 && NVarNLT == 0 && Johnson == 0 && nargout <= 2 && (~isfield(EstimOpt,'MCTWTPLite') || EstimOpt.MCTWTPLite ~= 0)
+    [f,g] = LL_mxl_mct_wtp_normal(YY,XXa,XXm,err,EstimOpt,b0a,b0m,VC);
+    return
+end
+
 %% Nonlinear transformations
 if NVarNLT > 0
     % IndTransNon0 = (abs(bt) > 0.00001)';
@@ -1538,4 +1543,89 @@ for t = 1:NCTMiss
 end
 Z_chosen = Z(Yy,:,:);
 sumZ = reshape(sum(Z_chosen - Z_hat,1),[K,NRep]);
+end
+
+function [f,g] = LL_mxl_mct_wtp_normal(YY,XXa,XXm,err,EstimOpt,b0a,b0m,VC)
+NAlt = EstimOpt.NAlt;
+NCT = EstimOpt.NCT;
+NP = EstimOpt.NP;
+NRep = EstimOpt.NRep;
+NVarA = EstimOpt.NVarA;
+NVarM = EstimOpt.NVarM;
+WTP_space = EstimOpt.WTP_space;
+WTP_matrix = EstimOpt.WTP_matrix;
+RealMin = EstimOpt.RealMin;
+
+R = NAlt*NCT;
+Err = reshape(err,[NVarA,NRep,NP]);
+Xm = reshape(XXm,[NVarM,R,NP]);
+g = zeros(NP,2*NVarA + NVarA*NVarM);
+p0 = zeros(NP,1);
+
+for n = 1:NP
+    XXa_n = XXa(:,:,n);
+    YY_n = YY(:,n);
+    Xm_n = Xm(:,:,n)';
+
+    braw = reshape(b0a + VC*Err(:,:,n),[1,NVarA,NRep]) + reshape((b0m*Xm(:,:,n))',[R,NVarA,1]);
+    bwtp = braw;
+    bwtp(:,1:NVarA-WTP_space,:) = bwtp(:,1:NVarA-WTP_space,:).*braw(:,WTP_matrix,:);
+    Uall = reshape(sum(XXa_n.*bwtp,2),[R,NRep]);
+
+    Xalpha = XXa_n(:,1:NVarA-WTP_space).*braw(:,WTP_matrix,:);
+    pX = zeros(R,WTP_space,NRep);
+    for c = 1:WTP_space
+        costInd = NVarA - WTP_space + c;
+        pX(:,c,:) = XXa_n(:,costInd) + sum(XXa_n(:,WTP_matrix == costInd).*braw(:,WTP_matrix == costInd,:),2);
+    end
+
+    U_prod = ones(1,NRep);
+    sumF = zeros(NVarA,NRep);
+    sumFm = zeros(NVarA,NVarM,NRep);
+
+    for t = 1:NCT
+        rows = (t-1)*NAlt + (1:NAlt);
+        avail = isfinite(YY_n(rows)) & all(isfinite(XXa_n(rows,:)),2);
+        chosen = YY_n(rows) == 1 & avail;
+        if sum(chosen) ~= 1 || sum(avail) < 2
+            continue
+        end
+        chosenPos = find(chosen(avail),1);
+
+        U = Uall(rows(avail),:);
+        U = exp(U - max(U,[],1));
+        U_prob = U./sum(U,1);
+        U_prod = U_prod.*U_prob(chosenPos,:);
+
+        nAvail = sum(avail);
+        prob = reshape(U_prob,[nAvail,1,NRep]);
+        Xalpha_t = Xalpha(rows(avail),:,:);
+        F1 = Xalpha_t(chosenPos,:,:) - sum(prob.*Xalpha_t,1);
+        sumF(1:NVarA-WTP_space,:) = sumF(1:NVarA-WTP_space,:) + reshape(F1,[NVarA-WTP_space,NRep]);
+
+        pX_t = pX(rows(avail),:,:);
+        F2 = pX_t(chosenPos,:,:) - sum(prob.*pX_t,1);
+        sumF(NVarA-WTP_space+1:end,:) = sumF(NVarA-WTP_space+1:end,:) + reshape(F2,[WTP_space,NRep]);
+
+        Xm_t = Xm_n(rows(avail),:);
+        for m = 1:NVarM
+            xm = reshape(Xm_t(:,m),[nAvail,1,1]);
+            F1m = Xalpha_t(chosenPos,:,:).*xm(chosenPos) - sum(prob.*Xalpha_t.*xm,1);
+            F2m = pX_t(chosenPos,:,:).*xm(chosenPos) - sum(prob.*pX_t.*xm,1);
+            sumFm(1:NVarA-WTP_space,m,:) = sumFm(1:NVarA-WTP_space,m,:) + reshape(F1m,[NVarA-WTP_space,1,NRep]);
+            sumFm(NVarA-WTP_space+1:end,m,:) = sumFm(NVarA-WTP_space+1:end,m,:) + reshape(F2m,[WTP_space,1,NRep]);
+        end
+    end
+
+    p0(n) = mean(U_prod,2);
+    if RealMin == 1
+        p0(n) = max(p0(n),realmin);
+    end
+    gmean = -mean(sumF.*U_prod,2)./p0(n);
+    gsd = -mean((sumF.*Err(:,:,n)).*U_prod,2)./p0(n);
+    gm = -mean(reshape(sumFm,[NVarA*NVarM,NRep]).*U_prod,2)./p0(n);
+    g(n,:) = [gmean;gsd;gm]';
+end
+
+f = -log(p0);
 end

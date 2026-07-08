@@ -1029,7 +1029,7 @@ end
 
 Tail(17,2) = {outHessian};
 
-%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xls
+%% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xlsx
 
 if EstimOpt.Display ~= 0
     Results.Dist = zeros(size(INPUT.Xa,2),1);
