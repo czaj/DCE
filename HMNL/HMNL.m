@@ -685,10 +685,7 @@ end
 
 %% Starting values
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS
-    b0 = B_backup(:);
-    disp('Using the starting values from Backup')
-elseif isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'b0') % starting values provided
+if isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'b0') % starting values provided
     Results_old.HMNL.b0_old = Results_old.HMNL.b0(:);
     Results_old.HMNL = rmfield(Results_old.HMNL,'b0');
     if length(Results_old.HMNL.b0_old) ~= EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS
@@ -696,7 +693,12 @@ elseif isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'b0') % starting 
         Results_old.HMNL = rmfield(Results_old.HMNL,'b0_old');
     else
         b0 = Results_old.HMNL.b0_old(:);
+        disp('Using provided HMNL starting values')
     end
+end
+if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS
+    b0 = B_backup(:);
+    disp('Using the starting values from Backup')
 end
 % save tmp1
 % if ~exist('b0','var')

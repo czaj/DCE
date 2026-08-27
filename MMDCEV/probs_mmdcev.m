@@ -88,51 +88,33 @@ scale = exp(b0(l+NVarP*(1+NVarU)+1)); % scale parameter (sigma); one for all dat
 % exp() for ensuring > 0
 
 % alphas and gammas
-if Profile == 1 % alpha profile
-    if NVarU == 0
-        alphas = b_profile;
-        alphas = 1 - exp(-alphas); % between 0 and 1
-    else
-        alpha = reshape(b_profile, [NVarU+1, NAlt]);
-        alphas = 1 - exp(-Xu*alpha)'; % NAlt x N
-    end
+if Profile == 1
+    coef = reshape(b_profile,1+NVarU,NVarP);
+    fit = profileFit(Xu,coef,NVarU);
+    alphas = (1-exp(-fit(:,SpecProfile(1,:))))';
     gammas = ones(size(alphas));
-elseif Profile == 2 % gamma profile
-    if NVarU == 0
-        gammas = b_profile;
-        gammas = exp(gammas); % greater than 0
-    else
-        gamma = reshape(b_profile, [NVarU+1, NAlt]);
-        gammas= exp(Xu*gamma)'; % NAlt x N
-    end
+elseif Profile == 2
+    coef = reshape(b_profile,1+NVarU,NVarP);
+    fit = profileFit(Xu,coef,NVarU);
+    gammas = exp(fit(:,SpecProfile(2,:)))';
     alphas = zeros(size(gammas));
-elseif Profile == 3 % SpecProfile
-    indx = length(unique(SpecProfile(1,SpecProfile(1,:) ~= 0))); % unique alphas
-    if NVarU == 0
-        a = b_profile(1:indx);
-        a = 1 - exp(-a);
-        a = a(SpecProfile(1,SpecProfile(1,:) ~= 0)); 
-        alphas = zeros(NAlt,1);
-        alphas(SpecProfile(1,:) ~= 0) = a;
-    
-        g = b_profile(indx+1:end);
-        g = exp(g); % greater than 0
-        g = g(SpecProfile(2,SpecProfile(2,:) ~= 0)); 
-        gammas = ones(NAlt,1);
-        gammas(SpecProfile(2,:) ~= 0) = g;
-    else
-
-        a = reshape(b_profile(1:indx*(NVarU+1)), [NVarU+1, indx]);
-        alpha = 1 - exp(-Xu*a)';
-        alpha = alpha(SpecProfile(1,SpecProfile(1,:) ~= 0),:); 
-        alphas = zeros(NAlt,N);
-        alphas(SpecProfile(1,:) ~= 0,:) = alpha;
-    
-        g = reshape(b_profile(indx*(NVarU+1)+1:end), [NVarU+1, NVarP - indx]);
-        gamma = exp(Xu*g)'; % greater than 0
-        gamma = gamma(SpecProfile(2,SpecProfile(2,:) ~= 0),:); 
-        gammas = ones(NAlt,N);
-        gammas(SpecProfile(2,:) ~= 0,:) = gamma;
+else
+    nAlpha = numel(unique(SpecProfile(1,SpecProfile(1,:) ~= 0)));
+    nRows = size(profileFit(Xu,zeros(1+NVarU,1),NVarU),1);
+    alphas = zeros(NAlt,nRows);
+    gammas = ones(NAlt,nRows);
+    if nAlpha > 0
+        coef = reshape(b_profile(1:nAlpha*(1+NVarU)),1+NVarU,nAlpha);
+        fit = profileFit(Xu,coef,NVarU);
+        mask = SpecProfile(1,:) ~= 0;
+        alphas(mask,:) = (1-exp(-fit(:,SpecProfile(1,mask))))';
+    end
+    nGamma = NVarP-nAlpha;
+    if nGamma > 0
+        coef = reshape(b_profile(nAlpha*(1+NVarU)+1:end),1+NVarU,nGamma);
+        fit = profileFit(Xu,coef,NVarU);
+        mask = SpecProfile(2,:) ~= 0;
+        gammas(mask,:) = exp(fit(:,SpecProfile(2,mask)))';
     end
 end
  
@@ -140,17 +122,19 @@ isChosen = (y ~= 0); % if the alternative was chosen or not
 M = sum(isChosen, 1); % number of consumed goods in each decision
 
 % computing baseline utility levels
-betasZ = zeros(NAlt*NCT, NRep, NP);
-for i = 1:NP
-    betasZ(:,:,i) = Xa(:,:,i)*b_mtx(:,:,i);
-end
+betasZ = pagemtimes(Xa,b_mtx);
 betasZ = reshape(permute(betasZ, [1, 3, 2]), [NAlt, N, NRep]);
 
 %% logarithms
-% logf_i = log(1 - alphas) - log(y + gammas); % (NAltxN)
-logc_i = log(1 - alphas) - log(y + gammas) - log(priceMat); % (NAltxN)
-AlphaDerV = log(y ./ gammas + 1);
-V = betasZ + (alphas - 1) .* AlphaDerV - log(priceMat);
+if RealMin == 1
+    logc_i = log(max(1-alphas,realmin))-log(max(y+gammas,realmin))-log(max(priceMat,realmin));
+    AlphaDerV = log(max(y./gammas+1,realmin));
+    V = betasZ+(alphas-1).*AlphaDerV-log(max(priceMat,realmin));
+else
+    logc_i = log(1-alphas)-log(y+gammas)-log(priceMat);
+    AlphaDerV = log(y./gammas+1);
+    V = betasZ+(alphas-1).*AlphaDerV-log(priceMat);
+end
 
 logV = V / scale; % NAlt x N x NRep
 
@@ -164,9 +148,10 @@ logprobs = (1 - M) .* log(scale) + ...
     (sum(isChosen .* logV, 1) - M .* log(sumV)) + ...
     gammaln(M); % log(factorial(M-1)) = gammaln(M)
 
-probs = reshape(exp(logprobs), [NCT, NP, NRep]);
-ProbsProd = prod(probs,1); % 1 x NP x NRep
-f = mean(ProbsProd,3)'; % NP x 1
+logProbsProd = sum(reshape(logprobs,[NCT,NP,NRep]),1);
+maxLogProbsProd = max(logProbsProd,[],3);
+ProbsProd = exp(logProbsProd-maxLogProbsProd); % stabilized draw weights
+f = mean(ProbsProd,3)'; % scaled likelihood, NP x 1
 
 if nargout == 2 % gradient
     if FullCov == 0
@@ -267,8 +252,16 @@ if nargout == 2 % gradient
 end
 
 if RealMin == 1
-    f = -log(max(f,realmin));
+    f = -log(max(f,realmin))-maxLogProbsProd';
 else
-    f = -log(f);
+    f = -log(f)-maxLogProbsProd';
+end
+end
+
+function fit = profileFit(Xu,coef,NVarU)
+if NVarU == 0
+    fit = coef;
+else
+    fit = Xu*coef;
 end
 end

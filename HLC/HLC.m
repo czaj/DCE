@@ -493,10 +493,7 @@ end
 EstimOpt.jitter1 = 0.8; % Jittering parameter (relative) for HMNL starting values (attributes)
 EstimOpt.jitter2 = 0.1; % Jittering parameter (absolute) for class probabilities starting values
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC + EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
-    b0 = B_backup(:);
-    disp('Using the starting values from Backup')
-elseif isfield(Results_old,'HLC') && isfield(Results_old.HLC,'b0') % starting values provided
+if isfield(Results_old,'HLC') && isfield(Results_old.HLC,'b0') % starting values provided
     Results_old.HLC.b0_old = Results_old.HLC.b0(:);
     Results_old.HLC = rmfield(Results_old.HLC,'b0');
     if length(Results_old.HLC.b0_old) ~= (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC + EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
@@ -504,7 +501,12 @@ elseif isfield(Results_old,'HLC') && isfield(Results_old.HLC,'b0') % starting va
         Results_old.HLC = rmfield(Results_old.HLC,'b0_old');
     else
         b0 = Results_old.HLC.b0_old(:);
+        disp('Using provided HLC starting values')
     end
+end
+if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*EstimOpt.NClass + (EstimOpt.NVarC + EstimOpt.NLatent)*(EstimOpt.NClass - 1) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut)
+    b0 = B_backup(:);
+    disp('Using the starting values from Backup')
 end
 
 if ~exist('b0','var')

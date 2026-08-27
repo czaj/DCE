@@ -208,7 +208,11 @@ end
 %% Starting values
 
 if isfield(EstimOpt,'StartMatFull') && EstimOpt.StartMatFull == 1
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA && size(B_backup,2) == EstimOpt.NP
+    if isfield(Results_old,'GWMNL') && isfield(Results_old.GWMNL,'b0') && ...
+            isequal(size(Results_old.GWMNL.b0), [EstimOpt.NVarA, EstimOpt.NP])
+        b0 = Results_old.GWMNL.b0;
+        disp('Using provided GWMNL starting values')
+    elseif exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA && size(B_backup,2) == EstimOpt.NP
         b0 = B_backup;
         disp('Using the starting values from Backup')
     else
@@ -217,7 +221,11 @@ if isfield(EstimOpt,'StartMatFull') && EstimOpt.StartMatFull == 1
 
 else
     EstimOpt.StartMatFull = 0;
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA && size(B_backup,2) == 1
+    if isfield(Results_old,'GWMNL') && isfield(Results_old.GWMNL,'b0') && ...
+            isvector(Results_old.GWMNL.b0) && numel(Results_old.GWMNL.b0) == EstimOpt.NVarA
+        b0 = Results_old.GWMNL.b0(:);
+        disp('Using provided GWMNL starting values')
+    elseif exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA && size(B_backup,2) == 1
         b0 = B_backup;
         disp('Using the starting values from Backup')
     elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'bhat') && length(Results_old.MNL.bhat) == EstimOpt.NVarA  % MNL starting values provided

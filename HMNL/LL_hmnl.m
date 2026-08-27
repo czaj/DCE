@@ -138,7 +138,7 @@ end
 
 probs = zeros(NP,NRep);
 
-if nargout == 1 % function value only
+    if nargout == 1 % function value only
     if any(isnan(Xa(:))) == 0  % faster version for complete dataset
         parfor n = 1:NP
             Xa_n = Xa(:,:,n);
@@ -368,6 +368,7 @@ else % function value + gradient
         gxm = zeros(NP,NRep,NVarA*NVarM); % gradient for task-specific Xm interactions
     else
         gxm = zeros(0,0,0);
+        Xm = zeros(0,0,NP); % parfor still analyzes the inactive Xm(:,:,n) branch
     end
     gstr = zeros(NP,NRep,NVarStr,NLatent); % gradient for parameters from structural equations
     gmea = zeros(NP,NRep,size(bmea,1));% gradient for other parameters

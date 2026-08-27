@@ -292,7 +292,21 @@ if ~isfield(EstimOpt,'Gamma0')
 end
 
 if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup)
+    if isfield(Results_old,'GMXL_d') && isfield(Results_old.GMXL_d,'b0') % starting values provided
+        Results_old.GMXL_d.b0_old = Results_old.GMXL_d.b0(:);
+        Results_old.GMXL_d = rmfield(Results_old.GMXL_d,'b0');
+        if length(Results_old.GMXL_d.b0_old) ~= EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
+            disp('WARNING: Incorrect no. of starting values or model specification')
+            Results_old.GMXL_d = rmfield(Results_old.GMXL_d,'b0_old');
+        else
+            b0 = Results_old.GMXL_d.b0_old(:);
+            if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
+                b0 = b0(1:end-1);
+            end
+            disp('Using provided GMXL_d starting values')
+        end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup)
         if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
             if size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1
                 b0 = B_backup(:);
@@ -302,21 +316,6 @@ if EstimOpt.FullCov == 0
             if size(B_backup,1) == EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
                 b0 = B_backup(:);
                 disp('Using the starting values from Backup')
-            end
-        end
-    end
-    if ~exist('b0','var') % There is no Backup
-        if isfield(Results_old,'GMXL_d') && isfield(Results_old.GMXL_d,'b0') % starting values provided
-            Results_old.GMXL_d.b0_old = Results_old.GMXL_d.b0(:);
-            Results_old.GMXL_d = rmfield(Results_old.GMXL_d,'b0');
-            if length(Results_old.GMXL_d.b0_old) ~=  EstimOpt.NVarA*2 + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
-                disp('WARNING: Incorrect no. of starting values or model specification')
-                Results_old.GMXL_d = rmfield(Results_old.GMXL_d,'b0_old');
-            else
-                b0 = Results_old.GMXL_d.b0_old(:);
-                if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
-                    b0 = b0(1:end-1);
-                end
             end
         end
     end
@@ -341,19 +340,10 @@ if EstimOpt.FullCov == 0
 
 elseif EstimOpt.FullCov == 1
 
-    if exist('B_backup','var') && ~isempty(B_backup) && ...
-            ((EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1) || ...
-            (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1 && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2))
-        disp('Using the starting values from Backup')
-        if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1)
-            b0 = B_backup(:);
-        elseif (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2)
-            b0 = B_backup(:);
-        end
-    elseif isfield(Results_old,'GMXL') && isfield(Results_old.GMXL,'b0') % starting values provided
+    if isfield(Results_old,'GMXL') && isfield(Results_old.GMXL,'b0') % starting values provided
         Results_old.GMXL.b0_old = Results_old.GMXL.b0(:);
         Results_old.GMXL = rmfield(Results_old.GMXL,'b0');
-        if length(Results_old.GMXL.b0_old) ~=  EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
+        if length(Results_old.GMXL.b0_old) ~= EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2
             disp('WARNING: Incorrect no. of starting values or model specification')
             Results_old.GMXL = rmfield(Results_old.GMXL,'b0_old');
         else
@@ -361,6 +351,17 @@ elseif EstimOpt.FullCov == 1
             if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1)
                 b0 = b0(1:end-1);
             end
+            disp('Using provided GMXL starting values')
+        end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && ...
+            ((EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1) || ...
+            (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1 && size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2))
+        disp('Using the starting values from Backup')
+        if (EstimOpt.Gamma0 == 0 || EstimOpt.Gamma0 == 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 1)
+            b0 = B_backup(:);
+        elseif (EstimOpt.Gamma0 ~= 0 && EstimOpt.Gamma0 ~= 1) && (size(B_backup,1) == EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarM*EstimOpt.NVarA + EstimOpt.NVarS + EstimOpt.NVarT + 2)
+            b0 = B_backup(:);
         end
     end
     if ~exist('b0','var') % There is no Backup nor starting values provided

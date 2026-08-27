@@ -218,12 +218,7 @@ end
 %% Starting values
 
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
-    b0 = B_backup(:);
-    if EstimOpt.Display ~= 0
-        disp('Using the starting values from Backup')
-    end
-elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') && (length(Results_old.MNL.b0) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT) % MNL starting values provided
+if isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') % MNL starting values provided
     Results_old.MNL.b0_old = Results_old.MNL.b0;
     Results_old.MNL = rmfield(Results_old.MNL,'b0');
     if length(Results_old.MNL.b0_old) ~= EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
@@ -233,6 +228,15 @@ elseif isfield(Results_old,'MNL') && isfield(Results_old.MNL,'b0') && (length(Re
         Results_old.MNL = rmfield(Results_old.MNL,'b0_old');
     else
         b0 = Results_old.MNL.b0_old(:);
+        if EstimOpt.Display ~= 0
+            disp('Using provided MNL starting values')
+        end
+    end
+end
+if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarA*(1+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT
+    b0 = B_backup(:);
+    if EstimOpt.Display ~= 0
+        disp('Using the starting values from Backup')
     end
 end
 if ~exist('b0','var')
@@ -247,18 +251,18 @@ if ~exist('b0','var')
             Xm = reshape(INPUT.Xm(INPUT.MissingInd == 0,:),[size(Xa,1),1,EstimOpt.NVarM]);
 %             Xm = reshape(Xm(:,ones(1,EstimOpt.NVarA),:),[size(Xa,1),EstimOpt.NVarA*EstimOpt.NVarM]);
 %             Xa2 = reshape(Xa(:,:,ones(1,EstimOpt.NVarM)),[size(Xa,1),EstimOpt.NVarA*EstimOpt.NVarM]);
-            b0 = [regress(Y,[Xa,reshape(Xa.*Xm,[size(Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]);b00;ones(EstimOpt.NVarNLT,1)];
+            b0 = [[Xa,reshape(Xa.*Xm,[size(Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]\Y;b00;ones(EstimOpt.NVarNLT,1)];
         else
-            b0 = [regress(Y,Xa);b00;ones(EstimOpt.NVarNLT,1)];
+            b0 = [Xa\Y;b00;ones(EstimOpt.NVarNLT,1)];
         end
     else
         if EstimOpt.NVarM > 0
             Xm = reshape(INPUT.Xm,[size(INPUT.Xa,1),1,EstimOpt.NVarM]);
 %             Xm = reshape(Xm(:,ones(1, EstimOpt.NVarA),:),[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM]);
 %             Xa2 = reshape(INPUT.Xa(:,:,ones(1,EstimOpt.NVarM)),[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOp.NVarM]);
-            b0 = [regress(INPUT.Y,[INPUT.Xa,reshape(INPUT.Xa.*Xm,[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]);ones(EstimOpt.NVarNLT,1)];
+            b0 = [[INPUT.Xa,reshape(INPUT.Xa.*Xm,[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]\INPUT.Y;ones(EstimOpt.NVarNLT,1)];
         else
-            b0 = [regress(INPUT.Y,INPUT.Xa); ones(EstimOpt.NVarNLT,1)];
+            b0 = [INPUT.Xa\INPUT.Y; ones(EstimOpt.NVarNLT,1)];
         end
     end
     if ~isempty(EstimOpt.ExpB)
@@ -425,6 +429,10 @@ if EstimOpt.NVarM > 0 && (EstimOpt.WTP_space > 0 || EstimOpt.NVarNLT > 0)
         NCTno = sum(EstimOpt.NCTMiss(1:i-1));
         EstimOpt.XmIndx(NCTno+1:NCTno+EstimOpt.NCTMiss(i)) = i;
         EstimOpt.XmIndx2(NCTno*EstimOpt.NAlt+1:(NCTno+EstimOpt.NCTMiss(i))*EstimOpt.NAlt) = i;
+    end
+    if ~EstimOpt.mCT
+        firstRow = ([0;cumsum(EstimOpt.NCTMiss(1:end-1))]*EstimOpt.NAlt) + 1;
+        INPUT.Xm = INPUT.Xm(firstRow,:);
     end
     NVarMOld = EstimOpt.NVarM;
 elseif EstimOpt.NVarM > 0 && EstimOpt.WTP_space == 0 && EstimOpt.NVarNLT == 0

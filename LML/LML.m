@@ -298,10 +298,7 @@ if exist('B_backup','var') && ~isempty(B_backup) && isvector(B_backup)
 end
 
 if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'b0') % starting values provided
+    if isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'b0') % starting values provided
         Results_old.LML_d.b0_old = Results_old.LML_d.b0(:);
         Results_old.LML_d = rmfield(Results_old.LML_d,'b0');
         if length(Results_old.LML_d.b0_old) ~= NVar
@@ -309,16 +306,18 @@ if EstimOpt.FullCov == 0
             Results_old.LML_d = rmfield(Results_old.LML_d,'b0_old');
         else
             b0 = Results_old.LML_d.b0_old(:);
+            disp('Using provided LML_d starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if  ~exist('b0','var')
         b0 = zeros(NVar,1);
     end
 else
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar + NVarA*(NVarA-1)/2
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LML') && isfield(Results_old.LML,'b0') % starting values provided
+    if isfield(Results_old,'LML') && isfield(Results_old.LML,'b0') % starting values provided
         Results_old.LML.b0_old = Results_old.LML.b0(:);
         Results_old.LML = rmfield(Results_old.LML,'b0');
         if length(Results_old.LML.b0_old) ~= NVar + NVarA*(NVarA-1)/2
@@ -326,7 +325,12 @@ else
             Results_old.LML = rmfield(Results_old.LML,'b0_old');
         else
             b0 = Results_old.LML.b0_old(:);
+            disp('Using provided LML starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVar + NVarA*(NVarA-1)/2
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if  ~exist('b0','var')
         if isfield(Results_old,'LML_d') && isfield(Results_old.LML_d,'bhat') % starting values provided

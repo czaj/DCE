@@ -572,10 +572,7 @@ end
 
 %% Starting values
 
-if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut
-    b0 = B_backup(:);
-    disp('Using the starting values from Backup')
-elseif isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'b0') % starting values provided
+if isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'b0') % starting values provided
     Results_old.MIMIC.b0_old = Results_old.MIMIC.b0(:);
     Results_old.MIMIC = rmfield(Results_old.MIMIC,'b0');
     if length(Results_old.MIMIC.b0_old) ~= EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut
@@ -583,7 +580,12 @@ elseif isfield(Results_old,'MIMIC') && isfield(Results_old.MIMIC,'b0') % startin
         Results_old.MIMIC = rmfield(Results_old.MIMIC,'b0_old');
     else
         b0 = Results_old.MIMIC.b0_old(:);
+        disp('Using provided MIMIC starting values')
     end
+end
+if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut
+    b0 = B_backup(:);
+    disp('Using the starting values from Backup')
 end
 if ~exist('b0','var')
     b0 = zeros(EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut,1);

@@ -719,10 +719,7 @@ end
 
 %% Starting values
 if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(2 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'b0') % starting values provided
+    if isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'b0') % starting values provided
         Results_old.HMXL_d.b0_old = Results_old.HMXL_d.b0(:);
         Results_old.HMXL_d = rmfield(Results_old.HMXL_d,'b0');
         if length(Results_old.HMXL_d.b0_old) ~= (EstimOpt.NVarA*(2 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut+EstimOpt.NVarS)
@@ -730,7 +727,12 @@ if EstimOpt.FullCov == 0
             Results_old.HMXL_d = rmfield(Results_old.HMXL_d,'b0_old');
         else
             b0 = Results_old.HMXL_d.b0_old(:);
+            disp('Using provided HMXL_d starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(2 + EstimOpt.NLatent + EstimOpt.NVarM) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'HMNL') && isfield(Results_old.HMNL,'bhat')
@@ -762,10 +764,7 @@ if EstimOpt.FullCov == 0
         end
     end
 elseif EstimOpt.FullCov == 1
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'HMXL') && isfield(Results_old.HMXL,'b0') % starting values provided
+    if isfield(Results_old,'HMXL') && isfield(Results_old.HMXL,'b0') % starting values provided
         Results_old.HMXL.b0_old = Results_old.HMXL.b0(:);
         Results_old.HMXL = rmfield(Results_old.HMXL,'b0');
         if length(Results_old.HMXL.b0_old) ~= (EstimOpt.NVarA*(1 + EstimOpt.NLatent+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
@@ -773,7 +772,12 @@ elseif EstimOpt.FullCov == 1
             Results_old.HMXL = rmfield(Results_old.HMXL,'b0_old');
         else
             b0 = Results_old.HMXL.b0_old(:);
+            disp('Using provided HMXL starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent+EstimOpt.NVarM) + sum(1:EstimOpt.NVarA) + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'HMXL_d') && isfield(Results_old.HMXL_d,'bhat')
@@ -794,18 +798,20 @@ elseif EstimOpt.FullCov == 1
     end
 
 elseif EstimOpt.FullCov == 2 % allowing for correlation between random terms and LV
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:(EstimOpt.NVarA+EstimOpt.NLatent)) - EstimOpt.NLatent + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'HMXL_e') && isfield(Results_old.HMXL_e,'b0') % starting values provided
+    if isfield(Results_old,'HMXL_e') && isfield(Results_old.HMXL_e,'b0') % starting values provided
         Results_old.HMXL_e.b0_old = Results_old.HMXL_e.b0(:);
         Results_old.HMXL_e = rmfield(Results_old.HMXL_e,'b0');
         if length(Results_old.HMXL_e.b0_old) ~= (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:(EstimOpt.NVarA+EstimOpt.NLatent)) - EstimOpt.NLatent + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
             cprintf(rgb('DarkOrange'),'WARNING: Incorrect no. of starting values or model specification \n')
             Results_old.HMXL_e = rmfield(Results_old.HMXL_e,'b0_old');
         else
-            b0 = Results_old.HMXL.b0_old(:);
+            b0 = Results_old.HMXL_e.b0_old(:);
+            disp('Using provided HMXL_e starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (EstimOpt.NVarA*(1 + EstimOpt.NLatent + EstimOpt.NVarM) + sum(1:(EstimOpt.NVarA+EstimOpt.NLatent)) - EstimOpt.NLatent + EstimOpt.NVarStr*EstimOpt.NLatent + EstimOpt.NVarMea + EstimOpt.NVarcut + EstimOpt.NVarS)
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'HMXL') && isfield(Results_old.HMXL,'bhat')

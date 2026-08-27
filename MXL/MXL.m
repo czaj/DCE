@@ -338,10 +338,7 @@ end
 %% Starting values
 
 if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVarA*(2+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'b0') % starting values provided
+    if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'b0') % starting values provided
         Results_old.MXL_d.b0_old = Results_old.MXL_d.b0(:);
         Results_old.MXL_d = rmfield(Results_old.MXL_d,'b0');
         if length(Results_old.MXL_d.b0_old) ~= NVarA*2 + EstimOpt.NVarM*NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
@@ -349,7 +346,12 @@ if EstimOpt.FullCov == 0
             Results_old.MXL_d = rmfield(Results_old.MXL_d,'b0_old');
         else
             b0 = Results_old.MXL_d.b0_old(:);
+            disp('Using provided MXL_d starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVarA*(2+EstimOpt.NVarM) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         disp('Using MNL results as starting values')
@@ -456,10 +458,7 @@ if EstimOpt.FullCov == 0
     
 else % EstimOpt.FullCov == 1
 
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVarA*(1+EstimOpt.NVarM) + sum(1:NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'MXL') && isfield(Results_old.MXL,'b0') % starting values provided
+    if isfield(Results_old,'MXL') && isfield(Results_old.MXL,'b0') % starting values provided
         Results_old.MXL.b0_old = Results_old.MXL.b0(:);
         Results_old.MXL = rmfield(Results_old.MXL,'b0');
         if length(Results_old.MXL.b0_old) ~= NVarA*(1+EstimOpt.NVarM) + sum(1:NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
@@ -467,7 +466,12 @@ else % EstimOpt.FullCov == 1
             Results_old.MXL = rmfield(Results_old.MXL,'b0_old');
         else
             b0 = Results_old.MXL.b0_old;
+            disp('Using provided MXL starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == NVarA*(1+EstimOpt.NVarM) + sum(1:NVarA) + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'MXL_d') && isfield(Results_old.MXL_d,'bhat') && length(Results_old.MXL_d.bhat) == ((2+EstimOpt.NVarM)*NVarA + EstimOpt.NVarS + EstimOpt.NVarNLT + 2*EstimOpt.Johnson)
@@ -575,7 +579,13 @@ if sum(EstimOpt.Dist == -1) > 0
     elseif EstimOpt.FullCov == 1
         Vt = tril(ones(NVarA));
         Vt(EstimOpt.Dist == -1,:) = 0;
+        Vt(:,EstimOpt.Dist == -1) = 0;
         EstimOpt.BActive(NVarA+1:NVarA+sum(1:NVarA)) = EstimOpt.BActive(NVarA+1:NVarA+sum(1:NVarA)).*(Vt(tril(ones(size(Vt)))~=0)');
+        fixed = EstimOpt.Dist(:) == -1;
+        fixedLoadings = tril(fixed | fixed');
+        cholActive = EstimOpt.BActive(NVarA+1:NVarA+sum(1:NVarA));
+        assert(all(cholActive(fixedLoadings(tril(true(NVarA)))) == 0), ...
+            'Fixed random parameters must have zero Cholesky loadings.')
     end
 end
 

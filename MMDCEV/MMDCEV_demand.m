@@ -1,333 +1,130 @@
-function [D, Err] = MMDCEV_demand(Results, num)
+function [D,Err] = MMDCEV_demand(Results,num)
+% Predict demand from an estimated diagonal or full-covariance MMDCEV model.
+% num is empty or the index of an alternative that must be consumed.
 
-% Functions takes as an argument Results from MMDCEV estimation
-    % num is empty if there is no numeraire
-    % otherwise num should indicate which alternative is numeraire
-
-% D is an NAlt x NCT*NP matrix with predictions of Demand
-%   Err is prediction error
-
-% Example:
-% [D, Err] = MMDCEV_demand(Results.MMDCEV_d, []);
-
-errorx = 0.000001; % acceptable error for bisection (only alpha-profile)
-
-%% Variables and parameters
 EstimOpt = Results.EstimOpt;
-if isfield(EstimOpt,'NSim') == 0
-    EstimOpt.NSim = 500;
+if ~isfield(EstimOpt,'NSim')
+    EstimOpt.NSim = min(500,EstimOpt.NRep);
 end
+assert(EstimOpt.NSim <= EstimOpt.NRep,'NSim must not exceed NRep.')
+NAlt = EstimOpt.NAlt;
+N = EstimOpt.NCT*EstimOpt.NP;
+if ~isempty(num)
+    validateattributes(num,{'numeric'},{'scalar','integer','>=',1,'<=',NAlt})
+end
+
 Xa = Results.INPUT.Xa;
 Y = Results.INPUT.Y;
-I = Results.INPUT.I'; % I should 1 x N
-Xm = Results.INPUT.Xm; % covariates (socio-demographic) (NxNVarM)
-priceMat = Results.INPUT.priceMat; % matrix of prices of each alternative (NAltxN)
-Draws = Results.INPUT.err;
+priceMat = Results.INPUT.priceMat;
+income = Results.INPUT.I(:)';
+Xm = Results.INPUT.Xm;
+Xu = Results.INPUT.Xu;
+if isfield(Results.INPUT,'err')
+    draws = Results.INPUT.err;
+else
+    draws = generateRandomDraws(EstimOpt)';
+end
+b = Results.bhat;
 
-variables = Results.bhat;
-NVarA = EstimOpt.NVarA; % Number of attributes
-NVarP = EstimOpt.NVarP; % Number of parameters for alpha/gamma profile
+NVarA = EstimOpt.NVarA;
 NVarM = EstimOpt.NVarM;
-NP = EstimOpt.NP;
-NCT = EstimOpt.NCT;
-
-FullCov = EstimOpt.FullCov;
-Dist = EstimOpt.Dist;
-NRep = EstimOpt.NRep;
-assert(EstimOpt.NSim <= EstimOpt.NRep, 'MMDCEV_demand: NSim (%d) must not exceed NRep (%d).', EstimOpt.NSim, EstimOpt.NRep);
-
-Profile = EstimOpt.Profile; % Utility function version
-SpecProfile = EstimOpt.SpecProfile;
-NAlt = EstimOpt.NAlt; % Number of alternatives
-N = size(Y,2); % Number of decisions
-
-% define variables to be optimized
-betas = variables(1:NVarA); % betas
-if FullCov == 0
-    b0v = variables(NVarA+1:2*NVarA);
-    VC = diag(b0v);
+NVarU = EstimOpt.NVarU;
+NVarP = EstimOpt.NVarP;
+betas = b(1:NVarA);
+if EstimOpt.FullCov == 0
+    VC = diag(b(NVarA+1:2*NVarA));
     l = 2*NVarA;
 else
-    b0v = variables(NVarA+1:NVarA+sum(1:NVarA));
     VC = tril(ones(NVarA));
-    VC(VC == 1) = b0v;
+    VC(VC == 1) = b(NVarA+1:NVarA+sum(1:NVarA));
     l = NVarA+sum(1:NVarA);
 end
-b_mtx = betas + VC*Draws; 
-if sum(Dist == 1) > 0 % Log-normal
-    b_mtx(Dist == 1,:) = exp(b_mtx(Dist == 1,:));
+bMatrix = betas+VC*draws;
+if NVarM > 0
+    meanShifters = reshape(b(l+1:l+NVarA*NVarM),NVarA,NVarM);
+    meanFit = meanShifters*Xm;
+    meanFit = reshape(permute(meanFit(:,:,ones(1,EstimOpt.NRep)),[1 3 2]),NVarA,EstimOpt.NRep*EstimOpt.NP);
+    bMatrix = bMatrix+meanFit;
+    l = l+NVarA*NVarM;
 end
-b_mtx = reshape(b_mtx,[NVarA,NRep,NP]);
-b_mtx = b_mtx(:,1:EstimOpt.NSim,:);
-b_profile = variables(l+1:l+NVarP*(1+NVarM));
-scale = exp(variables(l+NVarP*(1+NVarM)+1)); % scale parameter (sigma); one for all dataset
-
-%% Specifying alphas and gammas
-if Profile == 1 % alpha profile
-    if NVarM == 0
-        alphas = b_profile;
-        alphas = 1 - exp(-alphas); % between 0 and 1
-    else
-        alpha = reshape(b_profile, [NVarM+1, NAlt]);
-        alphas = 1 - exp(-Xm*alpha)'; % NAlt x N
-    end
-    gammas = ones(size(alphas));
-elseif Profile == 2 % gamma profile
-    if NVarM == 0
-        gammas = b_profile;
-        gammas = exp(gammas); % greater than 0
-    else
-        gamma = reshape(b_profile, [NVarM+1, NAlt]);
-        gammas= exp(Xm*gamma)'; % NAlt x N
-    end
-    alphas = zeros(size(gammas));
-elseif Profile == 3 % SpecProfile
-    indx = length(unique(SpecProfile(1,SpecProfile(1,:) ~= 0))); % unique alphas
-    if NVarM == 0
-        a = b_profile(1:indx);
-        a = 1 - exp(-a);
-        a = a(SpecProfile(1,SpecProfile(1,:) ~= 0)); 
-        alphas = zeros(NAlt,1);
-        alphas(SpecProfile(1,:) ~= 0) = a;
-    
-        g = b_profile(indx+1:end);
-        g = exp(g); % greater than 0
-        g = g(SpecProfile(2,SpecProfile(2,:) ~= 0)); 
-        gammas = ones(NAlt,1);
-        gammas(SpecProfile(2,:) ~= 0) = g;
-    else
-
-        a = reshape(b_profile(1:indx*(NVarM+1)), [NVarM+1, indx]);
-        alpha = 1 - exp(-Xm*a)';
-        alpha = alpha(SpecProfile(1,SpecProfile(1,:) ~= 0),:); 
-        alphas = zeros(NAlt,N);
-        alphas(SpecProfile(1,:) ~= 0,:) = alpha;
-    
-        g = reshape(b_profile(indx*(NVarM+1)+1:end), [NVarM+1, NVarP - indx]);
-        gamma = exp(Xm*g)'; % greater than 0
-        gamma = gamma(SpecProfile(2,SpecProfile(2,:) ~= 0),:); 
-        gammas = ones(NAlt,N);
-        gammas(SpecProfile(2,:) ~= 0,:) = gamma;
-    end
+if any(EstimOpt.Dist == 1)
+    bMatrix(EstimOpt.Dist == 1,:) = exp(bMatrix(EstimOpt.Dist == 1,:));
 end
- 
-%% Demand prediction
+bMatrix = reshape(bMatrix,NVarA,EstimOpt.NRep,EstimOpt.NP);
+bMatrix = bMatrix(:,1:EstimOpt.NSim,:);
+bProfile = b(l+1:l+NVarP*(1+NVarU));
+scale = exp(b(l+NVarP*(1+NVarU)+1));
+[alphas,gammas] = profileValues(bProfile,Xu,EstimOpt,N);
 
-betasZ = zeros(NAlt*NCT, EstimOpt.NSim, NP);
-for i = 1:NP
-    betasZ(:,:,i) = Xa(:,:,i)*b_mtx(:,:,i);
-end
-betasZ = permute(reshape(betasZ , [NAlt, NCT, EstimOpt.NSim, NP]), [1 2 4 3]);
-betasZ = reshape(betasZ, [NAlt, N, EstimOpt.NSim]);
-
-% generating error terms
-hm1 = sobolset(NAlt,'Skip',1,'Leap',0);
-hm1 = scramble(hm1,'MatousekAffineOwen');
-eps = net(hm1,N*EstimOpt.NSim); % this takes every point:
-clear hm1;
-eps = reshape(-log(-log(eps')),[NAlt, EstimOpt.NSim, N]);
-eps = permute(eps, [1 3 2]);
-MU = exp(betasZ + scale*eps - log(priceMat)); % Price-adjusted baseline utility (NAlt x N x NSim)
-
-pg = priceMat.*gammas;
-inva = 1./(1-alphas);
- Vec = (1:NAlt)';
-% The easier case - alphas constant across alternatives
-
-if sum(SpecProfile(1,:)) == 0  || length(unique(SpecProfile(1,:)')) == 1
-    MUa = MU.^inva;
-    pgMUa = pg.*MUa;
-    Dsim = zeros(NAlt, N, EstimOpt.NSim);
-%     Lam = (I + sum(pg,1))./sum(pg.*MUa,1);
-%     Dsim = (MUa.*Lam - 1).*gammas;
-%     Lam = Lam.^(alphas-1);
-%     NotChosen = Lam > MU;
-
-%     sum(NotChosen(:))
-    if isempty(num) % there is no numeraire
-        for i = 1:N
-            for j = 1:EstimOpt.NSim
-                cond = 0;
-                k = 2;
-                % To start with the alternative with highest MU is consumed
-                [MUsort,Indx] = sort(MU(:,i,j),'descend');
-                Lam_k_tmp = (I(i) + pg(Indx(1),i))./pgMUa(Indx(1),i,j);
-                Lam_k = Lam_k_tmp.^(alphas(Indx(1))-1); % This would need to be adjusted for individual specific alphas
-                
-                while cond == 0
-                    if k > NAlt
-                        cond = 1;
-                    else
-                        if Lam_k <= MUsort(k)
-                            Lam_k_tmp = (I(i) + sum(pg(Indx(1:k),i),1))./sum(pgMUa(Indx(1:k),i,j),1);
-                            Lam_k = Lam_k_tmp.^(alphas(Indx(1))-1);
-                            k = k+1;
-                        else
-                            cond = 1;
-                        end
-                    end
-                end
-            % k-1 alternatyw kosumowanych
-                Dsim(Indx(1:(k-1)),i,j) = (Lam_k_tmp.*MUa(Indx(1:(k-1)),i,j) - 1).*gammas(Indx(1:(k-1))); 
-            end
-        end
-    else % numeraire
-        if num ~= NAlt
-            % put num at the end
-            Vect = [Vec(Vec ~= num); num];
-            pg = pg(Vect,:);
-            pgMUa = pgMUa(Vect,:,:);
-            alphas = alphas(Vect);
-        end
-        for i = 1:N
-            for j = 1:EstimOpt.NSim
-
-                cond = 0;
-                k = 2;
-                % To start with only numeraire is consumed
-                Lam_k_tmp = (I(i) + pg(NAlt,i))./pgMUa(NAlt,i,j);
-                Lam_k = Lam_k_tmp.^(alphas(NAlt)-1); % This would need to be adjusted for individual specific alphas
-                [MUsort,Indx] = sort(MU(Vec ~= NAlt,i,j),'descend');
-                
-                while cond == 0
-                    if k > NAlt
-                        cond = 1;
-                    else
-                        if Lam_k <= MUsort(k-1)
-                            FirstAlts = [Indx(1:(k-1)); NAlt];
-                            Lam_k_tmp = (I(i) + sum(pg(FirstAlts,i),1))./sum(pgMUa(FirstAlts,i,j),1);
-                            Lam_k = Lam_k_tmp.^(alphas(NAlt)-1);
-                            k = k+1;
-                        else
-                            cond = 1;
-                        end
-                    end
-                end
-            % k-1 alternatyw kosumowanych
-                Dsim(FirstAlts,i,j) = (Lam_k_tmp.*MUa(FirstAlts,i,j) - 1).*gammas(FirstAlts); 
-            end
-        end
-    end
-else % Alpha profile
-   % error('Demand prediction works only if alphas are constant across utilities')
-      MUa = MU.^inva;
-    pgMUa = pg.*MUa;
-    Dsim = zeros(NAlt, N, EstimOpt.NSim);
-
-    if isempty(num) % there is no numeraire
-        for i = 1:N
-%             i
-            for j = 1:EstimOpt.NSim
-%                 j
-                cond = 0;
-                k = 1;
-                % To start with only numeraire is consumed
-                [MUsort,Indx] = sort(MU(:,i,j),'descend');
-                Lam_hat = MU(Indx(2),i,j);
-                E_hat = ehat(Lam_hat, MUa(Indx(1),i,j), inva(Indx(1)), pg(Indx(1),i));
-                while cond == 0
-                    if E_hat < I(i)
-                        k = k+1; % 2 or more
-                        if k < NAlt
-                            Lam_hat = MU(Indx(k+1),i,j);
-                            E_hat = ehat(Lam_hat, MUa(Indx(1:k),i,j), inva(Indx(1:k)), pg(Indx(1:k),i));
-                        else
-                            Lam_low = 0;
-                            Lam_up = MU(Indx(k),i,j);
-                            % go to bisection
-                            lam = bisect(Lam_low, Lam_up, I(i), errorx, MUa(Indx(1:k),i,j), inva(Indx(1:k)), pg(Indx(1:k),i));
-                            cond = 1;
-                        end
-                    else
-                        Lam_low = MU(Indx(k),i,j);
-                        Lam_up = MU(Indx(k+1),i,j);
-                        lam = bisect(Lam_low, Lam_up, I(i), errorx, MUa(Indx(1:k),i,j), inva(Indx(1:k)), pg(Indx(1:k),i));
-                        cond = 1;
-                    end
-                end
-            % k-1 alternatyw kosumowanych
-            Dsim(Indx(1:k),i,j) = (MUa(Indx(1:k),i,j).*(lam.^(-inva(Indx(1:k))))-1).*gammas(Indx(1:k));
-%                 Dsim(FirstAlts,i,j) = (Lam_k_tmp.*MUa(FirstAlts,i,j) - 1).*gammas(FirstAlts); 
-            end
-        end
-    else % numeraire
-        if num ~= NAlt
-            % put num at the end
-            Vect = [Vec(Vec ~= num); num];
-            pg = pg(Vect,:);
-%             pgMUa = pgMUa(Vect,:,:);
-%             alphas = alphas(Vect);
-            inva = inva (Vect);
-           
-        end
-        for i = 1:N
-            for j = 1:EstimOpt.NSim
-
-                cond = 0;
-                k = 1;
-                % To start with only numeraire is consumed
-                [MUsort,Indx] = sort(MU(Vec ~= NAlt,i,j),'descend');
-                Lam_hat = MU(Indx(1),i,j);
-                E_hat = ehat(Lam_hat, MUa(NAlt,i,j), inva(NAlt), pg(NAlt,i));
-                while cond == 0
-                    if E_hat < I(i)
-                        k = k+1; % 2 or more
-                        FirstAlts = [Indx(1:(k-1)); NAlt];
-                        if k < NAlt
-                            Lam_hat = MU(Indx(k),i,j);
-                            E_hat = ehat(Lam_hat, MUa(FirstAlts,i,j), inva(FirstAlts), pg(FirstAlts,i));
-                        else
-                            Lam_low = 0;
-                            Lam_up = MU(Indx(k-1),i,j);
-                            % go to bisection
-                            lam = bisect(Lam_low, Lam_up, I(i), errorx, MUa(FirstAlts,i,j), inva(FirstAlts), pg(FirstAlts,i));
-                            cond = 1;
-                        end
-                        k = k+1;
-                    else
-                        FirstAlts = [NAlt; Indx(1:(k-1))];
-                        Lam_low = MU(FirstAlts(k),i,j);
-                        Lam_up = MU(Indx(k),i,j);
-                        FirstAlts = [Indx(1:(k-1)); NAlt];
-                        lam = bisect(Lam_low, Lam_up, I(i), errorx, MUa(FirstAlts,i,j), inva(FirstAlts), pg(FirstAlts,i));
-                        cond = 1;
-                    end
-                end
-            % k-1 alternatyw kosumowanych
-            Dsim(FirstAlts,i,j) = (MUa(FirstAlts,i,j).*(lam.^(-inva(FirstAlts)))-1).*gammas(FirstAlts);
-%                 Dsim(FirstAlts,i,j) = (Lam_k_tmp.*MUa(FirstAlts,i,j) - 1).*gammas(FirstAlts); 
-            end
-        end
-    end
-end
-D = mean(Dsim,3);
+betasZ = pagemtimes(Xa,bMatrix);
+betasZ = reshape(permute(reshape(betasZ,[NAlt,EstimOpt.NCT,EstimOpt.NSim,EstimOpt.NP]),[1 2 4 3]),NAlt,N,EstimOpt.NSim);
+sequence = scramble(sobolset(NAlt,'Skip',1),'MatousekAffineOwen');
+epsDraw = net(sequence,N*EstimOpt.NSim);
+epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,N]),[1 3 2]);
+logMU = betasZ+scale*epsDraw-log(priceMat);
+D = mean(solveDemand(logMU,priceMat,alphas,gammas,income,num),3);
 Err = Y-D;
 end
 
-function E = ehat(lam, MUa, inva, pg)
-    E = sum(pg.*(MUa.*(lam.^(-inva))-1),1); 
+function [alphas,gammas] = profileValues(bProfile,Xu,opt,N)
+spec = opt.SpecProfile;
+nRows = 1+(opt.NVarU > 0)*(N-1);
+alphas = zeros(opt.NAlt,nRows);
+gammas = ones(opt.NAlt,nRows);
+nAlpha = numel(unique(spec(1,spec(1,:) ~= 0)));
+if nAlpha > 0
+    coef = reshape(bProfile(1:nAlpha*(1+opt.NVarU)),1+opt.NVarU,nAlpha);
+    fit = profileFit(Xu,coef,opt.NVarU);
+    mask = spec(1,:) ~= 0;
+    alphas(mask,:) = (1-exp(-fit(:,spec(1,mask))))';
+end
+nGamma = opt.NVarP-nAlpha;
+if nGamma > 0
+    coef = reshape(bProfile(nAlpha*(1+opt.NVarU)+1:end),1+opt.NVarU,nGamma);
+    fit = profileFit(Xu,coef,opt.NVarU);
+    mask = spec(2,:) ~= 0;
+    gammas(mask,:) = exp(fit(:,spec(2,mask)))';
+end
 end
 
-function lam = bisect(Lam_low, Lam_up, I, error, MUa, inva, pg)
-    Lam_hat = (Lam_up + Lam_low)/2;
-    E_hat = ehat(Lam_hat, MUa, inva, pg);
+function fit = profileFit(Xu,coef,NVarU)
+if NVarU == 0
+    fit = coef;
+else
+    fit = Xu*coef;
+end
+end
 
-    if abs(Lam_up - Lam_low) < error || abs(E_hat - I) < error
-        lam = Lam_hat;
-    else
-        condb = 0;
-        while condb == 0
-            if E_hat < I
-                Lam_up = (Lam_up + Lam_low)/2;
+function D = solveDemand(logMU,prices,alphas,gammas,income,num)
+[nAlt,n,nSim] = size(logMU);
+D = zeros(nAlt,n,nSim);
+for i=1:n
+    col = min(i,size(alphas,2));
+    inva = 1./(1-alphas(:,col));
+    gamma = gammas(:,min(i,size(gammas,2)));
+    for j=1:nSim
+        mu = logMU(:,i,j);
+        high = max(mu)+1;
+        if ~isempty(num)
+            high = min(high,mu(num));
+        end
+        spend = @(lambda) sum(prices(:,i).*gamma.*max(exp((mu-lambda).*inva)-1,0));
+        if spend(high) > income(i)
+            error('MMDCEV_demand:Numeraire','The requested numeraire cannot be positive for task %d, draw %d.',i,j)
+        end
+        low = high-10;
+        while spend(low) < income(i)
+            low = low-10;
+        end
+        for k=1:80
+            mid = (low+high)/2;
+            if spend(mid) > income(i)
+                low = mid;
             else
-                Lam_low = (Lam_up + Lam_low)/2;
-            end
-            Lam_hat = (Lam_up + Lam_low)/2;
-            E_hat = ehat(Lam_hat, MUa, inva, pg);
-            if abs(Lam_up - Lam_low) < error || abs(E_hat - I) < error
-                condb = 1;
-                lam = Lam_hat;
+                high = mid;
             end
         end
+        D(:,i,j) = gamma.*max(exp((mu-(low+high)/2).*inva)-1,0);
     end
+end
 end

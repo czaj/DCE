@@ -594,10 +594,12 @@ if nargout == 1 % function value only
 
 else % function value + gradient
     gmnl = zeros(NP,NRep,NVarA); % gradient for mnl parameters
+    Xm_resp_grad = Xm; % preserve respondent-level Xm before parfor placeholder
     if mCT
         gxm = zeros(NP,NRep,NVarA*NVarM); % gradient for task-specific Xm interactions
     else
         gxm = zeros(0,0,0);
+        Xm = zeros(0,0,NP); % parfor still analyzes the inactive Xm(:,:,n) branch
     end
     gs = zeros(NP,NRep,NVarS+(ScaleLV == 1)*NLatent);  
     if FullCov == 0
@@ -1601,7 +1603,9 @@ else % function value + gradient
        if mCT
            gm = reshape(mean(probs.*gxm,2),[NP,NVarA*NVarM]);
        else
-           gm =  g(:,repmat(1:NVarA,[1,EstimOpt.NVarM])).*(Xm(kron(1:EstimOpt.NVarM,ones(1,NVarA)),:)');
+           attributeColumns = repmat(1:NVarA,[1,EstimOpt.NVarM]);
+           covariateRows = kron(1:EstimOpt.NVarM,ones(1,NVarA));
+           gm = g(:,attributeColumns).*(Xm_resp_grad(covariateRows,:)');
        end
     else
         gm = [];

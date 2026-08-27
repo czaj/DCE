@@ -279,10 +279,7 @@ EstimOpt.jitter1 = 0.8; % Jittering parameter (relative) for MNL or MXL starting
 EstimOpt.jitter2 = 0.3; % Jittering parameter (absolute) for class probabilities starting values
 
 if EstimOpt.FullCov == 0
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (2*EstimOpt.NVarA + EstimOpt.NVarS)*EstimOpt.NClass + EstimOpt.NVarC*(EstimOpt.NClass - 1)
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LCMXL_d') && isfield(Results_old.LCMXL_d,'b0') % starting values provided
+    if isfield(Results_old,'LCMXL_d') && isfield(Results_old.LCMXL_d,'b0') % starting values provided
         Results_old.LCMXL_d.b0_old = Results_old.LCMXL_d.b0(:);
         Results_old.LCMXL_d = rmfield(Results_old.LCMXL_d,'b0');
         if length(Results_old.LCMXL_d.b0_old) ~= (2*EstimOpt.NVarA + EstimOpt.NVarS)*EstimOpt.NClass + EstimOpt.NVarC*(EstimOpt.NClass - 1)
@@ -290,7 +287,12 @@ if EstimOpt.FullCov == 0
             Results_old.LCMXL_d = rmfield(Results_old.LCMXL_d,'b0_old');
         else
             b0 = Results_old.LCMXL_d.b0_old(:);
+            disp('Using provided LCMXL_d starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == (2*EstimOpt.NVarA + EstimOpt.NVarS)*EstimOpt.NClass + EstimOpt.NVarC*(EstimOpt.NClass - 1)
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'LC') && isfield(Results_old.LC,'bhat')
@@ -320,10 +322,7 @@ if EstimOpt.FullCov == 0
     end
 
 else % EstimOpt.FullCov == 1
-    if exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NClass*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS) + EstimOpt.NVarC*(EstimOpt.NClass - 1)
-        b0 = B_backup(:);
-        disp('Using the starting values from Backup')
-    elseif isfield(Results_old,'LCMXL') && isfield(Results_old.LCMXL,'b0') % starting values provided
+    if isfield(Results_old,'LCMXL') && isfield(Results_old.LCMXL,'b0') % starting values provided
         Results_old.LCMXL.b0_old = Results_old.LCMXL.b0(:);
         Results_old.LCMXL = rmfield(Results_old.LCMXL,'b0');
         if length(Results_old.LCMXL.b0_old) ~= EstimOpt.NClass*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS) + EstimOpt.NVarC*(EstimOpt.NClass - 1)
@@ -331,7 +330,12 @@ else % EstimOpt.FullCov == 1
             Results_old.LCMXL = rmfield(Results_old.LCMXL,'b0_old');
         else
             b0 = Results_old.LCMXL.b0_old(:);
+            disp('Using provided LCMXL starting values')
         end
+    end
+    if ~exist('b0','var') && exist('B_backup','var') && ~isempty(B_backup) && size(B_backup,1) == EstimOpt.NClass*(EstimOpt.NVarA + sum(1:EstimOpt.NVarA) + EstimOpt.NVarS) + EstimOpt.NVarC*(EstimOpt.NClass - 1)
+        b0 = B_backup(:);
+        disp('Using the starting values from Backup')
     end
     if ~exist('b0','var')
         if isfield(Results_old,'LCMXL_d') && isfield(Results_old.LCMXL_d,'bhat')
