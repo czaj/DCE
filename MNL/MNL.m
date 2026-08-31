@@ -256,13 +256,18 @@ if ~exist('b0','var')
             b0 = [Xa\Y;b00;ones(EstimOpt.NVarNLT,1)];
         end
     else
+        % Skip missing alternatives, exactly as in the NVarS > 0 branch above -
+        % otherwise NaNs from missing alternatives propagate into b0 and
+        % fminunc reports "Objective function is undefined at initial point".
+        Y = INPUT.Y(INPUT.MissingInd == 0);
+        Xa = INPUT.Xa(INPUT.MissingInd == 0,:);
         if EstimOpt.NVarM > 0
-            Xm = reshape(INPUT.Xm,[size(INPUT.Xa,1),1,EstimOpt.NVarM]);
+            Xm = reshape(INPUT.Xm(INPUT.MissingInd == 0,:),[size(Xa,1),1,EstimOpt.NVarM]);
 %             Xm = reshape(Xm(:,ones(1, EstimOpt.NVarA),:),[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM]);
 %             Xa2 = reshape(INPUT.Xa(:,:,ones(1,EstimOpt.NVarM)),[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOp.NVarM]);
-            b0 = [[INPUT.Xa,reshape(INPUT.Xa.*Xm,[size(INPUT.Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]\INPUT.Y;ones(EstimOpt.NVarNLT,1)];
+            b0 = [[Xa,reshape(Xa.*Xm,[size(Xa,1),EstimOpt.NVarA*EstimOpt.NVarM])]\Y;ones(EstimOpt.NVarNLT,1)];
         else
-            b0 = [INPUT.Xa\INPUT.Y; ones(EstimOpt.NVarNLT,1)];
+            b0 = [Xa\Y; ones(EstimOpt.NVarNLT,1)];
         end
     end
     if ~isempty(EstimOpt.ExpB)
