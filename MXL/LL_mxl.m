@@ -322,6 +322,11 @@ else
     b0j = b0(NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarNLT+1:NVarA*(NVarA/2+1.5+NVarM)+NVarS+NVarNLT+2*Johnson);
 end
 
+if mCT == 0 && all(Dist == -1 | Dist == 0 | Dist == 1) && NVarS == 0 && NVarNLT == 0 && Johnson == 0 && nargout <= 2 && ~any(isnan(XXa(:))) && ~any(isnan(YY(:))) && (WTP_space == 0 || all(ismember(WTP_matrix,NVarA-WTP_space+1:NVarA)))
+    [f,g] = mxl_normal(YY,XXa,XXm,err,EstimOpt,b0a,b0m,VC,nargout > 1);
+    return
+end
+
 if mCT ~= 0 && WTP_space > 0 && FullCov == 0 && all(Dist == 0) && NVarS == 0 && NVarNLT == 0 && Johnson == 0 && nargout <= 2 && (~isfield(EstimOpt,'MCTWTPLite') || EstimOpt.MCTWTPLite ~= 0)
     [f,g] = LL_mxl_mct_wtp_normal(YY,XXa,XXm,err,EstimOpt,b0a,b0m,VC);
     return
@@ -1530,6 +1535,112 @@ else
     f = -log(p0);
 end
 
+end
+
+function [f,g] = mxl_normal(YY,XXa,XXm,err,opt,mu,bm,VC,needGradient)
+K = opt.NVarA;
+R = opt.NRep;
+NP = opt.NP;
+NAlt = opt.NAlt;
+NCT = opt.NCT;
+W = opt.WTP_space;
+mapping = opt.WTP_matrix;
+lognormal = opt.Dist == 1;
+fullCov = opt.FullCov;
+clip = opt.RealMin == 1;
+if fullCov && needGradient
+    covIndex = sub2ind([K,K],opt.indx1,opt.indx2);
+    nCov = K*(K+1)/2;
+else
+    covIndex = [];
+    nCov = K;
+end
+[data,nWorkers] = mxl_constant(YY,XXa,XXm,err);
+f = zeros(NP,1);
+g = zeros(NP,(K+nCov+K*opt.NVarM)*needGradient);
+parfor (n = 1:NP,nWorkers)
+    input = data.Value;
+    X = input.XXa(:,:,n);
+    chosen = input.YY(:,n) == 1;
+    E = input.err(:,(n-1)*R+(1:R));
+    z = mu + bm*input.XXm(:,n) + VC*E;
+    z(lognormal,:) = exp(z(lognormal,:));
+    beta = z;
+    if W > 0
+        beta(1:K-W,:) = z(1:K-W,:).*z(mapping,:);
+    end
+    U = reshape(X*beta,[NAlt,NCT,R]);
+    U = exp(U-max(U,[],1));
+    P = reshape(U./sum(U,1),[NAlt*NCT,R]);
+    panel = prod(reshape(P(chosen,:),[NCT,R]),1);
+    p = mean(panel,2);
+    if clip
+        p = max(p,realmin);
+    end
+    f(n) = -log(p);
+    if needGradient
+        % Sum tasks before applying draw-specific distribution/WTP derivatives.
+        D = sum(X(chosen,:),1)' - X'*P;
+        S = D;
+        if W > 0
+            S(1:K-W,:) = D(1:K-W,:).*z(mapping,:);
+            for c = K-W+1:K
+                linked = mapping == c;
+                S(c,:) = D(c,:) + sum(D(linked,:).*z(linked,:),1);
+            end
+        end
+        S(lognormal,:) = S(lognormal,:).*z(lognormal,:);
+        weighted = S.*panel;
+        gm = -mean(weighted,2)./p;
+        if ~clip && p > 0 && p < realmin
+            % Preserve multiplication order for subnormal panel probabilities.
+            if fullCov
+                gv = -mean((S(opt.indx1,:).*E(opt.indx2,:)).*panel,2)./p;
+            else
+                gv = -mean((S.*E).*panel,2)./p;
+            end
+        elseif fullCov
+            % Contract draws before selecting Cholesky entries (no nCov-by-R buffer).
+            gc = -(weighted*E')./(R*p);
+            gv = gc(covIndex);
+            gv = gv(:);
+        else
+            gv = -mean(weighted.*E,2)./p;
+        end
+        g(n,:) = [gm;gv;reshape(gm.*input.XXm(:,n)',[],1)]';
+    end
+end
+end
+
+function [data,nWorkers] = mxl_constant(YY,XXa,XXm,err)
+% ponytail: replicate one dataset per worker; shard only if resident RAM limits it.
+persistent previous poolPrevious workerData
+input = struct('YY',YY,'XXa',XXa,'XXm',XXm,'err',err);
+pool = [];
+if license('test','Distrib_Computing_Toolbox') && isempty(getCurrentTask())
+    pool = gcp('nocreate');
+end
+if isempty(pool)
+    if ~isempty(workerData) && isvalid(workerData)
+        delete(workerData);
+    end
+    previous = [];
+    poolPrevious = [];
+    workerData = [];
+    data = struct('Value',input);
+    nWorkers = 0;
+else
+    if isempty(workerData) || ~isvalid(workerData) || ~isequal(pool,poolPrevious) || ~isequaln(input,previous)
+        if ~isempty(workerData) && isvalid(workerData)
+            delete(workerData);
+        end
+        workerData = parallel.pool.Constant(input);
+        previous = input;
+        poolPrevious = pool;
+    end
+    data = workerData;
+    nWorkers = pool.NumWorkers;
+end
 end
 
 function sumZ = mxl_task_gradient(Z,U_prob,Yy,NAltMissInd,NRep)
