@@ -626,15 +626,14 @@ clear NMea_tmp NRowsPerP_tmp MissingIndMea_tmp;
 
 if EstimOpt.NVarM > 0
     Xm_tmp = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
-    Xm_resp = NaN(EstimOpt.NVarM,EstimOpt.NP);
+    Xm_resp = zeros(EstimOpt.NVarM,EstimOpt.NP);
     Xm_varies = false(EstimOpt.NVarM,EstimOpt.NP);
     for n = 1:EstimOpt.NP
         for i = 1:EstimOpt.NVarM
-            x = Xm_tmp(i,:,n);
-            x = x(isfinite(x));
+            x = Xm_tmp(i,~isnan(INPUT.YY(:,n)),n);
             if ~isempty(x)
                 Xm_resp(i,n) = x(1);
-                Xm_varies(i,n) = any(x ~= x(1));
+                Xm_varies(i,n) = ~isequaln(x,repmat(x(1),size(x)));
             end
         end
     end

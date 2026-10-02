@@ -845,15 +845,19 @@ INPUT.XXm = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOp
 Xm_varies = false(EstimOpt.NVarM,EstimOpt.NP);
 for n = 1:EstimOpt.NP
     for i = 1:EstimOpt.NVarM
-        x = INPUT.XXm(i,:,n);
-        x = x(isfinite(x));
-        Xm_varies(i,n) = ~isempty(x) && any(x ~= x(1));
+        x = INPUT.XXm(i,~isnan(INPUT.YY(:,n)),n);
+        Xm_varies(i,n) = ~isempty(x) && ~isequaln(x,repmat(x(1),size(x)));
     end
 end
 EstimOpt.mCT = any(Xm_varies(:)); % Test if Xm is choice-task specific
 
 if EstimOpt.mCT == 0
-    INPUT.XXm = reshape(INPUT.XXm(:,1,:),[EstimOpt.NVarM,EstimOpt.NP]);
+    Xm_respondent = zeros(EstimOpt.NVarM,EstimOpt.NP);
+    for n = 1:EstimOpt.NP
+        first = find(~isnan(INPUT.YY(:,n)),1);
+        if ~isempty(first), Xm_respondent(:,n) = INPUT.XXm(:,first,n); end
+    end
+    INPUT.XXm = Xm_respondent;
 else
     INPUT.XXm = INPUT.Xm';
     if any(EstimOpt.Dist > 1) 

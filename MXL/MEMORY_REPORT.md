@@ -1,6 +1,13 @@
-# MXL memory allocation report
+# MXL memory allocation report (initial implementation)
 
-Date: 2026-10-02. Baseline: `dd6f704`. Branch: `mxl-memory`.
+Date: 2026-10-02. Baseline: `dd6f704`. Initial commit: `6bf56b8`.
+Branch: `mxl-memory`.
+
+This is the historical report for the initial complete-data implementation.
+Its timings and numerical results describe commit `6bf56b8`, not the expanded
+MXL/HMXL/LCMXL implementation. The later changes remove the missing-data and
+CT/alternative mean/scale limitations described here. See the
+[extended report](EXTENDED_MEMORY_REPORT.md) for current scope and validation.
 
 ## Scope and status
 
@@ -63,8 +70,10 @@ The cache checks both the pool identity and exact input contents using
 `isequaln`, not only array dimensions. It refreshes when any cached input
 changes and retains at most one dataset. A fallback evaluation may leave the
 previous cached dataset resident. Replacing the dataset or evaluating the new
-path without a pool releases the previous constant; `clear LL_mxl` also
-releases the cached state. The function uses the current pool if present and
+path without a pool releases the previous constant. In this initial version,
+`clear LL_mxl` also releases the cached state. The current shared cache lives
+in `mxl_worker_data`; use `clear mxl_worker_data` to reset it after the extended
+implementation. The function uses the current pool if present and
 does not create one. Without a pool, `parfor (n = 1:NP,0)` executes locally.
 
 Respondent blocking was not added: the matrix contractions remove the large

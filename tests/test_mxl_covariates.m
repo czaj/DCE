@@ -124,12 +124,14 @@ E.indx2 = E.indx2';
 end
 
 function [r,result] = compareCase(C,nWorkers)
-result = struct('baseline',evaluate(@LL_mxl_baseline,C),'new',evaluate(@LL_mxl,C));
+result = struct('baseline',evaluate(@LL_mxl_baseline,C),'new',evaluate(@LL_mxl,C),...
+    'numericalGradient',[]);
 old = result.baseline;
 new = result.new;
 r = struct('Case',C.Name,'Workers',nWorkers,'BaselineError',old.ErrorID,...
     'NewError',new.ErrorID,'BaselineValueError',old.ValueErrorID,...
     'NewValueError',new.ValueErrorID,'ValueRelativeError',NaN,'GradientRelativeError',NaN,...
+    'FiniteDifferenceError',NaN,...
     'Passed',false);
 if ~isempty(old.ValueErrorID) || ~isempty(new.ValueErrorID)
     valuePassed = ~isempty(old.ValueErrorID) &&...
@@ -140,8 +142,14 @@ else
     valuePassed = all(isfinite([old.v(:);new.v(:)])) && r.ValueRelativeError <= 1e-8;
 end
 if ~isempty(old.ErrorID) || ~isempty(new.ErrorID)
-    r.Passed = valuePassed && ~isempty(old.ErrorID) &&...
-        strcmp(old.ErrorID,new.ErrorID) && strcmp(old.ErrorMessage,new.ErrorMessage);
+    if ~isempty(old.ErrorID) && isempty(new.ErrorID)
+        result.numericalGradient = finiteDifference(C);
+        r.FiniteDifferenceError = max(abs(new.g-result.numericalGradient),[],'all')/...
+            max(1,max(abs(result.numericalGradient),[],'all'));
+        r.Passed = valuePassed && all(isfinite([new.f(:);new.g(:)])) &&...
+            max(abs(new.f-new.v)) <= 1e-8*max(1,max(abs(new.f))) &&...
+            r.FiniteDifferenceError <= 5e-6;
+    end
 else
     r.GradientRelativeError = max(abs(new.g-old.g),[],'all')/max(1,max(abs(old.g),[],'all'));
     r.Passed = valuePassed && all(isfinite([old.f(:);new.f(:);old.g(:);new.g(:)])) &&...
@@ -150,6 +158,19 @@ else
     if isempty(new.ValueErrorID) && isempty(old.ValueErrorID)
         r.Passed = r.Passed && max(abs(new.f-new.v)) <= 1e-8*max(1,max(abs(new.f)));
     end
+end
+end
+
+function J = finiteDifference(C)
+args = {C.YY,C.XXa,C.XXm,C.Xs,C.err,C.EstimOpt,C.b};
+J = zeros(C.EstimOpt.NP,numel(C.b));
+for j = 1:numel(C.b)
+    h = 1e-5*max(1,abs(C.b(j)));
+    plus = args;
+    minus = args;
+    plus{end}(j) = C.b(j)+h;
+    minus{end}(j) = C.b(j)-h;
+    J(:,j) = (LL_mxl(plus{:})-LL_mxl(minus{:}))/(2*h);
 end
 end
 

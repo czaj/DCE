@@ -80,8 +80,11 @@ also undermine the expected benefit.
 
 ## Boundary of a useful future experiment
 
-The optimized CPU pooled case (`NP=8940`, three workers) already evaluates
-value plus gradient in a median 2.04 seconds under R2026a. That is the measured
+The initial optimized CPU pooled case (`6bf56b8`, `NP=8940`, three workers)
+evaluated value plus gradient in a median 2.04 seconds under R2026a. The
+extended implementation measures about 4.34 seconds in two final series on
+the same inputs; see the
+[extended report](EXTENDED_MEMORY_REPORT.md). That is the current measured
 CPU reference for deciding whether further GPU work pays off. After a driver
 update, only a small measured prototype is justified before any broader port.
 

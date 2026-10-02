@@ -103,6 +103,24 @@ end
 sLV = std(LV_tmp,0,2);
 LV = (LV_tmp - mean(LV_tmp,2))./sLV; % normalilzing for 0 mean and std
 
+compactChoice = (FullCov == 0 || FullCov == 1) && all(ismember(Dist,[-1 0 1])) && ...
+    (WTP_space == 0 || all(ismember(WTP_matrix,NVarA-WTP_space+1:NVarA)));
+if compactChoice
+    if exist('mxl_choice','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'MXL'));
+    end
+    if mCT && ndims(Xm) ~= 3
+        Xm = reshape(Xm,[NAlt*NCT,NVarM,NP]);
+    end
+    if NVarS > 0
+        scaleX = permute(reshape(Xs,[NAlt*NCT,NP,NVarS]),[1 3 2]);
+    else
+        scaleX = zeros(NAlt*NCT,0,NP);
+    end
+    input = struct('Y',Y,'Xa',Xa,'Xm',Xm,'Xs',scaleX,'err',err_sliced);
+    [workerData,nWorkers] = mxl_worker_data(input);
+    LV_draws = reshape(LV,[NLatent,NRep,NP]);
+else
 if mCT
     if ndims(Xm) ~= 3
         Xm = reshape(Xm,[NAlt*NCT,NVarM,NP]);
@@ -192,13 +210,18 @@ if NVarS > 0
    Scale = reshape(exp(Xs*bs),[NAlt*NCT,1,NP]);
    Xa = Xa.*Scale;
 end
+end
 
 probs = zeros(NP,NRep);
     
 % save tmp3
 
 if nargout == 1 % function value only
-    if any(isnan(Xa(:))) == 0 % faster version for complete dataset
+    if compactChoice
+        parfor (n = 1:NP,nWorkers)
+            probs(n,:) = hmxl_compact_choice(workerData.Value,n,EstimOpt,ba,bm,bl,VC,bs,bsLV,LV_draws(:,:,n));
+        end
+    elseif any(isnan(Xa(:))) == 0 % faster version for complete dataset
         parfor n = 1:NP
             Yy_n = Y(:,n) == 1;
             Xa_n = Xa(:,:,n);
@@ -602,7 +625,9 @@ else % function value + gradient
         Xm = zeros(0,0,NP); % parfor still analyzes the inactive Xm(:,:,n) branch
     end
     gs = zeros(NP,NRep,NVarS+(ScaleLV == 1)*NLatent);  
-    if FullCov == 0
+    if compactChoice
+        gvar = zeros(0,0,0);
+    elseif FullCov == 0
         gvar = zeros(NP,NRep,NVarA); % gradient for standard deviations parameters
         VC2 = reshape(err_sliced(1:NVarA,:),[NVarA,NRep,NP]);
     elseif FullCov == 1 % full correlation
@@ -646,7 +671,9 @@ else % function value + gradient
     LV_der = reshape(Xstr_expand - LV_tmp.*LV_std,[NLatent,NRep,NP,NVarStr]); % Latent x NRep x NP x NVarstr
     LV_der = permute(LV_der,[3 2 4 1]); % NP x NRep x NVarstr x Latent
     LV_expand = permute(reshape(LV',[NRep,NP,NLatent]),[2 1 3]); 
-    if NVarS > 0
+    if compactChoice
+        Xs = zeros(0,0,NP);
+    elseif NVarS > 0
         Xs = reshape(Xs(1:NAlt:end,:),[NCT,NP,NVarS]);
         Xs = permute(Xs,[1 3 2]);
     else
@@ -656,7 +683,27 @@ else % function value + gradient
        bsLV = bsLV'; 
     end
     
-    if any(isnan(Xa(:))) == 0 % faster version for complete dataset
+    if compactChoice
+        parfor (n = 1:NP,nWorkers)
+            LV_n = LV_draws(:,:,n);
+            [panel,S,Sm,Ss,Su] = hmxl_compact_choice(workerData.Value,n,EstimOpt,ba,bm,bl,VC,bs,bsLV,LV_n);
+            probs(n,:) = panel;
+            gmnl(n,:,:) = S';
+            if mCT
+                gxm(n,:,:) = Sm';
+            end
+            if ScaleLV == 1
+                gs(n,:,:) = [Ss;Su.*LV_n]';
+                scoreLV = S'*bl + Su'*bsLV(:)';
+            else
+                if NVarS > 0
+                    gs(n,:,:) = Ss';
+                end
+                scoreLV = S'*bl;
+            end
+            gstr(n,:,:,:) = permute(scoreLV(:,:,ones(NVarStr,1)),[1 3 2]);
+        end
+    elseif any(isnan(Xa(:))) == 0 % faster version for complete dataset
             
         parfor n = 1:NP   
             Yy_n = Y(:,n) == 1;
@@ -1585,7 +1632,29 @@ else % function value + gradient
 
 %     g = squeeze(mean(probs(:,:,ones(NVarA*(1+NLatent),1)).*gmnl,2)); %     
     g = reshape(mean(probs.*gmnl,2),[NP,NVarA*(1+NLatent)]); % 
-    if FullCov == 0
+    if compactChoice
+        if FullCov == 0
+            nCov = NVarA;
+        else
+            nCov = numel(indx1);
+        end
+        g2 = zeros(NP,nCov);
+        covIndex = sub2ind([NVarA,NVarA],indx1(:),indx2(:));
+        parfor (n = 1:NP,nWorkers)
+            input_n = workerData.Value;
+            E = input_n.err(1:NVarA,(n-1)*NRep+(1:NRep));
+            S = reshape(gmnl(n,:,1:NVarA),[NRep,NVarA])';
+            panel = probs(n,:);
+            if FullCov == 0
+                g2(n,:) = mean((S.*E).*panel,2)';
+            elseif any(panel > 0 & panel < realmin)
+                g2(n,:) = mean((S(indx1,:).*E(indx2,:)).*panel,2)';
+            else
+                covarianceScore = ((S.*panel)*E')/NRep;
+                g2(n,:) = covarianceScore(covIndex)';
+            end
+        end
+    elseif FullCov == 0
         g2 = squeeze(mean(probs.*gvar,2)); %
     elseif FullCov == 1
         g2 = squeeze(mean(probs.*gvar,2)); % 
@@ -1621,6 +1690,29 @@ else % function value + gradient
     g = -g./p(:,ones(1,length(B)));
 end
 
+end
+
+function [panel,S,Sm,Ss,Su] = hmxl_compact_choice(input,n,opt,ba,bm,bl,VC,bs,bsLV,LV)
+R = opt.NRep;
+K = opt.NVarA;
+E = input.err(1:K,(n-1)*R+(1:R));
+if opt.NVarM == 0
+    M = zeros(0,1);
+elseif isfield(opt,'mCT') && opt.mCT ~= 0
+    M = input.Xm(:,:,n)';
+else
+    M = input.Xm(:,n);
+end
+if opt.ScaleLV == 1
+    scaleDraw = exp(bsLV(:)'*LV);
+else
+    scaleDraw = ones(1,R);
+end
+if nargout == 1
+    panel = mxl_choice(input.Y(:,n),input.Xa(:,:,n),M,input.Xs(:,:,n),E,opt,ba,bm,VC,bs,bl*LV,scaleDraw);
+else
+    [panel,S,Sm,Ss,Su] = mxl_choice(input.Y(:,n),input.Xa(:,:,n),M,input.Xs(:,:,n),E,opt,ba,bm,VC,bs,bl*LV,scaleDraw);
+end
 end
 
 function sumZ = hmxl_task_gradient(Z,U_prob,Yy,NAltMissInd,NRep)

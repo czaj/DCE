@@ -21,6 +21,14 @@ NCTMiss = EstimOpt.NCTMiss;
 NAltMiss = EstimOpt.NAltMiss;
 NVarS = EstimOpt.NVarS;
 
+if all(Dist == -1 | Dist == 0 | Dist == 1,'all') && ismember(FullCov,[0 1]) && nargout <= 2 && (WTP_space == 0 || all(ismember(WTP_matrix,NVarA-WTP_space+1:NVarA)))
+    if exist('mxl_choice','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'MXL'));
+    end
+    [f,g] = lcmxl_compact(YY,XXa,Xc,Xs,err,EstimOpt,B,nargout > 1);
+    return
+end
+
 % b_mtx = zeros(NVarA, NP*NRep, NClass);
 
 
@@ -424,4 +432,96 @@ elseif nargout == 2 % function value + gradient
     g2 = -g2./f(:,ones(NVarC*(NClass-1),1));
     g = [g,g2];
     f = -log(f);
+end
+end
+
+function [f,g] = lcmxl_compact(YY,XXa,Xc,Xs,err,opt,B,needGradient)
+K = opt.NVarA;
+C = opt.NClass;
+R = opt.NRep;
+NP = opt.NP;
+SCount = opt.NVarS;
+Q = K + opt.FullCov*K*(K-1)/2;
+mu = reshape(B(1:K*C),[K,C]);
+covariance = reshape(B(K*C+(1:Q*C)),[Q,C]);
+bs = reshape(B((K+Q)*C+(1:SCount*C)),[SCount,C]);
+membership = reshape([B((K+Q+SCount)*C+1:end);zeros(opt.NVarC,1)],...
+    [opt.NVarC,C]);
+VC = zeros(K,K,C);
+covIndex = find(tril(ones(K)));
+for c = 1:C
+    if opt.FullCov
+        tmp = zeros(K);
+        tmp(covIndex) = covariance(:,c);
+        VC(:,:,c) = tmp;
+    else
+        VC(:,:,c) = diag(covariance(:,c));
+    end
+end
+input = struct('YY',YY,'XXa',XXa,'Xc',Xc,'Xs',Xs,'err',err);
+[data,nWorkers] = mxl_worker_data(input);
+f = zeros(NP,1);
+g = zeros(NP,((K+Q+SCount)*C+opt.NVarC*(C-1))*needGradient);
+opt.NVarM = 0;
+opt.mCT = 0;
+rows = opt.NAlt*opt.NCT;
+emptyMean = zeros(0,1);
+emptyBM = zeros(K,0);
+parfor (n = 1:NP,nWorkers)
+    d = data.Value;
+    pi = d.Xc(n,:)*membership;
+    pi = exp(pi-max(pi));
+    pi = pi/sum(pi);
+    p = zeros(1,C);
+    negativeDP = zeros(K+Q+SCount,C);
+    if SCount > 0
+        scaleX = d.Xs((n-1)*rows+(1:rows),:);
+    else
+        scaleX = zeros(rows,0);
+    end
+    for c = 1:C
+        E = d.err((c-1)*K+(1:K),(n-1)*R+(1:R));
+        one = opt;
+        one.Dist = opt.Dist(:,c)';
+        if needGradient
+            [panel,score,~,scaleScore] = mxl_choice(d.YY(:,n),d.XXa(:,:,n),...
+                emptyMean,scaleX,E,one,mu(:,c),emptyBM,VC(:,:,c),bs(:,c));
+            p(c) = mean(panel,2);
+            weighted = score.*panel;
+            gm = -mean(weighted,2);
+            if opt.FullCov
+                if p(c) > 0 && p(c) < realmin
+                    [ci,cj] = ind2sub([K,K],covIndex);
+                    gv = zeros(Q,1);
+                    for q = 1:Q
+                        gv(q) = -mean((score(ci(q),:).*E(cj(q),:)).*panel,2);
+                    end
+                else
+                    gc = -(weighted*E')/R;
+                    gv = gc(covIndex);
+                end
+            else
+                gv = -mean((score.*E).*panel,2);
+            end
+            gs = -mean(scaleScore.*panel,2);
+            negativeDP(:,c) = [gm;gv;gs];
+        else
+            panel = mxl_choice(d.YY(:,n),d.XXa(:,:,n),emptyMean,scaleX,E,...
+                one,mu(:,c),emptyBM,VC(:,:,c),bs(:,c));
+            p(c) = mean(panel,2);
+        end
+    end
+    mixture = sum(pi.*p);
+    denominator = max(mixture,realmin);
+    f(n) = -log(denominator);
+    if needGradient
+        classGradient = negativeDP.*(pi/denominator);
+        gm = reshape(classGradient(1:K,:),[],1);
+        gv = reshape(classGradient(K+(1:Q),:),[],1);
+        gs = reshape(classGradient(K+Q+(1:SCount),:),[],1);
+        membershipGradient = d.Xc(n,:)'*...
+            (pi(1:C-1).*(mixture-p(1:C-1))/denominator);
+        g(n,:) = [gm;gv;gs;membershipGradient(:)]';
+    end
+end
 end
