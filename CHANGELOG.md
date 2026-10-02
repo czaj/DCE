@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Add a separate double-precision MXL GPU experiment and correctness/timing
+  checks, including missing choices, varying Xm/Xs and a CH optimizer check.
+  On D7/R2026b the resident-data GPU medians are 0.058/0.780 seconds for
+  CH/pooled, versus 0.321/4.301 seconds with three CPU workers. Production
+  likelihoods and options remain unchanged. See the [GPU test report](MXL/GPU_TEST_REPORT.md).
+
 - Extend the compact normal/lognormal choice kernel to missing alternatives and
   tasks, task/alternative-specific mean and scale covariates, HMXL with latent
   scale and diagonal/full coefficient covariance, and all LCMXL classes.

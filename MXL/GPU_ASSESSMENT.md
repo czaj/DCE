@@ -1,10 +1,13 @@
 # GPU assessment for DCE/MXL
 
-Date: 2026-10-02. This is a feasibility assessment with read-only hardware
-inventory through the shared mcluster module and one short local `gpuDevice`
+Date: 2026-10-02, before the D7 driver update. This historical feasibility
+assessment used read-only hardware inventory through the shared mcluster
+module and one short local `gpuDevice`
 preflight. Full `validateGPU` diagnostics, GPU benchmarks, GPU implementation,
 driver updates and cluster configuration changes were not performed.
-CPU optimization remains the recommended first step.
+CPU optimization was the recommended first step. The subsequent driver update,
+validated D7 runtime and measured GPU prototype are documented in the
+[GPU test report](GPU_TEST_REPORT.md); the old-driver failure below is historical.
 
 ## Available hardware
 
@@ -44,7 +47,7 @@ MathWorks recommends a current NVIDIA driver and
 [`validateGPU` for diagnosis](https://www.mathworks.com/help/parallel-computing/gpu-computing-requirements.html).
 Architecture eligibility alone must not be reported as runtime validation.
 
-## Local R2026b device preflight
+## Local R2026b preflight before the driver update
 
 After CPU validation, `gpuDevice` was attempted on D7 using MATLAB
 `26.2.0.3386108 (R2026b)`. It failed with
@@ -53,12 +56,13 @@ After CPU validation, `gpuDevice` was attempted on D7 using MATLAB
 > GPU computing in MATLAB requires a newer graphics driver. Download and
 > install the latest graphics driver for your GPU from NVIDIA.
 
-GPU computing on D7 is currently unavailable under R2026b with driver 577.00.
-A newer NVIDIA driver is needed before a GPU prototype can be tested. This
+GPU computing on D7 was unavailable under R2026b with driver 577.00.
+A newer NVIDIA driver was needed before a GPU prototype could be tested. This
 short initialization check is not a full `validateGPU` run or a GPU benchmark.
 Its saved record is `C:\Users\miq\Documents\_dce_memory\gpu_probe_R2026b.mat`;
 the accompanying log is `C:\Users\miq\Documents\_dce_memory\validate_R2026b.log`.
-No driver was updated and no GPU speedup was measured.
+No driver was updated and no GPU speedup was measured in that assessment.
+The later test used driver 616.92 and passed `validateGPU`.
 
 ## Limits relevant to this workload
 
