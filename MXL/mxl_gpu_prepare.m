@@ -1,5 +1,6 @@
-function data = mxl_gpu_prepare(C)
-% Static upload for the experimental blocked GPU likelihood, not a new API.
+function data = mxl_gpu_prepare(C,needGradient)
+% Upload immutable inputs once for the blocked GPU likelihood.
+if nargin < 2, needGradient = true; end
 opt = C.EstimOpt;
 K = opt.NVarA;
 NP = opt.NP;
@@ -8,15 +9,15 @@ T = opt.NAlt*opt.NCT;
 MCount = opt.NVarM;
 SCount = opt.NVarS;
 assert(ismember(opt.FullCov,[0 1]) && all(ismember(opt.Dist,[-1 0 1])),...
-    'The GPU prototype supports only normal/lognormal/fixed FullCov 0/1.');
+    'The GPU path supports only normal/lognormal/fixed FullCov 0/1.');
 assert(~isfield(opt,'NVarNLT') || opt.NVarNLT == 0,...
     'DCE:GPU:UnsupportedNLT',...
-    'Nonlinear transformations are not supported by the GPU prototype.');
+    'Nonlinear transformations are not supported by the GPU path.');
 assert(~isfield(opt,'Johnson') || opt.Johnson == 0,...
-    'Johnson distributions are not supported by the GPU prototype.');
+    'Johnson distributions are not supported by the GPU path.');
 assert(~isfield(opt,'ExpB') || isempty(opt.ExpB),...
     'DCE:GPU:UnsupportedExpB',...
-    'ExpB is not supported by the GPU prototype.');
+    'ExpB is not supported by the GPU path.');
 assert(numel(opt.Dist) == K && opt.WTP_space >= 0 && opt.WTP_space <= K,...
     'Unexpected distribution or WTP parameter layout.');
 if opt.WTP_space > 0
@@ -24,18 +25,18 @@ if opt.WTP_space > 0
         all(ismember(opt.WTP_matrix,K-opt.WTP_space+1:K)),...
         'WTP mappings must target the final cost coefficient rows.');
 end
-if opt.FullCov == 1
+if opt.FullCov == 1 && needGradient
     [i,j] = find(tril(ones(K)));
     assert(isfield(opt,'indx1') && isfield(opt,'indx2') &&...
         isequal(opt.indx1(:),i) && isequal(opt.indx2(:),j),...
-        'The GPU prototype requires the standard Cholesky derivative order.');
+        'The GPU path requires the standard Cholesky derivative order.');
 end
 if ~isfield(opt,'mCT'), opt.mCT = 0; end
 if ~isfield(opt,'WTP_matrix'), opt.WTP_matrix = []; end
 assert(isa(C.YY,'double') && isa(C.XXa,'double') && isa(C.err,'double') &&...
     (isempty(C.XXm) || isa(C.XXm,'double')) &&...
     (isempty(C.Xs) || isa(C.Xs,'double')),...
-    'GPU benchmark inputs must be CPU double arrays.');
+    'GPU inputs must be CPU double arrays.');
 assert(numel(C.YY) == T*NP && numel(C.XXa) == T*K*NP &&...
     numel(C.err) == K*R*NP,'Unexpected choice data or draw dimensions.');
 available = ~isnan(reshape(C.YY,[T,NP]));

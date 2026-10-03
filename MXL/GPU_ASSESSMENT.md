@@ -8,6 +8,8 @@ driver updates and cluster configuration changes were not performed.
 CPU optimization was the recommended first step. The subsequent driver update,
 validated D7 runtime and measured GPU prototype are documented in the
 [GPU test report](GPU_TEST_REPORT.md); the old-driver failure below is historical.
+The subsequent default automatic MXL backend is documented in the
+[production GPU report](GPU_AUTO_REPORT.md).
 
 ## Available hardware
 

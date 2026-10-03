@@ -17,6 +17,9 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 
 
 % MXL parameter options:
+% GPU = 'auto' (default), 'cpu' or 'gpu'; normal/lognormal FullCov 0/1 only.
+% Auto keeps GPU only when a warmed call agrees with CPU and is faster.
+% Unsupported models, unavailable devices and GPU resource failures use CPU.
 % �	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
 % o	-1 - constant
 % o	0 - normal

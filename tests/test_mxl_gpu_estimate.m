@@ -36,6 +36,7 @@ assert(isfile(inputFile),'The exact saved CH performance input is required.');
 saved = load(inputFile,'C');
 C = saved.C;
 E = C.EstimOpt;
+E.GPU = 'cpu';
 b0 = C.b(:);
 W = C.W(:);
 assert(strcmp(C.Name,'CH') && E.NP == 644 && E.NRep == 1000 &&...

@@ -1,5 +1,9 @@
 # MXL GPU experiment
 
+Historical prototype report. The subsequent production integration, automatic
+selection and new measurements are in the [auto-GPU report](GPU_AUTO_REPORT.md).
+The helpers described below now live in `MXL`, not `tests`.
+
 Date: 2026-10-02. CPU reference: master `36626de`. Experiment branch:
 `mxl-gpu-test`. MATLAB `26.2.0.3386108 (R2026b)`, Windows 10, D7,
 i9-13900KS, 192 GB RAM, NVIDIA GeForce RTX 5060 (8151 MiB reported by

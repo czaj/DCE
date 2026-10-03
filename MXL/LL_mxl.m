@@ -323,7 +323,10 @@ else
 end
 
 if all(Dist == -1 | Dist == 0 | Dist == 1) && NVarNLT == 0 && Johnson == 0 && nargout <= 2 && (WTP_space == 0 || all(ismember(WTP_matrix,NVarA-WTP_space+1:NVarA)))
-    [f,g] = mxl_normal(YY,XXa,XXm,Xs,err,EstimOpt,b0a,b0m,VC,b0s,nargout > 1);
+    input = struct('YY',YY,'XXa',XXa,'XXm',XXm,'Xs',Xs,'err',err,'EstimOpt',EstimOpt);
+    needGradient = nargout > 1;
+    cpu = @() mxl_normal(YY,XXa,XXm,Xs,err,EstimOpt,b0a,b0m,VC,b0s,needGradient);
+    [f,g] = mxl_gpu_auto(input,b0,needGradient,cpu);
     return
 end
 

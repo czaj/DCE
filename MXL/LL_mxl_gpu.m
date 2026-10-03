@@ -1,5 +1,5 @@
 function [f,g] = LL_mxl_gpu(data,B,blockSize)
-% Experimental GPU likelihood; production LL_mxl remains unchanged.
+% Blocked double-precision likelihood for the supported MXL GPU path.
 opt = data.opt;
 K = opt.NVarA;
 R = opt.NRep;
@@ -75,13 +75,16 @@ for first = 1:blockSize:NP
     U = V;
     U(unavailable) = -Inf;
     U = reshape(U,[opt.NAlt,opt.NCT,R,count]);
-    % All-missing tasks have zero softmax mass and a neutral panel factor.
-    shift = max(max(U,[],1),-realmax);
+    missing = repmat(data.missing(:,:,:,ids),[1,1,R,1]);
+    shift = max(U,[],1);
+    shift(missing) = 0;
     U = exp(U-shift);
-    P4 = U./max(sum(U,1),1);
-    selected = sum(P4.*reshape(chosen,[opt.NAlt,opt.NCT,1,count]),1);
-    selected = selected + data.missing(:,:,:,ids);
-    panel = reshape(prod(selected,2),[1,R,count]);
+    denominator = sum(U,1);
+    denominator(missing) = 1;
+    P4 = U./denominator;
+    selected = reshape(P4,[T,R,count]);
+    selected(~repmat(chosen,[1,R,1])) = 1;
+    panel = prod(selected,1);
     p = mean(panel,2);
     if opt.RealMin == 1, p = max(p,realmin); end
     f(ids) = reshape(-log(p),[count,1]);

@@ -1,5 +1,5 @@
 function [report,raw] = test_mxl_gpu(outDir,fixtureFile,blockSizes)
-% Compare the experimental GPU likelihood with the serial CPU implementation.
+% Compare the GPU likelihood with the explicitly selected serial CPU path.
 % fixtureFile must contain cases saved by test_mxl_extended. Regenerate with
 % test_mxl_extended(outDir,[0 3],'6bf56b8',baselineDir) when needed.
 repo = fileparts(fileparts(mfilename('fullpath')));
@@ -25,7 +25,7 @@ settings.Pool.AutoCreate = false;
 restoreSettings = onCleanup(@() setAutoCreate(settings,oldAutoCreate));
 addpath(fullfile(repo,'MXL'),fullfile(repo,'tests'));
 assert(exist('mxl_gpu_prepare','file') == 2 && exist('LL_mxl_gpu','file') == 2,...
-    'The experimental mxl_gpu_prepare and LL_mxl_gpu helpers are required.');
+    'The production mxl_gpu_prepare and LL_mxl_gpu helpers are required.');
 if ~exist(outDir,'dir'), mkdir(outDir); end
 device = gpuDevice;
 environment = struct('MATLAB',version,'GPU',device.Name,...
@@ -75,6 +75,7 @@ rows = struct([]);
 raw = struct([]);
 for k = 1:numel(cases)
     fixture = cases(k);
+    fixture.Args{6}.GPU = 'cpu';
     C = asInput(fixture.Args);
     [cpuF,cpuG] = LL_mxl(fixture.Args{:});
     cpuValue = LL_mxl(fixture.Args{:});

@@ -1,5 +1,5 @@
 function result = bench_mxl_gpu(caseName,outDir,blockSizes,phase,inputFile)
-% Prototype benchmark in a fresh session. Root must first verify local idleness.
+% GPU benchmark in a fresh session. First verify local idleness.
 % Split into cpu_serial/gpu/cpu_parallel phases and one GPU block size per
 % invocation to keep local runs below the shared five-minute offload threshold.
 if nargin < 3 || isempty(blockSizes), blockSizes = 128; end
@@ -7,7 +7,7 @@ if nargin < 4 || isempty(phase), phase = 'gpu'; end
 phase = char(phase);
 caseName = char(caseName);
 assert(ismember(caseName,{'CH','pooled'}),'Use CH or pooled saved benchmark inputs.');
-assert(ismember(phase,{'all','cpu_serial','gpu','cpu_parallel'}),'Unknown benchmark phase.');
+assert(ismember(phase,{'all','cpu_serial','gpu','cpu_parallel','auto'}),'Unknown benchmark phase.');
 assert(all(isfinite(blockSizes)) && all(blockSizes >= 1) &&...
     all(blockSizes == fix(blockSizes)),'Block sizes must be positive integers.');
 repo = fileparts(fileparts(mfilename('fullpath')));
@@ -36,6 +36,7 @@ settings.Pool.AutoCreate = false;
 restoreSettings = onCleanup(@() set_auto_create(settings,oldAutoCreate));
 saved = load(inputFile,'C');
 C = saved.C;
+C.EstimOpt.GPU = 'cpu';
 cpu = @() LL_mxl(C.YY,C.XXa,C.XXm,C.Xs,C.err,C.EstimOpt,C.b);
 [cpuF,cpuG] = cpu();
 assert(all(isfinite(cpuF),'all') && all(isfinite(cpuG),'all'));
@@ -97,11 +98,25 @@ if ismember(phase,{'all','gpu'})
     end
     clear data f g gpu practical inclusive;
 end
-if ismember(phase,{'all','cpu_parallel'})
+if ismember(phase,{'all','cpu_parallel','auto'})
     pool = parpool('Processes',3);
     closePool = onCleanup(@() delete(pool));
     [times,f,g,window] = measure(cpu,[],5,20);
     append('CPU_pool3',NaN,3,times,f,g,NaN,window);
+    if strcmp(phase,'auto')
+        C.EstimOpt.GPU = 'auto';
+        automatic = @() LL_mxl(C.YY,C.XXa,C.XXm,C.Xs,C.err,C.EstimOpt,C.b);
+        timer = tic;
+        [f,g] = automatic();
+        result.autoFirstCallSeconds = toc(timer);
+        validate(f,g,f,cpuF,cpuG,C);
+        input = struct('YY',C.YY,'XXa',C.XXa,'XXm',C.XXm,'Xs',C.Xs,...
+            'err',C.err,'EstimOpt',C.EstimOpt);
+        [~,~,result.autoBackend] = mxl_gpu_auto(input,C.b,true,@() deal(cpuF,cpuG));
+        [times,f,g,window] = measure(automatic,[],5,20);
+        onlyF = LL_mxl(C.YY,C.XXa,C.XXm,C.Xs,C.err,C.EstimOpt,C.b);
+        append(['Auto_',result.autoBackend],NaN,3,times,f,g,relative(onlyF,cpuF),window);
+    end
     clear closePool;
 end
 result.endedUTC = utc_now();
