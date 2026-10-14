@@ -271,17 +271,31 @@ if ~exist('b0','var')
             b0 = [Xa\Y; ones(EstimOpt.NVarNLT,1)];
         end
     end
-    if EstimOpt.WTP_space > 0
-        % Linear-regression coefficients are in preference space: divide the
-        % non-monetary ones (and their interactions with Xm) by the
-        % associated cost coefficient. Starting the WTP-space model from
-        % preference-space values can lead fminunc to a degenerate solution
-        % with the cost coefficient near zero and very large WTP.
+    if EstimOpt.WTP_space > 0 && EstimOpt.NVarNLT == 0 && isempty(EstimOpt.ExpB)
+        % Linear-regression values are preference-space coefficients; used
+        % directly in WTP space they can lead fminunc to a degenerate
+        % solution (cost coefficient near zero, very large WTP). Start from
+        % the preference-space MNL instead, with the non-monetary
+        % coefficients (and their interactions with Xm) divided by the
+        % associated cost coefficient - the WTP-space MNL estimates when
+        % there are no covariates of means.
+        EstimOpt0 = rmfield(EstimOpt,intersect(fieldnames(EstimOpt),{'BActive','WTP_matrix'}));
+        EstimOpt0.WTP_space = 0;
+        EstimOpt0.Display = 0;
+        EstimOpt0.HessEstFix = 0;
+        EstimOpt0.ConstVarActive = 0;
+        OptimOpt0 = OptimOpt;
+        OptimOpt0.Display = 'off';
+        Results0 = MNL(INPUT,struct(),EstimOpt0,OptimOpt0);
+        bPref = Results0.bhat(:);
         WTPIdx = 1:EstimOpt.NVarA - EstimOpt.WTP_space;
-        bCost = b0(EstimOpt.WTP_matrix);
-        if all(isfinite(bCost)) && all(abs(bCost) > sqrt(eps))
+        if numel(bPref) == numel(b0) && all(isfinite(bPref)) && all(abs(bPref(EstimOpt.WTP_matrix)) > sqrt(eps))
+            b0 = bPref;
             for m = 0:EstimOpt.NVarM
-                b0(m*EstimOpt.NVarA + WTPIdx) = b0(m*EstimOpt.NVarA + WTPIdx)./bCost(:);
+                b0(m*EstimOpt.NVarA + WTPIdx) = bPref(m*EstimOpt.NVarA + WTPIdx)./bPref(EstimOpt.WTP_matrix);
+            end
+            if EstimOpt.Display ~= 0
+                disp('Using preference-space MNL estimates (divided by the cost coefficient) as starting values')
             end
         end
     end
