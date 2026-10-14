@@ -271,6 +271,20 @@ if ~exist('b0','var')
             b0 = [Xa\Y; ones(EstimOpt.NVarNLT,1)];
         end
     end
+    if EstimOpt.WTP_space > 0
+        % Linear-regression coefficients are in preference space: divide the
+        % non-monetary ones (and their interactions with Xm) by the
+        % associated cost coefficient. Starting the WTP-space model from
+        % preference-space values can lead fminunc to a degenerate solution
+        % with the cost coefficient near zero and very large WTP.
+        WTPIdx = 1:EstimOpt.NVarA - EstimOpt.WTP_space;
+        bCost = b0(EstimOpt.WTP_matrix);
+        if all(isfinite(bCost)) && all(abs(bCost) > sqrt(eps))
+            for m = 0:EstimOpt.NVarM
+                b0(m*EstimOpt.NVarA + WTPIdx) = b0(m*EstimOpt.NVarA + WTPIdx)./bCost(:);
+            end
+        end
+    end
     if ~isempty(EstimOpt.ExpB)
         b0(EstimOpt.ExpB) = max(log(b0(EstimOpt.ExpB)),1);
     end
