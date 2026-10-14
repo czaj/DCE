@@ -84,7 +84,8 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	1 - use jacobian-based (BHHH) Hessian, 
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
 % o	3 - use numerical Hessian, 
-% o	4 - use analytical Hessian
+% o	4 - use analytical Hessian,
+% o	5 - use central differences of the analytical gradient
 % 
 % 
 % For drawing and simulations:
@@ -513,10 +514,6 @@ else % EstimOpt.FullCov == 1
                 b0(EstimOpt.Dist == 1) = log(b0(EstimOpt.Dist == 1));
             end
 
-            if sum(EstimOpt.Dist == -1) > 0 % Fixed
-                b0(EstimOpt.Dist == -1) = 0;
-            end
-
             if sum(EstimOpt.Dist == 3) > 0 % Triangular
                 b0(EstimOpt.Dist == 3) = log(b0(EstimOpt.Dist == 3) -EstimOpt.Triang');
             end
@@ -562,6 +559,20 @@ else % EstimOpt.FullCov == 1
 %         else
 %             error('No starting values available')
         end
+    end
+end
+
+% Constant parameters (Dist == -1) have no dispersion: zero their standard
+% deviations (FullCov == 0) or all Cholesky loadings in their rows and
+% columns (FullCov == 1), whatever the source of the starting values.
+if any(EstimOpt.Dist == -1)
+    fixed = EstimOpt.Dist(:) == -1;
+    if EstimOpt.FullCov == 0
+        b0(NVarA+find(fixed)) = 0;
+    else
+        fixedLoadings = tril(fixed | fixed');
+        cholIdx = NVarA + find(fixedLoadings(tril(true(NVarA))));
+        b0(cholIdx) = 0;
     end
 end
 
@@ -804,6 +815,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -826,6 +839,8 @@ else
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
     end
 end
 fprintf('\n')
@@ -994,6 +1009,10 @@ elseif EstimOpt.HessEstFix == 3
 elseif EstimOpt.HessEstFix == 4
     [Results.LLdetailed,~,Results.hess] = LLfun2(Results.bhat);
     % no weighting?
+elseif EstimOpt.HessEstFix == 5
+    [Results.LLdetailed,Results.jacobian] = LLfun2(Results.bhat);
+    Results.jacobian = Results.jacobian.*INPUT.W;
+    Results.hess = hessianFromGradient(@(B) mxlGradient(LLfun2,INPUT.W,B),Results.bhat,EstimOpt.BActive);
 end
 Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 
@@ -1703,6 +1722,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1725,6 +1746,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 end
 Tail(17,2) = {outHessian};
@@ -1748,4 +1771,10 @@ elseif isprop(OptimOpt,'HessianApproximation')
 else
     label = char(OptimOpt.Hessian);
 end
+end
+
+function g = mxlGradient(LLfun,W,b)
+% Analytical gradient of the weighted negative simulated log-likelihood.
+[~,j] = LLfun(b);
+g = sum(j.*W,1)';
 end

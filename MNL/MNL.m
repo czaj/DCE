@@ -48,7 +48,8 @@ function Results = MNL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
 % o	3 - use numerical Hessian,
-% o	4 - use analytical Hessian
+% o	4 - use analytical Hessian (preference space; otherwise as 5),
+% o	5 - use central differences of the analytical gradient
 %
 % Example:
 %    Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
@@ -374,6 +375,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
         end
     else
         if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -396,6 +399,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
         end
     end
     fprintf('\n')
@@ -537,15 +542,22 @@ elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) -INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1),Results.bhat);
-elseif EstimOpt.HessEstFix == 4 % analytical - missing
-    Results.hess = hessian(@(B) -sum(INPUT.W.*LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 4 || EstimOpt.HessEstFix == 5
+    if EstimOpt.HessEstFix == 4 && EstimOpt.WTP_space == 0 && EstimOpt.NVarS == 0 && EstimOpt.NVarNLT == 0 && isempty(EstimOpt.ExpB)
+        Results.hess = mnlHessian(INPUT.Y,INPUT.Xa,INPUT.W,EstimOpt.NAlt,Results.bhat); % analytical
+    else
+        if EstimOpt.HessEstFix == 4
+            cprintf(rgb('DarkOrange'),'WARNING: Analytical Hessian available in preference space without covariates of scale or transformed variables - using central differences of the analytical gradient \n')
+        end
+        Results.hess = hessianFromGradient(@(B) mnlGradient(INPUT,EstimOpt,OptimOpt,B),Results.bhat,EstimOpt.BActive);
+    end
 end
 
 if sum(EstimOpt.BActive == 0) > 0
     if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
         Results.jacobian = Results.jacobian(:,EstimOpt.BActive == 1);
         Results.hess = Results.jacobian'*Results.jacobian;
-    elseif EstimOpt.HessEstFix == 0 || EstimOpt.HessEstFix == 3
+    else
         Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
     end
     [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
@@ -721,6 +733,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -743,6 +757,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 end
 
@@ -754,4 +770,32 @@ if EstimOpt.Display ~= 0
     Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+end
+
+function H = mnlHessian(Y,Xa,W,NAlt,b)
+% Analytical Hessian of the negative log-likelihood of a preference-space MNL:
+% sum over choice tasks of W * sum_j P_j (x_j - xbar)(x_j - xbar)'.
+k = size(Xa,2);
+N = numel(Y)/NAlt;
+v = reshape(Xa*b(1:k),[NAlt,N]);
+P = exp(v - max(v,[],1));
+P(isnan(P)) = 0;
+P = P./sum(P,1);
+XX = reshape(Xa,[NAlt,N,k]);
+XX(isnan(XX)) = 0;
+Xbar = reshape(sum(P.*XX,1),[N,k]);
+H = zeros(k);
+for j = 1:NAlt
+    D = reshape(XX(j,:,:),[N,k]) - Xbar;
+    H = H + D'*(D.*(P(j,:)'.*W(:)));
+end
+H = (H + H')/2;
+end
+
+function g = mnlGradient(INPUT,EstimOpt,OptimOpt,b)
+% Analytical gradient of the objective (weighted negative log-likelihood).
+OptimOpt.GradObj = 'on';
+OptimOpt.Hessian = 'off';
+[~,g] = LL_mnl_MATlike(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,INPUT.W,EstimOpt,OptimOpt,b);
+g = g(:);
 end
