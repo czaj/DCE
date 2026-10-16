@@ -1,6 +1,16 @@
-function Bhat = EM_LC(Y,Xa,Xc,Xs, MissingInd, EstimOpt,OptimOpt,B)
+function [Bhat, EMinfo] = EM_LC(Y,Xa,Xc,Xs, MissingInd, EstimOpt,OptimOpt,B)
+% EM_LC  EM algorithm for the latent-class logit.
+%
+%   Bhat            = EM_LC(...)
+%   [Bhat, EMinfo]  = EM_LC(...) also returns a diagnostics struct with the
+%                     number of EM iterations run, the log-likelihood trace,
+%                     the final parameter and likelihood changes, elapsed
+%                     seconds, and whether the tolerances were met before the
+%                     iteration cap (EstimOpt.EMMaxIter, default 1000).
 
 global B_backup;
+
+EMtic = tic;
 
 NP = EstimOpt.NP;
 NAlt = EstimOpt.NAlt;
@@ -37,6 +47,9 @@ Theta = B(NClass*(NVarA+NVarS)+1:end);
 
 LL = LL_lc(YY,Xa,Xc,Xs,MissingInd,EstimOpt,B);
 LL = -sum(LL);
+LLtrace = NaN(EstimOpt.EMMaxIter+1,1);
+LLtrace(1) = LL;
+LLdecreased = false;
 iter = 1;
 while ((b_diff > TolX) || (LL_diff > TolFun)) && iter < EstimOpt.EMMaxIter
     
@@ -67,16 +80,38 @@ while ((b_diff > TolX) || (LL_diff > TolFun)) && iter < EstimOpt.EMMaxIter
     LLnew = LL_lc(YY,Xa,Xc,Xs,MissingInd,EstimOpt,B);
     LLnew = -sum(LLnew);
     LL_diff = abs(LLnew - LL);
-    if LLnew < LL - 1e-8, warning('EM_LC: log-likelihood decreased at iteration %d (%.6g -> %.6g)', iter, LL, LLnew); end
+    if LLnew < LL - 1e-8
+        LLdecreased = true;
+        warning('EM_LC:LLdecreased', 'log-likelihood decreased at iteration %d (%.6g -> %.6g)', iter, LL, LLnew);
+    end
     LL = LLnew;
+    LLtrace(iter+1) = LL;
 
-    disp(num2str([iter, b_diff, LL_diff, LL],'Iteration: %1.0f | Parameters change: %1.2f | LL change: %1.2f | LL: %1.3f '))
+    if ~isfield(EstimOpt,'Display') || EstimOpt.Display ~= 0
+        disp(num2str([iter, b_diff, LL_diff, LL],'Iteration: %1.0f | Parameters change: %1.2f | LL change: %1.2f | LL: %1.3f '))
+    end
     iter = iter+1;
 end
-disp(' ')
+if ~isfield(EstimOpt,'Display') || EstimOpt.Display ~= 0
+    disp(' ')
+end
 Bclass = Bmnl(1:NVarA,:);
 Bs = Bmnl(NVarA+1:end,:);
 Bhat = [Bclass(:); Bs(:); Theta(:)];
+
+if nargout > 1
+    EMinfo = struct( ...
+        'iterations',   iter-1, ...
+        'maxIter',      EstimOpt.EMMaxIter, ...
+        'hitMaxIter',   iter >= EstimOpt.EMMaxIter, ...   % the loop runs while iter < EMMaxIter
+        'converged',    (b_diff <= TolX) && (LL_diff <= TolFun), ...
+        'LL',           LL, ...
+        'LLtrace',      LLtrace(1:iter), ...
+        'bDiff',        b_diff, ...
+        'LLdiff',       LL_diff, ...
+        'LLdecreased',  LLdecreased, ...
+        'seconds',      toc(EMtic));
+end
 
 end
 

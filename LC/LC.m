@@ -439,16 +439,22 @@ if EstimOpt.EM == 1
         error('EM algorithm does not support BActiveClass.')
     end
     % TO DO: INPUT.MissingInd, BActiveClass, INPUT.W, gradient for fmnl,
-    cprintf('*Black','LC model estimated using EM algorithm. Standard errors obtained using ML method. \n')
-    b0 = EM_LC(INPUT.Y,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd, EstimOpt,OptimOpt,b0);
+    if EstimOpt.Display ~= 0
+        cprintf('*Black','LC model estimated using EM algorithm. Standard errors obtained using ML method. \n')
+    end
+    [b0, Results.EM] = EM_LC(INPUT.Y,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd, EstimOpt,OptimOpt,b0);
 end
 
 
 %% Estimation
 
-% this is temporary to evaluate EM algorithm
-OptimOpt.MaxIterations = 1;
-
+% To evaluate the EM solution on its own, cap the optimiser that runs after EM.
+% Off unless asked for: EstimOpt.EMPolishMaxIter = 1 reproduces the diagnostic
+% that used to be hard-coded here (and silently applied to non-EM runs too).
+if EstimOpt.EM == 1 && isfield(EstimOpt,'EMPolishMaxIter') && ~isempty(EstimOpt.EMPolishMaxIter)
+    OptimOpt.MaxIterations = EstimOpt.EMPolishMaxIter;
+    OptimOpt.MaxIter = EstimOpt.EMPolishMaxIter;
+end
 
 LLfun = @(B) LL_lc_MATlike(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,INPUT.W,EstimOpt,OptimOpt,B);
 if EstimOpt.ConstVarActive == 0
