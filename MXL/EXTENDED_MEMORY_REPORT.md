@@ -1,5 +1,9 @@
 # Extended MXL-family memory allocation report
 
+Historical report. The remaining hybrid measurement/normalization allocations
+described below are addressed by the [2026-10-22 hybrid update](../Hybrid/VALIDATION.md),
+which adds blocked CPU/GPU evaluation and measured mining benchmarks.
+
 Date: 2026-10-02. Initial implementation: `6bf56b8`.
 Original likelihood reference: `dd6f704`. Branch: `mxl-memory`.
 

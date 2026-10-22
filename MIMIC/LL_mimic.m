@@ -1,5 +1,17 @@
 function [f,g] = LL_mimic(X_str,X_mea,Xmea_exp,err_sliced,EstimOpt,B)
 
+% Keep the legacy implementation as an explicit comparison/fallback path.
+if (~isfield(EstimOpt,'HybridBlockSize') || ~isequal(EstimOpt.HybridBlockSize,0))
+    if exist('hybrid_likelihood','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'Hybrid'));
+    end
+    if exist('mxl_choice_pages','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'MXL'));
+    end
+    [f,g] = hybrid_likelihood('MIMIC',{X_str,X_mea,Xmea_exp,err_sliced,EstimOpt,B},nargout > 1);
+    return;
+end
+
 % save tmp_LL_mimic
 % return
 

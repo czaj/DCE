@@ -624,6 +624,9 @@ INPUT.Xmea(EstimOpt.MissingIndMea == 1) = NaN;
 EstimOpt.MissingInd_tmp = INPUT.MissingInd(1:NRowsPerP_tmp:end,:);
 clear NMea_tmp NRowsPerP_tmp MissingIndMea_tmp;
 
+legacyHybrid = (isfield(EstimOpt,'HybridBlockSize') && isequal(EstimOpt.HybridBlockSize,0)) || ...
+    any(~ismember(EstimOpt.Dist,[-1 0 1])) || ...
+    (EstimOpt.WTP_space > 0 && any(~ismember(EstimOpt.WTP_matrix,EstimOpt.NVarA-EstimOpt.WTP_space+1:EstimOpt.NVarA)));
 if EstimOpt.NVarM > 0
     Xm_tmp = reshape(INPUT.Xm',[EstimOpt.NVarM,EstimOpt.NAlt*EstimOpt.NCT,EstimOpt.NP]);
     Xm_resp = zeros(EstimOpt.NVarM,EstimOpt.NP);
@@ -642,7 +645,7 @@ if EstimOpt.NVarM > 0
         INPUT.Xm = Xm_resp; % NVarM x NP
     else
         INPUT.Xm = permute(Xm_tmp,[2 1 3]); % NAlt*NCT x NVarM x NP
-        if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0
+        if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0 && legacyHybrid
             EstimOpt.NumGrad = 1;
             cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient to numerical - analytical gradient for task-specific Xm in HMXL FullCov==2 is not supported. \n')
         end
@@ -995,7 +998,8 @@ if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) |
     OptimOpt.GradObj = 'on';
 end
 
-if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0 && (any(EstimOpt.MissingAlt(:) == 1) || EstimOpt.NLatent > 1 || any(EstimOpt.MeaSpecMatrix > 0))
+if EstimOpt.FullCov == 2 && EstimOpt.NumGrad == 0 && legacyHybrid && ...
+        (any(EstimOpt.MissingAlt(:) == 1) || EstimOpt.NLatent > 1 || any(EstimOpt.MeaSpecMatrix > 0))
     EstimOpt.NumGrad = 1;
     cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient to numerical - correlation of random parameters and LV not supported by analytical gradient with missing, more than 1 LV and not OLS measurment equations\n')
 end
@@ -1043,6 +1047,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1065,6 +1071,8 @@ else
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 end
 
@@ -1158,6 +1166,9 @@ elseif EstimOpt.HessEstFix == 2
 
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) sum(INPUT.W.*LL_hmxl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    LLscore = @(B) LL_hmxl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B);
+    Results.hess = hessianFromGradient(@(B) hybridGradient(LLscore,INPUT.W,B),Results.bhat,EstimOpt.BActive);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
@@ -1598,6 +1609,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1620,6 +1633,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 end
 
@@ -1630,4 +1645,11 @@ Tail(17,2) = {outHessian};
 if EstimOpt.Display ~= 0
     Results.Dist = EstimOpt.Dist;
     Results.R_out = genOutput(EstimOpt, Results, Head, Tail, Names, Template1, Template2, Heads, ST);
+end
+
+end
+
+function g = hybridGradient(fun,W,b)
+[~,j] = fun(b);
+g = sum(j.*W,1)';
 end

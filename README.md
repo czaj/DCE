@@ -24,6 +24,11 @@ The models are estimated using the maximum likelihood method and work with the f
 - parallel computing
 and more.
 
+Hybrid likelihoods (HMXL, HMNL, MIMIC and HLC) now use bounded respondent
+blocks with global latent normalization and automatic double-precision GPU
+selection. Update **both DCE and Tools**; see the [options](Hybrid/README.md)
+and [validation/benchmarks](Hybrid/VALIDATION.md).
+
 The codes are published under a Creative Commons Attribution 4.0 License. This means that you are free to use, share, or modify these codes for any purpose, even commercially. What we ask in return is that you acknowledge the source of the codes or reference one of our papers (see czaj.org/research for details).
 
 We provide these codes for two reasons:

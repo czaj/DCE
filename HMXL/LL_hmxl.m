@@ -1,5 +1,19 @@
 function [f,g] = LL_hmxl(Y,Xa,Xm,Xs,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B)
 
+% Keep the legacy implementation as an explicit comparison/fallback path.
+if (~isfield(EstimOpt,'HybridBlockSize') || ~isequal(EstimOpt.HybridBlockSize,0)) && ...
+        all(ismember(EstimOpt.Dist,[-1 0 1])) && ...
+        (EstimOpt.WTP_space == 0 || all(ismember(EstimOpt.WTP_matrix,EstimOpt.NVarA-EstimOpt.WTP_space+1:EstimOpt.NVarA)))
+    if exist('hybrid_likelihood','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'Hybrid'));
+    end
+    if exist('mxl_choice_pages','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'MXL'));
+    end
+    [f,g] = hybrid_likelihood('HMXL',{Y,Xa,Xm,Xs,Xstr,Xmea,Xmea_exp,err_sliced,EstimOpt,B},nargout > 1);
+    return;
+end
+
 % save tmp_LL_hmxl
 % return
 

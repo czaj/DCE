@@ -555,7 +555,7 @@ OptimOpt_0.FunValCheck = 'off';
 OptimOpt_0.Diagnostics = 'off';
 
 if size(INPUT.Xmea,2) > 0
-    LLfun0 = @(B) LL_hmnl0_missing(INPUT.Xmea,EstimOpt,B);
+    LLfun0 = @(B) LL_hmnl0(INPUT.Xmea,EstimOpt,B);
     b0_mimic0 = MIMIC0_starting_values(INPUT.Xmea,EstimOpt);
     LL0_start = LLfun0(b0_mimic0);
     if ~isfinite(LL0_start)
@@ -677,11 +677,13 @@ cprintf('*blue',[num2str(EstimOpt.NRep) ' ']);
 
 if EstimOpt.Draws == 1
     cprintf('*blue','Pseudo-random '); cprintf('draws \n');
-    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,EstimOpt.NLatent+EstimOpt.NVarA+1); %to be cut down later
+    err_mtx = randn(EstimOpt.NP*EstimOpt.NRep,EstimOpt.NLatent+EstimOpt.NVarA+1);
+    err_mtx = err_mtx(:,2+EstimOpt.NVarA:end);
 elseif EstimOpt.Draws == 2 % LHS
     cprintf('*blue','Latin Hypercube Sampling '); cprintf('draws \n');
     err_mtx = lhsnorm(zeros((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1),diag(ones((EstimOpt.NLatent+EstimOpt.NVarA+1)*EstimOpt.NP,1)),EstimOpt.NRep);
-    err_mtx = reshape(err_mtx,[EstimOpt.NRep*EstimOpt.NP,EstimOpt.NLatent]);
+    err_mtx = reshape(err_mtx,[EstimOpt.NRep*EstimOpt.NP,EstimOpt.NLatent+EstimOpt.NVarA+1]);
+    err_mtx = err_mtx(:,2+EstimOpt.NVarA:end);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
     if EstimOpt.Draws == 3
         cprintf('*blue','Halton '); cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n']);
@@ -724,7 +726,8 @@ if ((isfield(EstimOpt,'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) ||
     OptimOpt.GradObj = 'on';
 end
 
-if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0
+if any(EstimOpt.MissingAlt(:) == 1) && EstimOpt.NumGrad == 0 && ...
+        (isfield(EstimOpt,'HybridBlockSize') && isequal(EstimOpt.HybridBlockSize,0))
    EstimOpt.NumGrad = 1;
    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied gradient to numerical - missing alternatives not supported by analytical gradient \n')
 end
@@ -772,6 +775,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -794,6 +799,8 @@ else
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 end
 
@@ -829,7 +836,10 @@ if EstimOpt.HessEstFix == 1
 elseif EstimOpt.HessEstFix == 2
 	Results.jacobian = jacobianest(@(B) INPUT.W.*LL_mimic(INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-	Results.jacobian = hessian(@(B) sum(INPUT.W.*LL_mimic(INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),1),Results.bhat);
+	Results.hess = hessian(@(B) sum(INPUT.W.*LL_mimic(INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    LLscore = @(B) LL_mimic(INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B);
+    Results.hess = hessianFromGradient(@(B) hybridGradient(LLscore,INPUT.W,B),Results.bhat,EstimOpt.BActive);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
@@ -1004,6 +1014,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1026,6 +1038,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 end
 
@@ -1038,4 +1052,9 @@ if EstimOpt.Display ~= 0
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST,'MIMIC');
 end
 
+end
+
+function g = hybridGradient(fun,W,b)
+[~,j] = fun(b);
+g = sum(j.*W,1)';
 end

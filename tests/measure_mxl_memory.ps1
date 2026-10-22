@@ -1,7 +1,8 @@
 [CmdletBinding(DefaultParameterSetName='Run')]
 param(
     [Parameter(Mandatory,ParameterSetName='Run')][ValidateSet('CH','pooled')][string]$Case,
-    [Parameter(Mandatory,ParameterSetName='Run')][string]$OutDir,
+    [Parameter(Mandatory,ParameterSetName='Run')][Parameter(Mandatory,ParameterSetName='Attach')][string]$OutDir,
+    [Parameter(Mandatory,ParameterSetName='Attach')][int]$AttachPid,
     [ValidatePattern('^[A-Za-z]\w*$')][string]$FunctionName = 'LL_mxl',
     [string]$BaselineDir = '',
     [string]$ReplicationRoot = 'C:\Users\miq\Documents\lasy\replication_package',
@@ -66,16 +67,21 @@ $frozenPath = [IO.Path]::GetFullPath($ReplicationRoot).TrimEnd('\')
 if ($outPath -eq $frozenPath -or $outPath.StartsWith($frozenPath+'\',[StringComparison]::OrdinalIgnoreCase)) {
     throw 'Benchmark outputs must be outside replication_package.'
 }
-if (Test-Path -LiteralPath $outPath) { throw 'Use a new output directory for each benchmark series.' }
-if (Get-Process -Name MATLAB -ErrorAction SilentlyContinue) {
+if (-not $AttachPid -and (Test-Path -LiteralPath $outPath)) { throw 'Use a new output directory for each benchmark series.' }
+if (-not $AttachPid -and (Get-Process -Name MATLAB -ErrorAction SilentlyContinue)) {
     throw 'A MATLAB session already exists. Confirm the computer is free before launching this batch.'
 }
-New-Item -ItemType Directory -Path $outPath | Out-Null
+New-Item -ItemType Directory -Path $outPath -Force | Out-Null
 function Quote-Matlab([string]$Text) { return "'"+$Text.Replace("'","''")+"'" }
 $quotedArgs = (@($Case,$FunctionName,$outPath,$ReplicationRoot,$BaselineDir) | ForEach-Object { Quote-Matlab $_ }) -join ','
 $expression = 'addpath('+ (Quote-Matlab $PSScriptRoot) +'); bench_mxl_memory('+$quotedArgs+','+$Repeats+','+$MinSeconds+');'
 $arguments = '-wait -batch "'+$expression+'" -logfile "'+(Join-Path $outPath 'matlab.log')+'"'
-$matlabProcess = Start-Process -FilePath $Matlab -ArgumentList $arguments -WindowStyle Hidden -PassThru
+if ($AttachPid) {
+    $matlabProcess = Get-Process -Id $AttachPid -ErrorAction Stop
+    if ($matlabProcess.ProcessName -ne 'MATLAB') { throw 'AttachPid must identify the requesting MATLAB process.' }
+} else {
+    $matlabProcess = Start-Process -FilePath $Matlab -ArgumentList $arguments -WindowStyle Hidden -PassThru
+}
 $readyPath = Join-Path $outPath 'ready.json'
 $resultPath = Join-Path $outPath 'evaluation.json'
 $rows = [Collections.Generic.List[object]]::new()
@@ -113,8 +119,9 @@ try {
     }
     $ready = Get-Content -LiteralPath $readyPath -Raw | ConvertFrom-Json
     $processIds = @($ready.pids | ForEach-Object { [int]$_ })
-    if ($processIds.Count -ne 4 -or @($processIds | Select-Object -Unique).Count -ne 4) {
-        throw 'Expected one distinct client and three distinct worker PIDs.'
+    if ($processIds.Count -lt 1 -or @($processIds | Select-Object -Unique).Count -ne $processIds.Count -or
+        ($AttachPid -and $processIds[0] -ne $AttachPid) -or (-not $AttachPid -and $processIds.Count -ne 4)) {
+        throw 'Expected distinct MATLAB client/worker PIDs with the requesting client first.'
     }
     Sample-Processes
     New-Item -ItemType File -Path (Join-Path $outPath 'sample.start') | Out-Null
@@ -155,8 +162,10 @@ try {
     } | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $outPath 'summary.json') -Encoding UTF8
     $perProcess | Export-Csv -LiteralPath (Join-Path $outPath 'process_summary.tsv') -Delimiter "`t" -NoTypeInformation
     New-Item -ItemType File -Path (Join-Path $outPath 'sample.done') | Out-Null
-    $matlabProcess.WaitForExit()
-    if ($matlabProcess.ExitCode -ne 0) { throw "MATLAB exited with code $($matlabProcess.ExitCode); inspect matlab.log." }
+    if (-not $AttachPid) {
+        $matlabProcess.WaitForExit()
+        if ($matlabProcess.ExitCode -ne 0) { throw "MATLAB exited with code $($matlabProcess.ExitCode); inspect matlab.log." }
+    }
     Write-Output (Join-Path $outPath 'summary.json')
 } finally {
     if ($rows.Count -gt 0) {
@@ -164,5 +173,5 @@ try {
     }
     # Let the MATLAB handshake timeout close its own pool after sampler failure.
     $matlabProcess.Refresh()
-    if (-not $matlabProcess.HasExited) { $matlabProcess.WaitForExit() }
+    if (-not $AttachPid -and -not $matlabProcess.HasExited) { $matlabProcess.WaitForExit() }
 }

@@ -78,7 +78,7 @@ try
         staticBytes = 8*(numel(C.XXa)+numel(C.err)+numel(C.XXm)+numel(C.Xs)+K*opt.NP)+...
             2*numel(C.YY)+opt.NCT*opt.NP;
         resultBytes = 8*opt.NP*(1+K+Q+K*opt.NVarM+opt.NVarS);
-        perPersonBytes = 8*opt.NRep*((16+2*opt.WTP_space)*opt.NAlt*opt.NCT+6*K);
+        perPersonBytes = 8*opt.NRep*((16+2*opt.WTP_space)*opt.NAlt*opt.NCT+6*K+2*K*opt.NVarM);
         budget = .8*double(device.AvailableMemory)-staticBytes-resultBytes-256*1024^2;
         blockSize = min([128,opt.NP,floor(budget/perPersonBytes)]);
         if blockSize < 1

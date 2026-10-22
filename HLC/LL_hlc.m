@@ -1,5 +1,17 @@
 function f = LL_hlc(YY,Xa,Xc,Xstr,X_mea,Xmea_exp,err_sliced,EstimOpt,B)
 
+% Keep the legacy implementation as an explicit comparison/fallback path.
+if (~isfield(EstimOpt,'HybridBlockSize') || ~isequal(EstimOpt.HybridBlockSize,0))
+    if exist('hybrid_likelihood','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'Hybrid'));
+    end
+    if exist('mxl_choice_pages','file') ~= 2
+        addpath(fullfile(fileparts(fileparts(mfilename('fullpath'))),'MXL'));
+    end
+    f = hybrid_likelihood('HLC',{YY,Xa,Xc,Xstr,X_mea,Xmea_exp,err_sliced,EstimOpt,B},nargout > 1);
+    return;
+end
+
 beta = reshape(B(1:EstimOpt.NClass*EstimOpt.NVarA),[EstimOpt.NVarA,EstimOpt.NClass]);
 if EstimOpt.WTP_space > 0
     beta(1:end-EstimOpt.WTP_space,:) = beta(1:end-EstimOpt.WTP_space,:).*beta(EstimOpt.WTP_matrix,:);

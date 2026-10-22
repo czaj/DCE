@@ -1053,6 +1053,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1075,6 +1077,8 @@ else
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','central differences of analytical gradient \n')
     end
 end
 
@@ -1166,6 +1170,9 @@ elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) sum(INPUT.W.*LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    LLscore = @(B) LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B);
+    Results.hess = hessianFromGradient(@(B) hybridGradient(LLscore,INPUT.W,B),Results.bhat,EstimOpt.BActive);
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
@@ -1419,6 +1426,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -1441,6 +1450,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 end
 
@@ -1455,4 +1466,9 @@ if EstimOpt.Display~=0
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
 
+end
+
+function g = hybridGradient(fun,W,b)
+[~,j] = fun(b);
+g = sum(j.*W,1)';
 end
