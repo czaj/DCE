@@ -12,17 +12,15 @@ probsfun = @(B) probs_mdcev(data,EstimOpt,B);
 W_task = data.W(:);
 
 if isequal(OptimOpt.GradObj,'on') 
-    nll = probsfun(b0);
-    if isequal(OptimOpt.Hessian,'user-supplied')
-        j = numdiff(probsfun,nll,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        j = j.*W_task;
-        g = sum(j,1)';
-        h = j'*j;
+    if EstimOpt.NumGrad == 0
+        [nll,j] = probsfun(b0);
+        j(:,EstimOpt.BActive == 0) = 0;
     else
+        nll = probsfun(b0);
         j = numdiff(probsfun,nll,b0,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-        j = j.*W_task;
-        g = sum(j,1)';
     end
+    j = j.*W_task; g = sum(j,1)';
+    if isequal(OptimOpt.Hessian,'user-supplied'), h = j'*j; end
     f = sum(nll.*W_task);
 else
     EstimOpt.NumGrad = 1;

@@ -27,7 +27,7 @@ function Results = MMDCEV(INPUT,Results_old, EstimOpt,OptimOpt)
 % Modelling options from DataCleanDCE:
 % �	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
 % �	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical
-%    gradient (only NumGrad=1 at the moment)
+%    gradient
 % �	HessEstFix = 0; Options: 
 % o	0 - use optimization Hessian, 
 % o	1 - use jacobian-based (BHHH) Hessian, 
@@ -144,7 +144,7 @@ if isfield(EstimOpt,'RealMin') == 0
     EstimOpt.RealMin = 0;
 end
 if ~isfield(EstimOpt,'NumGrad') || isempty(EstimOpt.NumGrad)
-    EstimOpt.NumGrad = 1;
+    EstimOpt.NumGrad = 0;
 end
 if ~isfield(EstimOpt,'ApproxHess') || isempty(EstimOpt.ApproxHess)
     EstimOpt.ApproxHess = 1;
@@ -378,10 +378,7 @@ if isfield(EstimOpt,'HessEstFix') == 0
     EstimOpt.HessEstFix = 0;
 end 
 %INPUT.W = ones(EstimOpt.NP,1); % Weights not supported for now
-if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
-    INPUT.W = ones(NTasks,1);
-    cprintf(rgb('DarkOrange'),'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
-end
+
 
 if EstimOpt.Display ~= 0
     fprintf('\n')
@@ -410,6 +407,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','central differences of analytical gradient \n')
         end
     else
         if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -432,6 +431,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','central differences of analytical gradient \n')
         end
     end
     fprintf('\n')
@@ -503,13 +504,22 @@ W_NP = W_NP(:,1);
 Results.LLdetailed = Results.LLdetailed.*W_NP;
 
 if EstimOpt.HessEstFix == 1
-    f = probs_mmdcev(INPUT, EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) -probs_mmdcev(INPUT, EstimOpt,B),-f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
-    Results.jacobian = Results.jacobian.*W_NP;
+    if EstimOpt.NumGrad == 0
+        [~,Results.jacobian] = probs_mmdcev(INPUT,EstimOpt,Results.bhat);
+        Results.jacobian = Results.jacobian.*W_NP;
+        Results.jacobian(:,EstimOpt.BActive == 0) = 0;
+    else
+        f = probs_mmdcev(INPUT, EstimOpt,Results.bhat);
+        Results.jacobian = numdiff(@(B) -probs_mmdcev(INPUT, EstimOpt,B),-f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+        Results.jacobian = Results.jacobian.*W_NP;
+    end
 elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) -W_NP.*probs_mmdcev(INPUT, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
-    Results.hess = hessian(@(B) -sum(W_NP.*probs_mmdcev(INPUT,EstimOpt,B),1),Results.bhat);
+    Results.hess = hessian(@(B) sum(W_NP.*probs_mmdcev(INPUT,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    score = @(B) probs_mmdcev(INPUT,EstimOpt,B);
+    Results.hess = hessianFromGradient(@(B) vceGradient(score,W_NP,B),Results.bhat,EstimOpt.BActive);
 % elseif EstimOpt.HessEstFix == 4 % analytical - missing
 %     Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 end
@@ -732,6 +742,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -754,6 +766,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 end
 
@@ -766,4 +780,9 @@ if EstimOpt.Display ~= 0
      Results.Dist = EstimOpt.Dist;
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+end
+
+function g = vceGradient(fun,W,b)
+[~,j] = fun(b);
+g = sum(j.*W,1)';
 end

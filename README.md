@@ -12,6 +12,8 @@ This package includes the following models:
 - Hybrid Multinomial Logit (HMNL)
 - Hybrid Mixed Logit (HMXL)
 - Hybrid Latent Class (HLC)
+- Multiple Discrete-Continuous Extreme Value (MDCEV)
+- Mixed Multiple Discrete-Continuous Extreme Value (MMDCEV)
 
 The models are estimated using the maximum likelihood method and work with the following specifications:
 - preference or WTP space
@@ -28,6 +30,10 @@ Hybrid likelihoods (HMXL, HMNL, MIMIC and HLC) now use bounded respondent
 blocks with global latent normalization and automatic double-precision GPU
 selection. Update **both DCE and Tools**; see the [options](Hybrid/README.md)
 and [validation/benchmarks](Hybrid/VALIDATION.md).
+
+MDCEV and MMDCEV also use blocked CPU/GPU likelihoods, analytical gradients
+and gradient-based Hessians. Demand prediction uses bounded CPU blocks.
+Update both toolboxes; see the [VCE options and validation](VCE/README.md).
 
 The codes are published under a Creative Commons Attribution 4.0 License. This means that you are free to use, share, or modify these codes for any purpose, even commercially. What we ask in return is that you acknowledge the source of the codes or reference one of our papers (see czaj.org/research for details).
 

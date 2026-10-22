@@ -26,7 +26,7 @@ function Results = MDCEV(INPUT,Results_old,EstimOpt,OptimOpt)
 % Modelling options from DataCleanDCE:
 % �	ApproxHess = 1; for user supplied hessians, 1 for BHHH, 0 for analytical
 % �	NumGrad = 0; uses analytical gradient in calculations, set to 1 for numerical
-%    gradient (only NumGrad=1 at the moment)
+%    gradient
 % �	HessEstFix = 0; Options: 
 % o	0 - use optimization Hessian, 
 % o	1 - use jacobian-based (BHHH) Hessian, 
@@ -247,9 +247,8 @@ if isfield(EstimOpt,'HessEstFix') == 0
 end 
 %INPUT.W = ones(EstimOpt.NP,1); % Weights not supported for now
 
-if isfield(EstimOpt,'NumGrad') == 0 || EstimOpt.NumGrad ~= 1
-    EstimOpt.NumGrad = 1;
-    cprintf(rgb('DarkOrange'), 'WARNING: Setting gradient to numerical. Analytical gradient is not supported.\n')
+if ~isfield(EstimOpt,'NumGrad') || isempty(EstimOpt.NumGrad)
+    EstimOpt.NumGrad = 0;
 end
 if EstimOpt.Display ~= 0
     fprintf('\n')
@@ -279,6 +278,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','central differences of analytical gradient \n')
         end
     else
         if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -301,6 +302,8 @@ if EstimOpt.Display ~= 0
                 cprintf('*Black','ex-post calculated numerically \n')
             case 4
                 cprintf('*Black','ex-post calculated analytically \n')
+            case 5
+                cprintf('*Black','central differences of analytical gradient \n')
         end
     end
     fprintf('\n')
@@ -372,8 +375,14 @@ Results.LLdetailed = probs_mdcev(INPUT, EstimOpt, Results.bhat);
 Results.LLdetailed = Results.LLdetailed.*W_task;
 
 if EstimOpt.HessEstFix == 1
-    f = probs_mdcev(INPUT, EstimOpt,Results.bhat);
-    Results.jacobian = numdiff(@(B) W_task.*probs_mdcev(INPUT, EstimOpt,B),W_task.*f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+    if EstimOpt.NumGrad == 0
+        [~,Results.jacobian] = probs_mdcev(INPUT,EstimOpt,Results.bhat);
+        Results.jacobian = Results.jacobian.*W_task;
+        Results.jacobian(:,EstimOpt.BActive == 0) = 0;
+    else
+        f = probs_mdcev(INPUT, EstimOpt,Results.bhat);
+        Results.jacobian = numdiff(@(B) W_task.*probs_mdcev(INPUT, EstimOpt,B),W_task.*f,Results.bhat,isequal(OptimOpt.FinDiffType,'central'),EstimOpt.BActive);
+    end
     if isfield(EstimOpt,'ClusterSE') && EstimOpt.ClusterSE
         Results.jacobian = reshape(sum(reshape(Results.jacobian, ...
             EstimOpt.NCT,EstimOpt.NP,[]),1),EstimOpt.NP,[]);
@@ -382,6 +391,9 @@ elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) W_task.*probs_mdcev(INPUT, EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) sum(W_task.*probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    score = @(B) probs_mdcev(INPUT,EstimOpt,B);
+    Results.hess = hessianFromGradient(@(B) vceGradient(score,W_task,B),Results.bhat,EstimOpt.BActive);
 % elseif EstimOpt.HessEstFix == 4 % analytical - missing
 %     Results.hess = hessian(@(B) -sum(probs_mdcev(INPUT,EstimOpt,B),1),Results.bhat);
 end
@@ -564,6 +576,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -586,6 +600,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'central differences of analytical gradient'];
     end
 end
 
@@ -598,4 +614,9 @@ if EstimOpt.Display ~= 0
     Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+end
+
+function g = vceGradient(fun,W,b)
+[~,j] = fun(b);
+g = sum(j.*W,1)';
 end

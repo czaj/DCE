@@ -12,6 +12,7 @@ LLfun = @(B) probs_mmdcev(data,EstimOpt,B);
 
 % W = data.W;
 W = reshape(data.W,EstimOpt.NCT,[])';
+assert(all(W == W(:,1),'all'),'MMDCEV:Weights','Weights must be constant across tasks within a respondent.');
 W = W(:,1);
 
 if isequal(OptimOpt.GradObj,'on')
@@ -22,7 +23,7 @@ if isequal(OptimOpt.GradObj,'on')
 %          [sum(j)', sum(j2)', abs(sum(j) -sum(j2))']
 %         pause
         j = j.*W;
-        g = sum(j);
+        g = sum(j,1)';
         if isequal(OptimOpt.Hessian,'user-supplied') == 1
             h = j'*j;
         end

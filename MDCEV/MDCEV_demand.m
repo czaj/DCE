@@ -6,6 +6,7 @@ EstimOpt = Results.EstimOpt;
 if ~isfield(EstimOpt,'NSim')
     EstimOpt.NSim = 500;
 end
+validateattributes(EstimOpt.NSim,{'numeric'},{'scalar','integer','positive','finite'});
 NAlt = EstimOpt.NAlt;
 N = EstimOpt.NCT*EstimOpt.NP;
 if ~isempty(num)
@@ -41,10 +42,18 @@ if NVarM > 0
 end
 
 sequence = scramble(sobolset(NAlt,'Skip',1),'MatousekAffineOwen');
-epsDraw = net(sequence,N*EstimOpt.NSim);
-epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,N]),[1 3 2]);
-logMU = betasZ+scale*epsDraw-log(priceMat);
-D = mean(solveDemand(logMU,priceMat,alphas,gammas,income,num),3);
+block = min(N,max(1,floor(64*1024^2/(8*8*NAlt*EstimOpt.NSim))));
+if isfield(EstimOpt,'VCEBlockSize') && ~isempty(EstimOpt.VCEBlockSize), block = EstimOpt.VCEBlockSize; end
+validateattributes(block,{'numeric'},{'scalar','integer','positive','finite'});
+D = zeros(NAlt,N);
+for first = 1:block:N
+    ids = first:min(first+block-1,N);
+    epsDraw = sequence((first-1)*EstimOpt.NSim+1:ids(end)*EstimOpt.NSim,:);
+    epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,numel(ids)]),[1 3 2]);
+    logMU = betasZ(:,ids)+scale*epsDraw-log(priceMat(:,ids));
+    aa = alphas(:,min(ids,size(alphas,2))); gg = gammas(:,min(ids,size(gammas,2)));
+    D(:,ids) = mean(mdcevDemand(logMU,priceMat(:,ids),aa,gg,income(ids),num),3);
+end
 Err = Y-D;
 end
 
@@ -74,39 +83,5 @@ if NVarU == 0
     fit = coef;
 else
     fit = Xu*coef;
-end
-end
-
-function D = solveDemand(logMU,prices,alphas,gammas,income,num)
-[nAlt,n,nSim] = size(logMU);
-D = zeros(nAlt,n,nSim);
-for i=1:n
-    col = min(i,size(alphas,2));
-    inva = 1./(1-alphas(:,col));
-    gamma = gammas(:,min(i,size(gammas,2)));
-    for j=1:nSim
-        mu = logMU(:,i,j);
-        high = max(mu)+1;
-        if ~isempty(num)
-            high = min(high,mu(num));
-        end
-        spend = @(lambda) sum(prices(:,i).*gamma.*max(exp((mu-lambda).*inva)-1,0));
-        if spend(high) > income(i)
-            error('MDCEV_demand:Numeraire','The requested numeraire cannot be positive for task %d, draw %d.',i,j)
-        end
-        low = high-10;
-        while spend(low) < income(i)
-            low = low-10;
-        end
-        for k=1:80
-            mid = (low+high)/2;
-            if spend(mid) > income(i)
-                low = mid;
-            else
-                high = mid;
-            end
-        end
-        D(:,i,j) = gamma.*max(exp((mu-(low+high)/2).*inva)-1,0);
-    end
 end
 end

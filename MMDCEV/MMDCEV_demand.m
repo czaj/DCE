@@ -6,6 +6,7 @@ EstimOpt = Results.EstimOpt;
 if ~isfield(EstimOpt,'NSim')
     EstimOpt.NSim = min(500,EstimOpt.NRep);
 end
+validateattributes(EstimOpt.NSim,{'numeric'},{'scalar','integer','positive','finite'});
 assert(EstimOpt.NSim <= EstimOpt.NRep,'NSim must not exceed NRep.')
 NAlt = EstimOpt.NAlt;
 N = EstimOpt.NCT*EstimOpt.NP;
@@ -39,30 +40,40 @@ else
     VC(VC == 1) = b(NVarA+1:NVarA+sum(1:NVarA));
     l = NVarA+sum(1:NVarA);
 end
-bMatrix = betas+VC*draws;
+draws = reshape(draws,NVarA,EstimOpt.NRep,EstimOpt.NP);
+draws = draws(:,1:EstimOpt.NSim,:);
+bMatrix = betas+pagemtimes(VC,draws);
 if NVarM > 0
     meanShifters = reshape(b(l+1:l+NVarA*NVarM),NVarA,NVarM);
     meanFit = meanShifters*Xm;
-    meanFit = reshape(permute(meanFit(:,:,ones(1,EstimOpt.NRep)),[1 3 2]),NVarA,EstimOpt.NRep*EstimOpt.NP);
+    meanFit = reshape(meanFit,NVarA,1,EstimOpt.NP);
     bMatrix = bMatrix+meanFit;
     l = l+NVarA*NVarM;
 end
 if any(EstimOpt.Dist == 1)
-    bMatrix(EstimOpt.Dist == 1,:) = exp(bMatrix(EstimOpt.Dist == 1,:));
+    bMatrix(EstimOpt.Dist == 1,:,:) = exp(bMatrix(EstimOpt.Dist == 1,:,:));
 end
-bMatrix = reshape(bMatrix,NVarA,EstimOpt.NRep,EstimOpt.NP);
-bMatrix = bMatrix(:,1:EstimOpt.NSim,:);
+
 bProfile = b(l+1:l+NVarP*(1+NVarU));
 scale = exp(b(l+NVarP*(1+NVarU)+1));
 [alphas,gammas] = profileValues(bProfile,Xu,EstimOpt,N);
 
-betasZ = pagemtimes(Xa,bMatrix);
-betasZ = reshape(permute(reshape(betasZ,[NAlt,EstimOpt.NCT,EstimOpt.NSim,EstimOpt.NP]),[1 2 4 3]),NAlt,N,EstimOpt.NSim);
 sequence = scramble(sobolset(NAlt,'Skip',1),'MatousekAffineOwen');
-epsDraw = net(sequence,N*EstimOpt.NSim);
-epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,N]),[1 3 2]);
-logMU = betasZ+scale*epsDraw-log(priceMat);
-D = mean(solveDemand(logMU,priceMat,alphas,gammas,income,num),3);
+block = min(EstimOpt.NP,max(1,floor(64*1024^2/(8*8*NAlt*EstimOpt.NSim*EstimOpt.NCT))));
+if isfield(EstimOpt,'VCEBlockSize') && ~isempty(EstimOpt.VCEBlockSize), block = EstimOpt.VCEBlockSize; end
+validateattributes(block,{'numeric'},{'scalar','integer','positive','finite'});
+D = zeros(NAlt,N);
+for first = 1:block:EstimOpt.NP
+    ids = first:min(first+block-1,EstimOpt.NP);
+    tasks = (first-1)*EstimOpt.NCT+1:ids(end)*EstimOpt.NCT;
+    betasZ = pagemtimes(Xa(:,:,ids),bMatrix(:,:,ids));
+    betasZ = reshape(permute(reshape(betasZ,[NAlt,EstimOpt.NCT,EstimOpt.NSim,numel(ids)]),[1 2 4 3]),NAlt,numel(tasks),EstimOpt.NSim);
+    epsDraw = sequence((tasks(1)-1)*EstimOpt.NSim+1:tasks(end)*EstimOpt.NSim,:);
+    epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,numel(tasks)]),[1 3 2]);
+    logMU = betasZ+scale*epsDraw-log(priceMat(:,tasks));
+    aa = alphas(:,min(tasks,size(alphas,2))); gg = gammas(:,min(tasks,size(gammas,2)));
+    D(:,tasks) = mean(mdcevDemand(logMU,priceMat(:,tasks),aa,gg,income(tasks),num),3);
+end
 Err = Y-D;
 end
 
@@ -92,39 +103,5 @@ if NVarU == 0
     fit = coef;
 else
     fit = Xu*coef;
-end
-end
-
-function D = solveDemand(logMU,prices,alphas,gammas,income,num)
-[nAlt,n,nSim] = size(logMU);
-D = zeros(nAlt,n,nSim);
-for i=1:n
-    col = min(i,size(alphas,2));
-    inva = 1./(1-alphas(:,col));
-    gamma = gammas(:,min(i,size(gammas,2)));
-    for j=1:nSim
-        mu = logMU(:,i,j);
-        high = max(mu)+1;
-        if ~isempty(num)
-            high = min(high,mu(num));
-        end
-        spend = @(lambda) sum(prices(:,i).*gamma.*max(exp((mu-lambda).*inva)-1,0));
-        if spend(high) > income(i)
-            error('MMDCEV_demand:Numeraire','The requested numeraire cannot be positive for task %d, draw %d.',i,j)
-        end
-        low = high-10;
-        while spend(low) < income(i)
-            low = low-10;
-        end
-        for k=1:80
-            mid = (low+high)/2;
-            if spend(mid) > income(i)
-                low = mid;
-            else
-                high = mid;
-            end
-        end
-        D(:,i,j) = gamma.*max(exp((mu-(low+high)/2).*inva)-1,0);
-    end
 end
 end
