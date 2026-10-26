@@ -11,6 +11,11 @@ function Results = HMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %    Results_old - here one can provide old results to use as starting
 %    values
 %
+% Hybrid optimization: HybridOptimize=1 optimizes free coordinates; optional
+% HybridStartHessian supplies positive definite curvature from an earlier fit.
+% HybridFitOnly=1 skips final Hessian/posterior/inference reporting for screening.
+% All are opt-in; see Hybrid/ESTIMATION.md for the staged workflow.
+%
 % EstimOpt Options:
 % Set them by e.g. Estimopt.DataFile = 'Project'
 %
@@ -43,7 +48,7 @@ function Results = HMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 %
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% •	BActive = vector of 1; set an entry to 0 to fix that parameter at its starting value
 % •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
 % •	Dist = 0; distribution of random parameters, by default set to normal. Set in a vector of numbers, each corresponding to specific distribution:
 % o	-1 - constant,
@@ -894,7 +899,7 @@ if isfield(EstimOpt,'LVMatrix') && ~isempty(EstimOpt.LVMatrix)
     if ~isfield(EstimOpt,'BActive') || isempty(EstimOpt.BActive)
         EstimOpt.BActive = ones(1,length(b0));
     end
-    EstimOpt.BActive(EstimOpt.NVarA*2+1:EstimOpt.NVarA*(2+EstimOpt.NLatent)) = EstimOpt.LVMatrix(:); %Make sure Xm does not come before LV interactions
+    EstimOpt.BActive(hybrid_lv_indices('HMXL',EstimOpt)) = EstimOpt.LVMatrix(:);
 end
 
 if EstimOpt.ConstVarActive == 1
@@ -991,6 +996,20 @@ if ~isfield(EstimOpt,'ProgressOutputFcn') || isempty(EstimOpt.ProgressOutputFcn)
 if ~isfield(EstimOpt,'DebugOptimizationEval') || isempty(EstimOpt.DebugOptimizationEval), EstimOpt.DebugOptimizationEval = 0; end
 if ~isfield(EstimOpt,'DebugEvalEvery') || isempty(EstimOpt.DebugEvalEvery), EstimOpt.DebugEvalEvery = 1; end
 
+% Screening runs omit expensive Hessian, posterior scores and native inference tables.
+if ~isfield(EstimOpt,'HybridFitOnly'), EstimOpt.HybridFitOnly = 0; end
+assert(isscalar(EstimOpt.HybridFitOnly) && ismember(EstimOpt.HybridFitOnly,[0 1]),...
+    'DCE:Hybrid:FitOnly','HybridFitOnly must be 0 or 1.');
+% Active-coordinate optimization preserves nonzero fixed starting values.
+if ~isfield(EstimOpt,'HybridOptimize'), EstimOpt.HybridOptimize = 0; end
+assert(isscalar(EstimOpt.HybridOptimize) && ismember(EstimOpt.HybridOptimize,[0 1]),...
+    'DCE:Hybrid:Optimizer','HybridOptimize must be 0 or 1.');
+if ~isfield(EstimOpt,'HybridStartHessian'), EstimOpt.HybridStartHessian = []; end
+assert(isempty(EstimOpt.HybridStartHessian) || EstimOpt.HybridOptimize == 1,...
+    'DCE:Hybrid:Optimizer','HybridStartHessian requires HybridOptimize=1.');
+assert(EstimOpt.HybridOptimize == 0 || EstimOpt.ConstVarActive == 0,...
+    'DCE:Hybrid:Optimizer','Use ConstVarActive=0 and fminunc options with HybridOptimize=1; BActive fixes parameters exactly.');
+
 %% Display Options
 
 if ((isfield(EstimOpt, 'ConstVarActive') == 1 && EstimOpt.ConstVarActive == 1) || sum(EstimOpt.BActive == 0) > 0) && ~isequal(OptimOpt.GradObj,'on')
@@ -1058,7 +1077,7 @@ else
             cprintf('Hessian: '); cprintf('*Black','user-supplied, analytical, ')
         end
     else
-        cprintf('Hessian: '); cprintf('*Black',['built-in, ' OptimOpt.HessUpdate ', '])
+        cprintf('Hessian: '); cprintf('*Black',['built-in, ' hybrid_hessian_name(OptimOpt) ', '])
     end
     switch EstimOpt.HessEstFix
         case 0
@@ -1088,10 +1107,17 @@ if EstimOpt.StopOnExtremeB ~= 0 || EstimOpt.ProgressOutputFcn ~= 0
     OptimOpt.OutputFcn = @(x,optimValues,state) HMXL_outputfcn(x,optimValues,state,EstimOpt,oldOutputFcn);
 end
 
+if EstimOpt.HybridFitOnly, fprintf('Screening only: final Hessian and inference tables are omitted.\n'); end
 LLfun = @(B) LL_hmxl_MATlike(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,INPUT.W,EstimOpt,OptimOpt,B);
 try
-    if EstimOpt.ConstVarActive == 0
-        if EstimOpt.HessEstFix == 0
+    if EstimOpt.HybridOptimize == 1
+        if EstimOpt.HessEstFix == 0 && ~EstimOpt.HybridFitOnly
+            [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = hybrid_optimize(LLfun,b0,OptimOpt,EstimOpt.BActive,EstimOpt.HybridStartHessian);
+        else
+            [Results.bhat,LL,Results.exitf,Results.output,Results.g] = hybrid_optimize(LLfun,b0,OptimOpt,EstimOpt.BActive,EstimOpt.HybridStartHessian);
+        end
+    elseif EstimOpt.ConstVarActive == 0
+        if EstimOpt.HessEstFix == 0 && ~EstimOpt.HybridFitOnly
             [Results.bhat,LL,Results.exitf,Results.output,Results.g,Results.hess] = fminunc(LLfun,b0,OptimOpt);
         else
             [Results.bhat,LL,Results.exitf,Results.output,Results.g] = fminunc(LLfun,b0,OptimOpt);
@@ -1099,8 +1125,8 @@ try
     elseif EstimOpt.ConstVarActive == 1 % equality constraints
         EstimOpt.CONS1 = diag(1-EstimOpt.BActive);
         EstimOpt.CONS1(sum(EstimOpt.CONS1,1) == 0,:) = [];
-        EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
-        if EstimOpt.HessEstFix == 0
+        EstimOpt.CONS2 = EstimOpt.CONS1*b0(:);
+        if EstimOpt.HessEstFix == 0 && ~EstimOpt.HybridFitOnly
             [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g,Results.hess] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
         else
             [Results.bhat,LL,Results.exitf,Results.output,Results.lambda,Results.g] = fmincon(LLfun,b0,[],[],EstimOpt.CONS1,EstimOpt.CONS2,[],[],[],OptimOpt);
@@ -1149,6 +1175,14 @@ end
 %% Output
 
 Results.LL = -LL;
+if EstimOpt.HybridFitOnly
+    Results.b0_old = b0;
+    Results.INPUT = INPUT;
+    Results.EstimOpt = EstimOpt;
+    Results.OptimOpt = OptimOpt;
+    Results.InferenceStatus = 'Not computed: HybridFitOnly screening result';
+    return
+end
 R2 = R2_hybrid(INPUT.YY,INPUT.XXa,INPUT.Xstr,[],INPUT.Xm,INPUT.Xs,INPUT.MissingInd,err_sliced,EstimOpt,Results.bhat,2);
 % save tmp1
 Results.b0_old = b0;
@@ -1505,14 +1539,14 @@ for i = 1:size(INPUT.Xmea,2)
     if EstimOpt.MeaSpecMatrix(i) == 2
         l = k + EstimOpt.CutMatrix(i) - length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) + 1;
         Results.DetailsOP = vertcat(Results.DetailsOP,Results.DetailsM(l+1:l+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1,:));
-        if length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i))) > 2 % if attitude is not binary
-            g = [Results.DetailsM(l+1,1);exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1,1))];
-            for n = 2:length(unique(INPUT.Xmea(EstimOpt.MissingIndMea(:,i) == 0,i)))-1
-                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+ l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
-                Results.DetailsM(l+n,1) = sum(g(1:n),1);
-                Results.DetailsM(l+n,3:4) = [stdx,pv(sum(g(1:n),1),stdx)];
-            end
-        end
+        ncut = k+EstimOpt.CutMatrix(i)-l;
+        idx = l+(1:ncut);
+        globalIdx = numel(Results.bhat)-size(Results.DetailsM,1)+idx;
+        cutoffMaxExp = 50;
+        if isfield(EstimOpt,'MaxExp') && ~isempty(EstimOpt.MaxExp), cutoffMaxExp = EstimOpt.MaxExp; end
+        [threshold,cutoffSE,cutoffP] = hybrid_cutoffs(Results.DetailsM(idx,1),Results.ihess(globalIdx,globalIdx),cutoffMaxExp);
+        Results.DetailsM(idx(2:end),1) = threshold(2:end);
+        Results.DetailsM(idx(2:end),3:4) = [cutoffSE(2:end),cutoffP(2:end)];
     end
 
     if EstimOpt.MeaSpecMatrix(i) == 5 || EstimOpt.MeaSpecMatrix(i) == 6
@@ -1620,7 +1654,7 @@ else
             outHessian = 'user-supplied, analytical, ';
         end
     else
-        outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+        outHessian = ['built-in, ',hybrid_hessian_name(OptimOpt),', '];
     end
     switch EstimOpt.HessEstFix
         case 0

@@ -15,6 +15,11 @@ The shared measurement kernel handles OLS, multinomial logit, ordered probit,
 Poisson, negative binomial, ZIP and ZINB. Each estimator's existing input
 validation still applies. Other choice distributions retain the legacy path.
 
+See the [estimation guide](ESTIMATION.md) for informed starts, draw counts,
+active-coordinate optimization, curvature reuse and cheap screening.
+The [optimizer validation report](OPTIMIZATION_VALIDATION.md) separates
+measured performance from recommended practice.
+
 ## Options
 
 - `EstimOpt.GPU = 'auto'` (default): compare warmed CPU and GPU evaluations,

@@ -45,7 +45,7 @@ function Results = HLC(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 %
 % Parameters options:
-% •	BActive = vector of 0; for each parameter set it to 1 to constrain model parameters to their initial values
+% •	BActive = vector of 1; set an entry to 0 to fix that parameter at its starting value
 % •	ConstVarActive = 0; set to 1 to constrain model parameters to its initial values
 %
 %
@@ -685,7 +685,7 @@ else
             cprintf('Hessian: '); cprintf('*Black','user-supplied, analytical, ')
         end
     else
-        cprintf('Hessian: '); cprintf('*Black',['built-in, ' OptimOpt.HessUpdate ', '])
+        cprintf('Hessian: '); cprintf('*Black',['built-in, ' hybrid_hessian_name(OptimOpt) ', '])
     end
     switch EstimOpt.HessEstFix
         case 0
@@ -713,7 +713,7 @@ if EstimOpt.ConstVarActive == 0
 elseif EstimOpt.ConstVarActive == 1 % equality constraints
     EstimOpt.CONS1 = diag(1 - EstimOpt.BActive);
     EstimOpt.CONS1(sum(EstimOpt.CONS1,1) == 0,:) = [];
-    EstimOpt.CONS2 = zeros(size(EstimOpt.CONS1,1),1);
+    EstimOpt.CONS2 = EstimOpt.CONS1*b0(:);
     %     EstimOpt.CONS1 = sparse(EstimOpt.CONS1);
     %     EstimOpt.CONS2 = sparse(EstimOpt.CONS2);
     if EstimOpt.HessEstFix == 0
@@ -892,15 +892,14 @@ for i = 1:size(INPUT.Xmea,2)
     Heads.(strcat('Xmea',num2str(i)))(1:2,1) = [{['Measurment equation for:',' ',char(EstimOpt.NamesMea(i)),' (',model,')']};'lb'];
 
     if EstimOpt.MeaSpecMatrix(i) == 2
-        l = l + sum(EstimOpt.MeaMatrix(:,i)) + tmp;
-        if length(unique(INPUT.Xmea(:,i))) > 2 % if attitude is not binary
-            g = [Results.DetailsM(l+1,1);exp(Results.DetailsM(l+2:l+length(unique(INPUT.Xmea(:,i)))-1,1))];
-            for n = 2:length(unique(INPUT.Xmea(:,i)))-1
-                stdx = sqrt(g(1:n)'*Results.ihess((EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n,(EstimOpt.NVarStr)*EstimOpt.NLatent+l+1:(EstimOpt.NVarStr)*EstimOpt.NLatent+l+n)*g(1:n));
-                Results.DetailsM(l+n,1) = sum(g(1:n),1);
-                Results.DetailsM(l+n,3:4) = [stdx,pv(sum(g(1:n),1),stdx)];
-            end
-        end
+        ncut = numel(unique(INPUT.Xmea(isfinite(INPUT.Xmea(:,i)),i)))-1;
+        idx = k+EstimOpt.CutMatrix(i)-ncut+(1:ncut);
+        globalIdx = numel(Results.bhat)-size(Results.DetailsM,1)+idx;
+        cutoffMaxExp = 50;
+        if isfield(EstimOpt,'MaxExp') && ~isempty(EstimOpt.MaxExp), cutoffMaxExp = EstimOpt.MaxExp; end
+        [threshold,cutoffSE,cutoffP] = hybrid_cutoffs(Results.DetailsM(idx,1),Results.ihess(globalIdx,globalIdx),cutoffMaxExp);
+        Results.DetailsM(idx(2:end),1) = threshold(2:end);
+        Results.DetailsM(idx(2:end),3:4) = [cutoffSE(2:end),cutoffP(2:end)];
     end
 
     if EstimOpt.MeaSpecMatrix(i) == 5 || EstimOpt.MeaSpecMatrix(i) == 6
@@ -1000,7 +999,7 @@ else
             outHessian = 'user-supplied, analytical, ';
         end
     else
-        outHessian = ['built-in, ',num2str(OptimOpt.HessUpdate),', '];
+        outHessian = ['built-in, ',hybrid_hessian_name(OptimOpt),', '];
     end
     switch EstimOpt.HessEstFix
         case 0

@@ -29,7 +29,8 @@ and more.
 Hybrid likelihoods (HMXL, HMNL, MIMIC and HLC) now use bounded respondent
 blocks with global latent normalization and automatic double-precision GPU
 selection. Update **both DCE and Tools**; see the [options](Hybrid/README.md)
-and [validation/benchmarks](Hybrid/VALIDATION.md).
+and [validation/benchmarks](Hybrid/VALIDATION.md). For starts, staged draws,
+optimizers and inference, see the [hybrid estimation guide](Hybrid/ESTIMATION.md).
 
 MDCEV and MMDCEV also use blocked CPU/GPU likelihoods, analytical gradients
 and gradient-based Hessians. Demand prediction uses bounded CPU blocks.
