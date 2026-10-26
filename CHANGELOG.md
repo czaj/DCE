@@ -6,7 +6,8 @@
   curvature and fit-only screening for HMXL, HMNL and MIMIC. Preserve nonzero
   fixed anchors in equality-constrained hybrid estimation. Correct the HMXL/HMNL
   latent-interaction mask with mean covariates/full covariance, ordered-cutoff
-  delta standard errors in hybrid native output, and modern fmincon Hessian
+  delta standard errors and HLC structural-block indexing in native output,
+  and modern fmincon Hessian
   logging. Add a start-rebasing helper for changed draws and OLS/ordered items.
   Defaults and likelihood kernels are unchanged. See the
   [estimation guide](Hybrid/ESTIMATION.md) and

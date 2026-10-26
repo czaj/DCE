@@ -1,5 +1,5 @@
 function [b,f,exitflag,output,g,H] = hybrid_optimize(fun,b0,options,active,startHessian)
-% Optimize free coordinates, optionally whitened by a previous observed Hessian.
+% Optimize free coordinates, optionally whitened by a positive definite starting metric.
 % The objective, user callbacks and returned derivatives use ORIGINAL parameters.
 % startHessian is curvature, never a covariance matrix; final inference is separate.
 b0 = b0(:); n = numel(b0);

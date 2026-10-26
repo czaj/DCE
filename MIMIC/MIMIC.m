@@ -12,7 +12,7 @@ function Results = MIMIC(INPUT,Results_old,EstimOpt,OptimOpt)
 %    values
 %
 % Hybrid optimization: HybridOptimize=1 optimizes free coordinates; optional
-% HybridStartHessian supplies positive definite curvature from an earlier fit.
+% HybridStartHessian supplies positive definite starting curvature, not covariance.
 % HybridFitOnly=1 skips final Hessian/posterior/inference reporting for screening.
 % All are opt-in; see Hybrid/ESTIMATION.md for the staged workflow.
 %

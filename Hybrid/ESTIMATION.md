@@ -82,6 +82,7 @@ E.Drawskeep = 1;
 [I,old,E,O] = DataCleanDCE(I,E);
 O.Algorithm = 'quasi-newton';
 O.SpecifyObjectiveGradient = true;
+O.MaxIterations = 300;     % example screening budget; a capped fit is partial
 % bStart and active are reviewed full-length vectors for this specification.
 startFields = {'HMXL_d','HMXL','HMXL_e'};
 old.(startFields{E.FullCov+1}).b0 = bStart(:);
@@ -157,6 +158,16 @@ respondent sandwich at the final point. Do not pass a sandwich covariance as
 `HybridStartHessian`. Count the time needed to obtain curvature when assessing
 speed. If parameters/sample/specification change, do not blindly reuse it.
 
+A cheaper alternative is a positive-definite BHHH starting metric from the
+respondent scores: `Jw = J .* I.W; E.HybridStartHessian = Jw' * Jw;`. Here `J`
+is the unweighted respondent Jacobian at exactly the proposed start, data and
+draws, with the same full parameter order. The active submatrix must pass the
+same definiteness/conditioning checks. This uses BHHH only to initialize the
+coordinate metric for BFGS; it is distinct from supplying BHHH at every
+trust-region iteration. It is not an observed Hessian or final covariance.
+The benchmark shows a useful cheap continuation but also a worse solution
+from a more distant start, so retain other start/method combinations.
+
 The adapter supports ordinary BFGS, L-BFGS, and trust-region through fminunc.
 User Hessian-vector callbacks are explicitly unsupported because their mapping
 would need a separate contract. Numeric vectors `TypicalX` and `FiniteDifferenceStepSize` are indexed to free coordinates;
@@ -206,13 +217,18 @@ It preserves indices at the **same underlying latent values**; it cannot make
 two different simulated integrals equal. It rejects unsupported measurement
 families, LV scale effects, or a mapping that would change a fixed coefficient.
 Sample changes and adding factors require a reviewed model-specific mapping.
+For independent latent errors, one can first rebase a MIMIC seed to the planned
+HCM latent-draw rows, then assemble the joint starting vector. FullCov=2 changes
+the latent-error covariance as well; copying only the last draw rows is not a
+general mapping for that case.
 
 ## Which optimizer?
 
 | Method | Practical role |
 |---|---|
-| Analytical BFGS, free coordinates | Starting default for moderate-size HCMs; no expensive full Hessian every iteration |
+| Analytical BFGS, full or free coordinates | First baseline for moderate-size HCMs; compare both paths on difficult starts rather than assuming that dropping fixed dimensions is faster |
 | BFGS with a previous observed Hessian as metric | Particularly useful for continuing a nearly converged fit |
+| BFGS with a BHHH starting metric | Cheap alternative when observed curvature is unavailable; check rank and keep other basins |
 | L-BFGS | Worth testing for very many parameters; not automatically better for 100–200 parameters with strong correlations |
 | SQP/interior-point | Use when constraints require them; equality-only fixed coefficients do not inherently require them |
 | Trust-region with BHHH | A possible search metric; BHHH is not the observed Hessian and is not final robust inference |
@@ -253,7 +269,9 @@ not per choice card or per simulation draw.
 Ordered-probit exported thresholds are cumulative transformations: their delta
 gradient begins with **1**, not the first threshold's value. The covariance slice
 must include the complete choice/structural parameter offset. The public hybrid
-tables now apply that correction. Raw `bhat` remains in its original parameterization.
+tables now apply that correction. HLC output also separates its structural LV
+blocks from choice-class blocks when their counts differ. Raw `bhat` remains in
+its original parameterization.
 
 Use *** p<0.01, ** p<0.05, * p<0.10 only with valid inference. Retain nonsignificant
 and invalid fits; do not select a lower maximum for a preferable sign or stars.

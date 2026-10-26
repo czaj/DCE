@@ -776,13 +776,18 @@ for i = 1:EstimOpt.NClass
         end
     end
     l = l+(EstimOpt.NVarC+EstimOpt.NLatent)*(EstimOpt.NClass-1);
-    if EstimOpt.NVarStr > 0
-        Results.DetailsS(:,4*i-3) = Results.bhat(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr);
-        Results.DetailsS(:,4*i-1:4*i)  = [Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),pv(Results.bhat(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr),Results.std(l+(i-1)*EstimOpt.NVarStr+1:l+i*EstimOpt.NVarStr))];
-        l = l + EstimOpt.NClass*EstimOpt.NVarStr;
-    end
 %     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,1) = Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea);
 %     Results.DetailsM((i-1)*EstimOpt.NVarMea+1:i*EstimOpt.NVarMea,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),pv(Results.bhat(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea),Results.std(l+(i-1)*EstimOpt.NVarMea+1:l+i*EstimOpt.NVarMea))];
+end
+
+% Structural equations belong to latent variables, not choice classes.
+if EstimOpt.NVarStr > 0
+    for i = 1:EstimOpt.NLatent
+        idx = l+(i-1)*EstimOpt.NVarStr+(1:EstimOpt.NVarStr);
+        Results.DetailsS(:,4*i-3) = Results.bhat(idx);
+        Results.DetailsS(:,4*i-1:4*i) = [Results.std(idx),pv(Results.bhat(idx),Results.std(idx))];
+    end
+    l = l + EstimOpt.NLatent*EstimOpt.NVarStr;
 end
 
 if sum(EstimOpt.CutMatrix) > 0
@@ -855,9 +860,8 @@ if EstimOpt.NVarStr > 0
     Template1 = [Template1;{'DetailsS'}];
     Template2 = [Template2;{'DetailsS'}];
     Names.DetailsS = EstimOpt.NamesStr;
-    Heads.DetailsS(:,2) = Heads.DetailsA;
-    Heads.DetailsS(end,2) = {'tb'};
-    Heads.DetailsS(1:2,1) = {'Explanatory variables of scale';'lb'};
+    Heads.DetailsS(:,2) = [arrayfun(@(i) sprintf('LV %d',i),(1:EstimOpt.NLatent)','UniformOutput',false);{'tb'}];
+    Heads.DetailsS(1:2,1) = {'Structural equations';'lb'};
     ST = [ST,{'DetailsS'}];
 end
 

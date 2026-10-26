@@ -6,18 +6,20 @@ cleanup=onCleanup(@() restore(settings,previous)); %#ok<NASGU>
 settings.Pool.AutoCreate=false;
 C=hybrid_fixture('HMXL',0,1,0,0,0,0);a=C.Args;
 I=struct('Y',a{1}(:),'Xa',reshape(permute(a{2},[1 3 2]),36,3),...
+ 'Xstr',repelem([-.4;-.1;.3;.8],9,1),...
  'Xmea',repelem([0 2;1 0;2 1;1 2],9,1));
 E=struct('NAlt',3,'NCT',3,'NP',4,'NLatent',1,'NClass',2,'NRep',16,...
  'Draws',6,'Seed1',1234,'WTP_space',0,'StrNorm',0,'MeaSpecMatrix',[2 2],...
  'MeaMatrix',[1 1],'Display',0,'SaveTxtOutput',0,'Scores',0,'HessEstFix',1,...
  'RobustStd',0,'NumGrad',1,'CheckSeparation',0,'GPU','cpu','OutputDir',outDir,...
  'ProjectName','hlc_cutoffs','ConstVarActive',1);
-b=[-.2;.1;-.3;.3;-.1;-.4;.2;.3;.4;-.3;log(.8);.5;.2;log(1.1)];
-E.BActive=zeros(size(b));E.BActive([10 11 13 14])=1;
+b=[-.2;.1;-.3;.3;-.1;-.4;.2;.3;.2;.4;-.3;log(.8);.5;.2;log(1.1)];
+E.BActive=zeros(size(b));E.BActive([11 12 14 15])=1;
 [I,old,E,O]=DataCleanDCE(I,E);old.HLC.b0=b;
 O.Algorithm='sqp';O.SpecifyObjectiveGradient=true;O.MaxIterations=1;O.Display='off';
 r=HLC(I,old,E,O);
 assert(max(abs(r.bhat(E.BActive==0)-b(E.BActive==0)))<1e-12);
+assert(isequal(size(r.DetailsS),[1 4]) && r.DetailsS(1,1)==b(9));
 offset=numel(b)-size(r.DetailsM,1);
 for item=1:2
  idx=(item-1)*3+(2:3);raw=r.bhat(offset+idx);grad=[1 exp(raw(2))];
