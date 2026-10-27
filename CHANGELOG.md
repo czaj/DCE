@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Use scrambled Sobol defaults with 1024 draws, skip 0 and leap 0. A shared
+  Tools generator preserves each respondent's draw prefix across draw counts
+  and supports the explicit historical global layout. Keep user-specified
+  counts and seeds; use power-of-two demand defaults. Update DCE and Tools
+  together. See [draw settings and replication](DRAWS.md).
+
 - Add opt-in active-coordinate optimization, reuse of positive definite starting
   curvature and fit-only screening for HMXL, HMNL and MIMIC. Preserve nonzero
   fixed anchors in equality-constrained hybrid estimation. Correct the HMXL/HMNL

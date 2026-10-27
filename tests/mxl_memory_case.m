@@ -132,9 +132,7 @@ oldRng = rng;
 restoreRng = onCleanup(@() rng(oldRng));
 rng(E.Seed1);
 assert(E.Draws == 6,'These fixtures use the scrambled Sobol specification.');
-sequence = sobolset(E.NVarA,'Skip',E.HaltonSkip,'Leap',E.HaltonLeap);
-sequence = scramble(sequence,'MatousekAffineOwen');
-draws = icdf('Normal',net(sequence,E.NP*E.NRep),0,1);
+draws = icdf('Normal',dceQuasiDraws(E,E.NVarA),0,1);
 draws(:,E.Dist == -1) = 0;
 C.err = draws';
 end

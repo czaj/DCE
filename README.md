@@ -1,6 +1,10 @@
 # DCE
 Models for Discrete Choice Experiments
 
+Scrambled Sobol defaults use skip 0, 1024 draws and respondent-specific nested
+randomizations. Explicit draw counts remain unchanged. Update DCE and Tools
+together; see [draw settings and historical replication](DRAWS.md).
+
 This is a package of Matlab scripts and functions that allow for the estimation of models for Discrete Choice Experiments (i.e., conditional multinomial logit models). 
 This package includes the following models:
 - Multinomial (conditional) Logit (MNL)

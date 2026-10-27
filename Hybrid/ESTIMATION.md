@@ -99,7 +99,10 @@ For HMNL and MIMIC the corresponding explicit fields are `old.HMNL.b0` and
 workflow; `fit.INPUT` contains already prepared arrays for the likelihood, not
 a replacement for the original long-format input.
 Save each screening result under its own name. For retained solutions use
-`HybridFitOnly=0`, `HessEstFix=5` and `RobustStd=1`, with the final draw count.
+`HybridFitOnly=0`, `HessEstFix=5` and `RobustStd=0`, with the final draw count.
+This uses inverse observed-information standard errors. Robust/sandwich
+covariance remains an explicit option, not the default recommendation; it
+does not correct coefficient bias from misspecification.
 
 The active-coordinate adapter keeps `BActive==0` parameters exactly at their
 starting values, including nonzero anchors. Callbacks receive the **full original
@@ -140,7 +143,7 @@ E.HybridOptimize = 1;
 E.HybridStartHessian = previous.hess;  % observed negative-LL Hessian, NOT ihess
 E.HybridFitOnly = 0;
 E.HessEstFix = 5;
-E.RobustStd = 1;
+E.RobustStd = 0;
 % Set b0 = previous.bhat; same parameter layout and active mask.
 ```
 
@@ -154,7 +157,7 @@ full matrix or an active-only matrix in the same parameter order.
 A Hessian from a nearby unfinished point can be useful for optimization even
 when that point has invalid inference. This does not validate that point.
 Curvature is **only a preconditioner**: calculate a fresh observed Hessian and
-respondent sandwich at the final point. Do not pass a sandwich covariance as
+inverse observed-information covariance at the final point. Do not pass a covariance as
 `HybridStartHessian`. Count the time needed to obtain curvature when assessing
 speed. If parameters/sample/specification change, do not blindly reuse it.
 
@@ -199,8 +202,10 @@ or the sign of one ASC. Record all outcomes. LL at different draw counts is not
 a nesting test. Simulation-assisted estimation and variance-reduction principles
 are discussed in [Train, chapters 9–10](https://eml.berkeley.edu/books/choice2.html).
 
-DCE's respondent-major Sobol layout is **not nested by respondent** when `NRep`
-changes. The normalized LV also uses global sample/draw moments. Directly
+The default Sobol layout now keeps each respondent's prefix as `NRep` grows;
+see [draw defaults and legacy replication](../DRAWS.md). The explicit legacy
+`SobolLayout='global'` layout is not nested by respondent. The normalized LV
+still uses global sample/draw moments. Directly
 copying raw coefficients can therefore change the implied starting indices.
 For an unchanged sample/specification with OLS/ordered measurements and no LV
 scale links, use:
@@ -255,13 +260,13 @@ optimality or adequate integration.
 
 ## Final inference and identification
 
-Inspect the active observed Hessian, respondent-level score matrix and sandwich
-covariance. Numerical positive definiteness alone is insufficient: also inspect
+Inspect the active observed Hessian and its inverse covariance. Numerical
+positive definiteness alone is insufficient: also inspect
 scaled conditioning, gradient, parameter guards, loadings, boundary parameters,
 missingness and agreement across starts/draws. Do not silently accept a pseudoinverse
 or use optimizer curvature as a substitute for a validated observed Hessian.
 Tools' `hessianFromGradient` computes a fresh central-difference Hessian from
-analytical scores. Weighted likelihoods require weights in both bread and scores. These standard
+analytical scores. Weighted likelihoods require weights in the observed Hessian. These standard
 errors do not by themselves cover error from insufficient simulation draws.
 If sandwich inference is needed, retain one score row per independent respondent,
 not per choice card or per simulation draw.

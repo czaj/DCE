@@ -4,7 +4,7 @@ function [D,Err] = MDCEV_demand(Results,num)
 
 EstimOpt = Results.EstimOpt;
 if ~isfield(EstimOpt,'NSim')
-    EstimOpt.NSim = 500;
+    EstimOpt.NSim = 512;
 end
 validateattributes(EstimOpt.NSim,{'numeric'},{'scalar','integer','positive','finite'});
 NAlt = EstimOpt.NAlt;
@@ -41,14 +41,21 @@ if NVarM > 0
     betasZ = betasZ+sum(reshape(Xa,[NAlt,N,NVarA]).*reshape(shift,[1,N,NVarA]),3);
 end
 
-sequence = scramble(sobolset(NAlt,'Skip',1),'MatousekAffineOwen');
+demandOpt=EstimOpt;demandOpt.Draws=6;demandOpt.NP=N;demandOpt.NRep=EstimOpt.NSim;
+demandOpt=dceSimulationDefaults(demandOpt);
+% Independent taste and utility-error randomizations, stable across demand blocks.
+if isfield(EstimOpt,'Seed2') && ~isempty(EstimOpt.Seed2)
+    demandOpt.Seed1=mod(EstimOpt.Seed2,2^32);
+else
+    demandOpt.Seed1=mod(demandOpt.Seed1+104729,2^32);
+end
 block = min(N,max(1,floor(64*1024^2/(8*8*NAlt*EstimOpt.NSim))));
 if isfield(EstimOpt,'VCEBlockSize') && ~isempty(EstimOpt.VCEBlockSize), block = EstimOpt.VCEBlockSize; end
 validateattributes(block,{'numeric'},{'scalar','integer','positive','finite'});
 D = zeros(NAlt,N);
 for first = 1:block:N
     ids = first:min(first+block-1,N);
-    epsDraw = sequence((first-1)*EstimOpt.NSim+1:ids(end)*EstimOpt.NSim,:);
+    epsDraw = dceQuasiDraws(demandOpt,NAlt,ids);
     epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,numel(ids)]),[1 3 2]);
     logMU = betasZ(:,ids)+scale*epsDraw-log(priceMat(:,ids));
     aa = alphas(:,min(ids,size(alphas,2))); gg = gammas(:,min(ids,size(gammas,2)));

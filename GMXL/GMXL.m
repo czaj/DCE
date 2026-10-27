@@ -78,7 +78,7 @@ function Results = GMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 %
 % For drawing and simulations:
-% •	HaltonSkip = 1; specify no of rows in halton sequence to skip
+% •	HaltonSkip = 0; Sobol default (1 for Halton); rows to skip
 % •	HaltonLeap = 0; specify no of rows in halton sequence to leap
 % •	Draws = 6; specify draws type, by default Sobol with scrambling. Options:
 % o	1 - pseudo-random,
@@ -87,7 +87,7 @@ function Results = GMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	4 - Halton RR scrambled,
 % o	5 - Sobol,
 % o	6 - Sobol MAO scrambled
-% •	NRep = 1e3; specify no. of draws for numerical simulation
+% •	NRep = 1024; Sobol default (1000 for other rules); specify no. of draws for numerical simulation
 % •	RealMin = by default 0, can be set to 1
 % •	NSdSim = 1e4; number of draws for simulating standard deviations
 %
@@ -463,6 +463,8 @@ end
 
 %% Generate pseudo-random draws
 
+EstimOpt = dceSimulationDefaults(EstimOpt);
+
 if isfield(EstimOpt,'Seed1') == 1
     rng(EstimOpt.Seed1);
 end
@@ -477,24 +479,8 @@ elseif EstimOpt.Draws == 2 % LHS
     err_mtx = lhsnorm(zeros((1+EstimOpt.NVarA)*EstimOpt.NP,1),diag(ones((1+EstimOpt.NVarA)*EstimOpt.NP,1)),EstimOpt.NRep);
     err_mtx = reshape(err_mtx,[EstimOpt.NRep*EstimOpt.NP,1+EstimOpt.NVarA]);
 elseif EstimOpt.Draws >= 3 % Quasi random draws
-    if EstimOpt.Draws == 3
-        cprintf('*blue','Halton '); cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n'])
-        hm1 = haltonset(1+EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
-    elseif EstimOpt.Draws == 4 % apply reverse-radix scrambling
-        cprintf('*blue','Halton '); cprintf(['draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n'])
-        hm1 = haltonset(1+EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
-        hm1 = scramble(hm1,'RR2');
-    elseif EstimOpt.Draws == 5
-        cprintf('*blue','Sobol '); cprintf(['draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n'])
-        hm1 = sobolset(1+EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
-    elseif EstimOpt.Draws == 6
-        cprintf('*blue','Sobol '); cprintf(['draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),') \n'])
-        hm1 = sobolset(1 + EstimOpt.NVarA,'Skip',EstimOpt.HaltonSkip,'Leap',EstimOpt.HaltonLeap);
-        hm1 = scramble(hm1,'MatousekAffineOwen');
-    end
-
-    err_mtx = net(hm1,EstimOpt.NP*EstimOpt.NRep); % this takes every point:
-    clear hm1;
+    fprintf('QMC draws (type %d; skip = %g; leap = %g)\n',EstimOpt.Draws,EstimOpt.HaltonSkip,EstimOpt.HaltonLeap);
+    err_mtx = dceQuasiDraws(EstimOpt,1+EstimOpt.NVarA);
 
     if EstimOpt.NP*EstimOpt.NRep < 3e+7
         err_mtx(:,EstimOpt.Dist < 5) = icdf('Normal',err_mtx(:,EstimOpt.Dist < 5),0,1); % to be cut down later
@@ -935,8 +921,10 @@ switch EstimOpt.Draws
         Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Halton draws with reverse radix scrambling (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
     case 5
         Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+        Tail{14,2} = [Tail{14,2} '; layout = ' char(EstimOpt.SobolLayout)];
     case 6
         Tail(14,2) = {[num2str(EstimOpt.NRep),' ','Sobol draws with random linear scramble and random digital shift (skip = ',num2str(EstimOpt.HaltonSkip),'; leap = ',num2str(EstimOpt.HaltonLeap),')']};
+        Tail{14,2} = [Tail{14,2} '; layout = ' char(EstimOpt.SobolLayout)];
 end
 
 Tail(15,2) = {OptimOpt.Algorithm;};

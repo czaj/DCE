@@ -4,7 +4,7 @@ function [D,Err] = MMDCEV_demand(Results,num)
 
 EstimOpt = Results.EstimOpt;
 if ~isfield(EstimOpt,'NSim')
-    EstimOpt.NSim = min(500,EstimOpt.NRep);
+    EstimOpt.NSim = 2^floor(log2(min(512,EstimOpt.NRep)));
 end
 validateattributes(EstimOpt.NSim,{'numeric'},{'scalar','integer','positive','finite'});
 assert(EstimOpt.NSim <= EstimOpt.NRep,'NSim must not exceed NRep.')
@@ -23,6 +23,8 @@ Xu = Results.INPUT.Xu;
 if isfield(Results.INPUT,'err')
     draws = Results.INPUT.err;
 else
+    % Saved pre-layout fits used one global Sobol net for taste draws.
+    if ~isfield(EstimOpt,'SobolLayout'),EstimOpt.SobolLayout='global';end
     draws = generateRandomDraws(EstimOpt)';
 end
 b = Results.bhat;
@@ -58,7 +60,14 @@ bProfile = b(l+1:l+NVarP*(1+NVarU));
 scale = exp(b(l+NVarP*(1+NVarU)+1));
 [alphas,gammas] = profileValues(bProfile,Xu,EstimOpt,N);
 
-sequence = scramble(sobolset(NAlt,'Skip',1),'MatousekAffineOwen');
+demandOpt=EstimOpt;demandOpt.Draws=6;demandOpt.NP=N;demandOpt.NRep=EstimOpt.NSim;
+demandOpt=dceSimulationDefaults(demandOpt);
+% Independent taste and utility-error randomizations, stable across demand blocks.
+if isfield(EstimOpt,'Seed2') && ~isempty(EstimOpt.Seed2)
+    demandOpt.Seed1=mod(EstimOpt.Seed2,2^32);
+else
+    demandOpt.Seed1=mod(demandOpt.Seed1+104729,2^32);
+end
 block = min(EstimOpt.NP,max(1,floor(64*1024^2/(8*8*NAlt*EstimOpt.NSim*EstimOpt.NCT))));
 if isfield(EstimOpt,'VCEBlockSize') && ~isempty(EstimOpt.VCEBlockSize), block = EstimOpt.VCEBlockSize; end
 validateattributes(block,{'numeric'},{'scalar','integer','positive','finite'});
@@ -68,7 +77,7 @@ for first = 1:block:EstimOpt.NP
     tasks = (first-1)*EstimOpt.NCT+1:ids(end)*EstimOpt.NCT;
     betasZ = pagemtimes(Xa(:,:,ids),bMatrix(:,:,ids));
     betasZ = reshape(permute(reshape(betasZ,[NAlt,EstimOpt.NCT,EstimOpt.NSim,numel(ids)]),[1 2 4 3]),NAlt,numel(tasks),EstimOpt.NSim);
-    epsDraw = sequence((tasks(1)-1)*EstimOpt.NSim+1:tasks(end)*EstimOpt.NSim,:);
+    epsDraw = dceQuasiDraws(demandOpt,NAlt,tasks);
     epsDraw = permute(reshape(-log(-log(epsDraw')),[NAlt,EstimOpt.NSim,numel(tasks)]),[1 3 2]);
     logMU = betasZ+scale*epsDraw-log(priceMat(:,tasks));
     aa = alphas(:,min(tasks,size(alphas,2))); gg = gammas(:,min(tasks,size(gammas,2)));
