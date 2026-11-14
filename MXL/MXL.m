@@ -86,6 +86,15 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	3 - use numerical Hessian, 
 % o	4 - use analytical Hessian,
 % o	5 - use central differences of the analytical gradient
+%
+% After estimation Results.diagnostics holds the quality checks of the
+% covariance matrix: the median SE(BHHH)/SE(H), the smallest eigenvalue of
+% the observed Hessian, max |gradient|, the largest Newton step expressed in
+% standard errors and the number of free parameters without a finite standard
+% error. They are printed next to the 'Hessian' row and saved in the .xlsx
+% output; a median ratio outside [0.8, 1.25] raises a warning, because the
+% information matrix equality then fails and the standard errors are not fit
+% for a table (Tools/hessianDiagnostics.m).
 % 
 % 
 % For drawing and simulations:
@@ -716,50 +725,58 @@ if (isfield(EstimOpt,'ConstVarActive') == 0 || EstimOpt.ConstVarActive == 0) && 
     OptimOpt.Hessian = 'off';
 end
 
+% Compatibility overrides of the Hessian settings. Every one of them names the
+% setting it changes and the value it had, because a silent change of
+% EstimOpt.HessEstFix changes the reported standard errors.
+
 if EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian only available if analythical gradient on \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,EstimOpt.HessEstFix),' - exact Hessian only available if analythical gradient on \n'])
     EstimOpt.ApproxHess = 1;
 end
 
 if EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of scale \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with covariates of scale \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with covariates of means \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with covariates of means \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models in WTP-space \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models in WTP-space \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available with missing data \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available with missing data \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if any(EstimOpt.Dist ~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian available for models with normally distributed parameters only \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian available for models with normally distributed parameters only \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),'WARNING: Setting user-supplied exact Hessian off - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n')
+    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n'])
     EstimOpt.ApproxHess = 1;
     EstimOpt.HessEstFix = 0;
 end
 
 if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
-    INPUT.W = ones(EstimOpt.NP,1);
-    cprintf(rgb('DarkOrange'),'WARNING: Setting all weights to 1, they are not supported with analytical hessian \n')
+    error('MXL:WeightsWithAnalyticalHessian', ...
+        ['Weights are not supported with the analytical Hessian (EstimOpt.ApproxHess = %d, ', ...
+        'EstimOpt.NumGrad = %d, EstimOpt.HessEstFix = %d), and earlier versions silently set ', ...
+        'all weights to 1 here. Keep the weights with EstimOpt.ApproxHess = 1 and ', ...
+        'EstimOpt.HessEstFix = 5, or pass INPUT.W = ones(EstimOpt.NP,1) to drop them on purpose.'], ...
+        EstimOpt.ApproxHess,EstimOpt.NumGrad,EstimOpt.HessEstFix);
 end
 
 if EstimOpt.RobustStd == 1 && (EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2)
@@ -1009,6 +1026,29 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MXL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+% Hessian quality diagnostics - the checklist of the standard error report of
+% 14.11.2026. They only read the matrices computed above and never change the
+% estimate or its standard errors.
+if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
+    JacobianDiag = 'not applicable - the reported standard errors are BHHH';
+elseif isfield(Results,'jacobian') && ~isempty(Results.jacobian)
+    JacobianDiag = Results.jacobian;
+elseif isfield(Results,'jacobian2') && ~isempty(Results.jacobian2)
+    JacobianDiag = Results.jacobian2;
+elseif EstimOpt.NumGrad == 0
+    [~,JacobianDiag] = LLfun2(Results.bhat);
+    JacobianDiag = JacobianDiag.*INPUT.W;
+else
+    JacobianDiag = 'not available with a numerical gradient (EstimOpt.NumGrad = 1)';
+end
+[Results.diagnostics,DiagnosticsTail] = hessianDiagnostics(Results.hess,Results.ihess,Results.g,JacobianDiag,EstimOpt.BActive,'MXL');
+clear JacobianDiag
+if EstimOpt.RobustStd == 1
+    Results.diagnostics.Note = 'model-based covariance (inverse Hessian), not the reported robust standard errors';
+    DiagnosticsTail = [DiagnosticsTail; ...
+        {'Diagnostics refer to','the model-based covariance (inverse Hessian), not the reported robust standard errors'}];
+end
 
 if EstimOpt.RobustStd == 1
     if ~isfield(Results,'jacobian')
@@ -1738,6 +1778,12 @@ else
 end
 Tail(17,2) = {outHessian};
 
+% Hessian quality diagnostics printed next to the 'Hessian' row and saved in
+% the .xlsx output; the same numbers are in Results.diagnostics
+if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
+    Tail = [Tail; DiagnosticsTail];
+end
+
 
 %% Tworzenie ResultsOut, drukowanie na ekran i do pliku .xlsx
 
@@ -1763,4 +1809,22 @@ function g = mxlGradient(LLfun,W,b)
 % Analytical gradient of the weighted negative simulated log-likelihood.
 [~,j] = LLfun(b);
 g = sum(j.*W,1)';
+end
+
+function txt = hessSettingsChangeText(EstimOpt,ApproxHessNew,HessEstFixNew)
+% Names the settings that a compatibility override is about to change, so that
+% a change of EstimOpt.HessEstFix - which changes the reported standard errors
+% - is never silent.
+parts = {};
+if EstimOpt.ApproxHess ~= ApproxHessNew
+    parts{end+1} = sprintf('EstimOpt.ApproxHess from %d to %d',EstimOpt.ApproxHess,ApproxHessNew);
+end
+if EstimOpt.HessEstFix ~= HessEstFixNew
+    parts{end+1} = sprintf('EstimOpt.HessEstFix from %d to %d',EstimOpt.HessEstFix,HessEstFixNew);
+end
+if isempty(parts)
+    txt = 'no setting';
+else
+    txt = strjoin(parts,' and ');
+end
 end

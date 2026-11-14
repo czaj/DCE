@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+- Report the quality of the covariance matrix automatically. MNL and MXL now
+  print, next to the existing `Hessian` row and into the `.xlsx` output, the
+  median `SE(BHHH)/SE(H)`, the smallest eigenvalue of the observed Hessian,
+  `max |gradient|`, the largest Newton step in standard errors and the number
+  of free parameters without a finite standard error; the same numbers are in
+  `Results.diagnostics`. A median ratio outside `[0.8, 1.25]` raises a warning:
+  the information matrix equality fails, so the point is most likely a maximum
+  of one particular set of draws rather than of the likelihood, and the
+  standard errors are not fit for a table. The shared implementation is
+  `Tools/hessianDiagnostics.m`; it only reads matrices the modules have already
+  computed, costs at most one extra gradient evaluation (`HessEstFix = 3` or
+  `4`, where no jacobian is at hand), and leaves estimates and standard errors
+  unchanged. Weights together with the analytical Hessian are now an error
+  instead of a silent reset of all weights to 1, and every compatibility
+  override of `ApproxHess`/`HessEstFix` (WTP space, covariates of means or
+  scale, non-normal distributions, non-linear transformations, missing data)
+  names the setting it changes and the value it had. `HessEstFix = 5` works in
+  LC and LCMXL, where it used to fail, and `HessEstFix = 4` falls back there to
+  `3` with an explicit warning instead of failing. Test:
+  `DCE/tests/test_hessian_diagnostics.m`.
+
 - Use scrambled Sobol defaults with 1024 draws, skip 0 and leap 0. A shared
   Tools generator preserves each respondent's draw prefix across draw counts
   and supports the explicit historical global layout. Keep user-specified

@@ -51,6 +51,15 @@ function Results = MNL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	4 - use analytical Hessian (preference space; otherwise as 5),
 % o	5 - use central differences of the analytical gradient
 %
+% After estimation Results.diagnostics holds the quality checks of the
+% covariance matrix: the median SE(BHHH)/SE(H), the smallest eigenvalue of
+% the observed Hessian, max |gradient|, the largest Newton step expressed in
+% standard errors and the number of free parameters without a finite standard
+% error. They are printed next to the 'Hessian' row and saved in the .xlsx
+% output; a median ratio outside [0.8, 1.25] raises a warning, because the
+% information matrix equality then fails and the standard errors are not fit
+% for a table (Tools/hessianDiagnostics.m).
+%
 % Example:
 %    Results.MNL = MNL(INPUT,Results,EstimOpt,OptimOpt);
 %
@@ -598,6 +607,25 @@ else
     [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
 end
 
+% Hessian quality diagnostics - the checklist of the standard error report of
+% 14.11.2026. They only read the matrices computed above and never change the
+% estimate or its standard errors.
+if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
+    JacobianDiag = 'not applicable - the reported standard errors are BHHH';
+elseif EstimOpt.NumGrad == 0
+    [~,JacobianDiag] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
+    JacobianDiag = -JacobianDiag.*INPUT.W;
+else
+    JacobianDiag = 'not available with a numerical gradient (EstimOpt.NumGrad = 1)';
+end
+[Results.diagnostics,DiagnosticsTail] = hessianDiagnostics(Results.hess,Results.ihess,Results.g,JacobianDiag,EstimOpt.BActive,'MNL');
+clear JacobianDiag
+if EstimOpt.RobustStd == 1
+    Results.diagnostics.Note = 'model-based covariance (inverse Hessian), not the reported robust standard errors';
+    DiagnosticsTail = [DiagnosticsTail; ...
+        {'Diagnostics refer to','the model-based covariance (inverse Hessian), not the reported robust standard errors'}];
+end
+
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
         [~,Results.jacobian] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
@@ -791,6 +819,12 @@ else
 end
 
 Tail(16,2) = {outHessian};
+
+% Hessian quality diagnostics printed next to the 'Hessian' row and saved in
+% the .xlsx output; the same numbers are in Results.diagnostics
+if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
+    Tail = [Tail; DiagnosticsTail];
+end
 
 %%  Print to screen and .xlsx
 

@@ -53,7 +53,8 @@ function Results = LC(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	1 - use jacobian-based (BHHH) Hessian,
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
 % o	3 - use numerical Hessian,
-% o	4 - use analytical Hessian
+% o	4 - use analytical Hessian (not available; falls back to 3),
+% o	5 - use central differences of the analytical gradient
 %
 %
 % For drawing and simulations:
@@ -371,6 +372,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -393,6 +396,8 @@ else
             cprintf('*Black','ex-post calculated numerically \n')
         case 4
             cprintf('*Black','ex-post calculated analytically \n')
+        case 5
+            cprintf('*Black','ex-post calculated as central differences of the analytical gradient \n')
     end
 end
 
@@ -501,6 +506,18 @@ elseif EstimOpt.HessEstFix == 2
     Results.jacobian = jacobianest(@(B) INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B),Results.bhat);
 elseif EstimOpt.HessEstFix == 3
     Results.hess = hessian(@(B) sum(INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B)),Results.bhat);
+elseif EstimOpt.HessEstFix == 4
+    cprintf(rgb('DarkOrange'),'WARNING: Changing EstimOpt.HessEstFix from 4 to 3 - analytical Hessian not available for LC \n')
+    EstimOpt.HessEstFix = 3;
+    Results.hess = hessian(@(B) sum(INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B)),Results.bhat);
+elseif EstimOpt.HessEstFix == 5
+    if EstimOpt.NumGrad == 0
+        Results.hess = hessianFromGradient(@(B) lcGradient(INPUT,EstimOpt,B),Results.bhat,EstimOpt.BActive);
+    else
+        cprintf(rgb('DarkOrange'),'WARNING: Changing EstimOpt.HessEstFix from 5 to 3 - central differences of the gradient need the analytical gradient (EstimOpt.NumGrad = 0) \n')
+        EstimOpt.HessEstFix = 3;
+        Results.hess = hessian(@(B) sum(INPUT.W.*LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B)),Results.bhat);
+    end
 end
 
 % if sum(EstimOpt.BActive == 0) > 0
@@ -735,6 +752,8 @@ if isequal(OptimOpt.Algorithm,'quasi-newton')
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 else
     if strcmp(OptimOpt.Hessian,'user-supplied')
@@ -757,6 +776,8 @@ else
             outHessian = [outHessian,'ex-post calculated numerically'];
         case 4
             outHessian = [outHessian,'ex-post calculated analytically'];
+        case 5
+            outHessian = [outHessian,'ex-post calculated as central differences of the analytical gradient'];
     end
 end
 
@@ -768,4 +789,10 @@ if EstimOpt.Display ~= 0
     Results.Dist = -ones(EstimOpt.NVarA,1);
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
 end
+end
+
+function g = lcGradient(INPUT,EstimOpt,b)
+% Analytical gradient of the weighted negative log-likelihood of the LC model.
+[~,j] = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,b);
+g = sum(j.*INPUT.W,1)';
 end
