@@ -727,47 +727,37 @@ end
 
 % Compatibility overrides of the Hessian settings. Every one of them names the
 % setting it changes and the value it had, because a silent change of
-% EstimOpt.HessEstFix changes the reported standard errors.
+% EstimOpt.HessEstFix changes the reported standard errors. They turn off the
+% exact Hessian the optimizer would be given (EstimOpt.ApproxHess) and keep the
+% ex-post estimator the user asked for; only EstimOpt.HessEstFix = 4, which
+% needs the analytical Hessian that is missing here, has to be replaced.
 
 if EstimOpt.NumGrad == 1 && EstimOpt.ApproxHess == 0
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,EstimOpt.HessEstFix),' - exact Hessian only available if analythical gradient on \n'])
-    EstimOpt.ApproxHess = 1;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian only available if analythical gradient on',false);
 end
 
 if EstimOpt.NVarS > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with covariates of scale \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian not available for models with covariates of scale');
 end
 
 if EstimOpt.NVarM > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with covariates of means \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian not available for models with covariates of means');
 end
 
 if EstimOpt.WTP_space > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models in WTP-space \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian not available for models in WTP-space');
 end
 
 if any(isnan(INPUT.Xa(:))) == 1 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available with missing data \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian not available with missing data');
 end
 
 if any(EstimOpt.Dist ~= 0) && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian available for models with normally distributed parameters only \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian available for models with normally distributed parameters only');
 end
 
 if EstimOpt.NVarNLT > 0 && (EstimOpt.ApproxHess == 0 || EstimOpt.HessEstFix == 4)
-    cprintf(rgb('DarkOrange'),['WARNING: Changing ',hessSettingsChangeText(EstimOpt,1,0),' - exact Hessian not available for models with non-linear transformation(s) of variable(s) \n'])
-    EstimOpt.ApproxHess = 1;
-    EstimOpt.HessEstFix = 0;
+    EstimOpt = hessSettingsOff(EstimOpt,'exact Hessian not available for models with non-linear transformation(s) of variable(s)');
 end
 
 if any(INPUT.W ~= 1) && ((EstimOpt.ApproxHess == 0 && EstimOpt.NumGrad == 0) || EstimOpt.HessEstFix == 4)
@@ -1030,25 +1020,7 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 % Hessian quality diagnostics - the checklist of the standard error report of
 % 14.11.2026. They only read the matrices computed above and never change the
 % estimate or its standard errors.
-if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
-    JacobianDiag = 'not applicable - the reported standard errors are BHHH';
-elseif isfield(Results,'jacobian') && ~isempty(Results.jacobian)
-    JacobianDiag = Results.jacobian;
-elseif isfield(Results,'jacobian2') && ~isempty(Results.jacobian2)
-    JacobianDiag = Results.jacobian2;
-elseif EstimOpt.NumGrad == 0
-    [~,JacobianDiag] = LLfun2(Results.bhat);
-    JacobianDiag = JacobianDiag.*INPUT.W;
-else
-    JacobianDiag = 'not available with a numerical gradient (EstimOpt.NumGrad = 1)';
-end
-[Results.diagnostics,DiagnosticsTail] = hessianDiagnostics(Results.hess,Results.ihess,Results.g,JacobianDiag,EstimOpt.BActive,'MXL');
-clear JacobianDiag
-if EstimOpt.RobustStd == 1
-    Results.diagnostics.Note = 'model-based covariance (inverse Hessian), not the reported robust standard errors';
-    DiagnosticsTail = [DiagnosticsTail; ...
-        {'Diagnostics refer to','the model-based covariance (inverse Hessian), not the reported robust standard errors'}];
-end
+[Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'MXL',LLfun2,EstimOpt.RobustStd == 1);
 
 if EstimOpt.RobustStd == 1
     if ~isfield(Results,'jacobian')
@@ -1811,20 +1783,31 @@ function g = mxlGradient(LLfun,W,b)
 g = sum(j.*W,1)';
 end
 
-function txt = hessSettingsChangeText(EstimOpt,ApproxHessNew,HessEstFixNew)
-% Names the settings that a compatibility override is about to change, so that
-% a change of EstimOpt.HessEstFix - which changes the reported standard errors
-% - is never silent.
+function EstimOpt = hessSettingsOff(EstimOpt,reason,fixHessEstFix)
+% Turns off the exact Hessian for a specification that does not have one, and
+% names every setting it changes. EstimOpt.ApproxHess only concerns what the
+% optimizer is given, so the ex-post estimator the user asked for is kept;
+% EstimOpt.HessEstFix = 4 is the one value that cannot be kept here, because it
+% is the missing analytical Hessian, and becomes 5 (central differences of the
+% analytical gradient) when a gradient is available and 0 otherwise.
+if nargin < 3 || isempty(fixHessEstFix)
+    fixHessEstFix = true;
+end
 parts = {};
-if EstimOpt.ApproxHess ~= ApproxHessNew
-    parts{end+1} = sprintf('EstimOpt.ApproxHess from %d to %d',EstimOpt.ApproxHess,ApproxHessNew);
+if EstimOpt.ApproxHess ~= 1
+    parts{end+1} = sprintf('EstimOpt.ApproxHess from %d to 1',EstimOpt.ApproxHess);
+    EstimOpt.ApproxHess = 1;
 end
-if EstimOpt.HessEstFix ~= HessEstFixNew
-    parts{end+1} = sprintf('EstimOpt.HessEstFix from %d to %d',EstimOpt.HessEstFix,HessEstFixNew);
+if fixHessEstFix && EstimOpt.HessEstFix == 4
+    if EstimOpt.NumGrad == 0
+        HessEstFixNew = 5;
+    else
+        HessEstFixNew = 0;
+    end
+    parts{end+1} = sprintf('EstimOpt.HessEstFix from 4 to %d',HessEstFixNew);
+    EstimOpt.HessEstFix = HessEstFixNew;
 end
-if isempty(parts)
-    txt = 'no setting';
-else
-    txt = strjoin(parts,' and ');
+if ~isempty(parts)
+    cprintf(rgb('DarkOrange'),'WARNING: Changing %s - %s \n',strjoin(parts,' and '),reason)
 end
 end

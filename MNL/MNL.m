@@ -610,21 +610,8 @@ end
 % Hessian quality diagnostics - the checklist of the standard error report of
 % 14.11.2026. They only read the matrices computed above and never change the
 % estimate or its standard errors.
-if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
-    JacobianDiag = 'not applicable - the reported standard errors are BHHH';
-elseif EstimOpt.NumGrad == 0
-    [~,JacobianDiag] = LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,Results.bhat);
-    JacobianDiag = -JacobianDiag.*INPUT.W;
-else
-    JacobianDiag = 'not available with a numerical gradient (EstimOpt.NumGrad = 1)';
-end
-[Results.diagnostics,DiagnosticsTail] = hessianDiagnostics(Results.hess,Results.ihess,Results.g,JacobianDiag,EstimOpt.BActive,'MNL');
-clear JacobianDiag
-if EstimOpt.RobustStd == 1
-    Results.diagnostics.Note = 'model-based covariance (inverse Hessian), not the reported robust standard errors';
-    DiagnosticsTail = [DiagnosticsTail; ...
-        {'Diagnostics refer to','the model-based covariance (inverse Hessian), not the reported robust standard errors'}];
-end
+[Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'MNL', ...
+    @(B) LL_mnl(INPUT.Y,INPUT.Xa,INPUT.Xm,INPUT.Xs,EstimOpt,B),EstimOpt.RobustStd == 1);
 
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0

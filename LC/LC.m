@@ -56,6 +56,15 @@ function Results = LC(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	4 - use analytical Hessian (not available; falls back to 3),
 % o	5 - use central differences of the analytical gradient
 %
+% After estimation Results.diagnostics holds the quality checks of the
+% covariance matrix: the median SE(BHHH)/SE(H), the smallest eigenvalue of
+% the observed Hessian, max |gradient|, the largest Newton step expressed in
+% standard errors and the number of free parameters without a finite standard
+% error. They are printed next to the 'Hessian' row and saved in the output
+% file; a median ratio outside [0.8, 1.25] raises a warning, because the
+% information matrix equality then fails and the standard errors are not fit
+% for a table (Tools/hessianDiagnostics.m).
+%
 %
 % For drawing and simulations:
 % •	HaltonSkip = 1; specify no of rows in halton sequence to skip
@@ -549,6 +558,11 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LC');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+% Hessian quality diagnostics (Tools/hessianDiagnostics): they only read the
+% matrices computed above and never change the estimate or its standard errors
+[Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'LC', ...
+    @(B) LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,B),EstimOpt.RobustStd == 1);
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
         [~, Results.jacobian] = LL_lc(INPUT.YY,INPUT.Xa,INPUT.XXc,INPUT.Xs,INPUT.MissingInd,EstimOpt,Results.bhat);
@@ -782,6 +796,12 @@ else
 end
 
 Tail(17,2) = {outHessian};
+
+% Hessian quality diagnostics printed next to the 'Hessian' row and saved in
+% the .xlsx output; the same numbers are in Results.diagnostics
+if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
+    Tail = [Tail; DiagnosticsTail];
+end
 
 %%  Print to screen and .xlsx
 

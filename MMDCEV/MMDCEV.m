@@ -34,6 +34,15 @@ function Results = MMDCEV(INPUT,Results_old, EstimOpt,OptimOpt)
 % o	2 - use high-precision jacobian-based (BHHH) Hessian,
 % o	3 - use numerical Hessian, 
 %
+% After estimation Results.diagnostics holds the quality checks of the
+% covariance matrix: the median SE(BHHH)/SE(H), the smallest eigenvalue of
+% the observed Hessian, max |gradient|, the largest Newton step expressed in
+% standard errors and the number of free parameters without a finite standard
+% error. They are printed next to the 'Hessian' row and saved in the output
+% file; a median ratio outside [0.8, 1.25] raises a warning, because the
+% information matrix equality then fails and the standard errors are not fit
+% for a table (Tools/hessianDiagnostics.m).
+%
 % Example: 
 %    Results.MDCEV = MDCEV(INPUT,Results,EstimOpt,OptimOpt);
 %
@@ -525,6 +534,11 @@ Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
+% Hessian quality diagnostics (Tools/hessianDiagnostics): they only read the
+% matrices computed above and never change the estimate or its standard errors
+[Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,W_NP,'MMDCEV', ...
+    @(B) probs_mmdcev(INPUT,EstimOpt,B));
+
 
 Results.std = sqrt(diag(Results.ihess));
 
@@ -760,6 +774,12 @@ else
 end
 
 Tail(16,2) = {outHessian};
+
+% Hessian quality diagnostics printed next to the 'Hessian' row and saved in
+% the .xlsx output; the same numbers are in Results.diagnostics
+if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
+    Tail = [Tail; DiagnosticsTail];
+end
 
 
 %%  Print to screen and .xlsx

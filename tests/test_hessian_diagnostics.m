@@ -197,5 +197,87 @@ assert(isfinite(R.diagnostics.MedianSERatioBHHH),'robust run: diagnostics')
 assert(contains(R.diagnostics.Note,'model-based'),'robust run: note')
 fprintf('HESS_ROBUST_NOTE_PASS ratio %.4g\n',R.diagnostics.MedianSERatioBHHH);
 
+
+%% 7. the compatibility overrides keep the estimator the user asked for
+
+% WTP space has no analytical Hessian for the optimizer, so ApproxHess has to
+% go; HessEstFix is the ex-post estimator of the covariance and must survive
+O = OptimOpt; O.MaxIterations = 1;
+E = EstimOpt;
+E.WTP_space = 1;
+E.FullCov = 0;
+E.NRep = 100;
+E.Dist = zeros(1,EstimOpt.NVarA);
+E.ApproxHess = 0;
+E.Display = 0;
+for asked = [0 3 5]
+    E.HessEstFix = asked;
+    R = MXL(INPUT,Results,E,O);
+    assert(R.EstimOpt.ApproxHess == 1,'ApproxHess not turned off')
+    assert(R.EstimOpt.HessEstFix == asked, ...
+        'HessEstFix changed from %d to %d',asked,R.EstimOpt.HessEstFix)
+end
+% 4 is the one value that cannot be kept - it is the missing analytical Hessian
+E.HessEstFix = 4;
+R = MXL(INPUT,Results,E,O);
+assert(R.EstimOpt.ApproxHess == 1 && R.EstimOpt.HessEstFix == 5, ...
+    'HessEstFix = 4 became %d, expected 5',R.EstimOpt.HessEstFix)
+fprintf('HESS_OVERRIDE_KEEPS_SETTING_PASS\n');
+
+
+%% 8. the demand models report the diagnostics too
+
+settings = parallel.Settings; previous = settings.Pool.AutoCreate;
+restore = onCleanup(@() setAuto(settings,previous)); %#ok<NASGU>
+settings.Pool.AutoCreate = false;
+for model = {'MDCEV','MMDCEV'}
+    name = model{1};
+    % 60 respondents: BHHH needs more observations than parameters, and the
+    % MMDCEV jacobian has one row per respondent
+    c = vce_fixture(name,3,1,1,1,60,16,3,3); e = c.opt;
+    I = c.data; I.Y = I.Y(:); I.priceMat = I.priceMat(:);
+    if strcmp(name,'MMDCEV')
+        I.Xa = reshape(permute(I.Xa,[1 3 2]),e.NAlt*e.NCT*e.NP,e.NVarA);
+        I.Xm = repelem(I.Xm',e.NAlt*e.NCT,1); I = rmfield(I,'err');
+    else
+        I.Xm = repelem(I.Xm,e.NAlt,1);
+    end
+    I.Xu = repelem(I.Xu(:,2:end),e.NAlt,1);
+    e.Display = 0; e.ConstVarActive = 0; e.ApproxHess = 1; e.NSdSim = 100;
+    e.Seed1 = 123; e.Seed2 = 456; e.Draws = 1; e.NObs = e.NCT*e.NP;
+    e.ProjectName = ['hess diag ',name]; e.SaveTxtOutput = 0; e.OutputDir = outDir;
+    e.HessEstFix = 5;
+    old = struct(name,struct('b0',c.b));
+    oo = optimset('Algorithm','quasi-newton','GradObj','on','Hessian','off', ...
+        'MaxIter',1,'Display','off','FinDiffType','central');
+    R = feval(name,I,old,e,oo);
+    D = R.diagnostics;
+    % one iteration only, so the point is not a maximum: what is checked here
+    % is that the diagnostics are computed and that an unavailable ratio says
+    % why instead of passing for a healthy 1
+    assert(isfinite(D.MinEigHessian) && isfinite(D.MaxAbsGradient),'%s: diagnostics finite',name)
+    assert(isfinite(D.MedianSERatioBHHH) || ~isempty(D.Note), ...
+        '%s: an unavailable standard error ratio has to state a reason',name)
+    fprintf('HESS_DIAG_%s_PASS ratio %.4g, min eig %.4g, max|g| %.4g %s\n', ...
+        name,D.MedianSERatioBHHH,D.MinEigHessian,D.MaxAbsGradient,D.Note);
+end
+
+
+%% 9. every module is wired to the diagnostics
+
+repo = fileparts(fileparts(mfilename('fullpath')));
+modules = {'MNL/MNL.m','MXL/MXL.m','LC/LC.m','LCMXL/LCMXL.m','HMNL/HMNL.m','HMXL/HMXL.m', ...
+    'GMXL/GMXL.m','HLC/HLC.m','MIMIC/MIMIC.m','LML/LML.m','MDCEV/MDCEV.m','MMDCEV/MMDCEV.m'};
+for i = 1:numel(modules)
+    src = fileread(fullfile(repo,modules{i}));
+    assert(contains(src,'dceHessDiagnostics('),'%s does not compute the diagnostics',modules{i})
+    assert(contains(src,'Tail = [Tail; DiagnosticsTail]'),'%s does not print them',modules{i})
+end
+fprintf('HESS_DIAG_WIRING_PASS %d modules\n',numel(modules));
+
 fprintf('ALL_HESS_DIAGNOSTICS_TESTS_PASS\n');
+end
+
+function setAuto(settings,value)
+settings.Pool.AutoCreate = value;
 end

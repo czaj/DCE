@@ -73,6 +73,15 @@ function Results = HMNL(INPUT,Results_old,EstimOpt,OptimOpt)
 % o	3 - use numerical Hessian,
 % o	4 - use analytical Hessian
 %
+% After estimation Results.diagnostics holds the quality checks of the
+% covariance matrix: the median SE(BHHH)/SE(H), the smallest eigenvalue of
+% the observed Hessian, max |gradient|, the largest Newton step expressed in
+% standard errors and the number of free parameters without a finite standard
+% error. They are printed next to the 'Hessian' row and saved in the output
+% file; a median ratio outside [0.8, 1.25] raises a warning, because the
+% information matrix equality then fails and the standard errors are not fit
+% for a table (Tools/hessianDiagnostics.m).
+%
 %
 % For drawing and simulations:
 % •	HaltonSkip = 0; Sobol default (1 for Halton); rows to skip
@@ -1206,6 +1215,11 @@ end
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HMNL');
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
+
+% Hessian quality diagnostics (Tools/hessianDiagnostics): they only read the
+% matrices computed above and never change the estimate or its standard errors
+[Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'HMNL', ...
+    @(B) LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,B),EstimOpt.RobustStd == 1);
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
         [~,Results.jacobian] = LL_hmnl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,Results.bhat);
@@ -1478,6 +1492,12 @@ else
 end
 
 Tail(17,2) = {outHessian};
+
+% Hessian quality diagnostics printed next to the 'Hessian' row and saved in
+% the .xlsx output; the same numbers are in Results.diagnostics
+if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
+    Tail = [Tail; DiagnosticsTail];
+end
 
 %%  Print to screen and .xlsx
 
