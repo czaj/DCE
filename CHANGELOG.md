@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+- Report how much of what is estimated is simulation noise. MXL, GMXL, LCMXL,
+  HMNL, HMXL, HLC and MIMIC now add two things to the printed output, the
+  `.xlsx` output and `Results.diagnostics.Simulator`. First, the effective
+  number of draws per respondent - Kish's `1/sum(w^2)` over the weights the
+  draws enter each respondent's simulated likelihood with, reported as the
+  median, the 5th percentile, the minimum and the number of respondents below
+  10, with a warning when more than 5% of them are: a respondent whose
+  likelihood rests on a handful of draws contributes curvature that is
+  simulation noise rather than information. In MXL it is computed by
+  `mxl_drawESS` (normal and lognormal parameters, diagonal or full covariance,
+  preference or WTP space); elsewhere, and for the specifications it does not
+  cover, the output says it is unavailable instead of showing a number. Second,
+  a draw-set check: the respondents' draw blocks are rotated by half the sample
+  and the gradient is re-evaluated at the reported estimate, which gives
+  `max |gradient|` and how far the estimate would move, in standard errors, for
+  the worst parameter and the median one. The rotation is a permutation, so the
+  pooled draws, their number and anything normalised on draw moments are
+  unchanged - only which part of the net integrates which respondent. A move
+  above one standard error raises a warning: the reported point is a maximum of
+  that draw set rather than of the likelihood. The 1 SE and 5% thresholds are
+  rules of thumb, settable, and measured: re-estimating with four draw
+  sequences moves the toolbox demo MXL_d by 2.9 standard errors at 500 draws
+  and 0.5 at 2000, and the DEFRA farmers model in WTP space with a lognormal
+  cost coefficient by 24 standard errors at 1000 draws and 14.7 at 5000,
+  against predictions of 0.8-1.8, 0.2-0.6, 1.3-7.9 and 0.8-1.6. The check
+  linearises around the Hessian, so where that is itself corrupted it
+  understates the movement by an order of magnitude: it is a lower bound on the
+  problem, not an upper one. `Tools/simDiagnostics.m`,
+  `Tools/dceSimDiagnostics.m`; one gradient and one likelihood evaluation,
+  estimates and standard errors unchanged. `DRAWS.md` has the measurements,
+  including why a Laplace importance sampler does not replace the draws here.
+  Test: `DCE/tests/test_sim_diagnostics.m`.
+
 - Report the quality of the covariance matrix automatically. MNL, MXL, LC,
   LCMXL, HMNL, HMXL, GMXL, HLC, MIMIC, LML, MDCEV and MMDCEV now print, next to
   the existing `Hessian` row and into the `.xlsx` output, the median

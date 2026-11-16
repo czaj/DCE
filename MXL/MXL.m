@@ -95,6 +95,15 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % output; a median ratio outside [0.8, 1.25] raises a warning, because the
 % information matrix equality then fails and the standard errors are not fit
 % for a table (Tools/hessianDiagnostics.m).
+%
+% Results.diagnostics.Simulator holds the simulator's own checks: the effective
+% number of draws per respondent (Kish's 1/sum(w^2) over the weights the draws
+% enter each respondent's likelihood with - median, 5th percentile, minimum and
+% how many respondents are below 10) and the draw-set check, which rotates the
+% respondents' draw blocks by half the sample and reports how far the estimate
+% would move, in standard errors. More than 5% of respondents below 10 effective
+% draws, or a move above one standard error, raises a warning
+% (Tools/simDiagnostics.m, DRAWS.md).
 % 
 % 
 % For drawing and simulations:
@@ -1022,6 +1031,13 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 % estimate or its standard errors.
 [Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'MXL',LLfun2,EstimOpt.RobustStd == 1);
 
+% Simulator diagnostics: how many of its draws each respondent's likelihood
+% actually uses, and whether the reported optimum survives an equally valid
+% assignment of the draw blocks to respondents. One gradient evaluation.
+LLfunE = @(B,E) LL_mxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,E,EstimOpt,B);
+[Results.diagnostics.Simulator,SimDiagnosticsTail] = dceSimDiagnostics(Results,EstimOpt, ...
+    INPUT.W,'MXL',err_mtx,LLfunE,@() mxl_drawESS(INPUT,EstimOpt,err_mtx,Results.bhat));
+
 if EstimOpt.RobustStd == 1
     if ~isfield(Results,'jacobian')
         if EstimOpt.NumGrad == 0
@@ -1754,6 +1770,9 @@ Tail(17,2) = {outHessian};
 % the .xlsx output; the same numbers are in Results.diagnostics
 if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
     Tail = [Tail; DiagnosticsTail];
+end
+if exist('SimDiagnosticsTail','var') && ~isempty(SimDiagnosticsTail)
+    Tail = [Tail; SimDiagnosticsTail];
 end
 
 

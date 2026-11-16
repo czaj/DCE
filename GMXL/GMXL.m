@@ -85,6 +85,13 @@ function Results = GMXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % information matrix equality then fails and the standard errors are not fit
 % for a table (Tools/hessianDiagnostics.m).
 %
+% Results.diagnostics.Simulator holds the draw-set check: the respondents' draw
+% blocks are rotated by half the sample and the gradient is re-evaluated at the
+% reported estimate, which says how far the estimate would move, in standard
+% errors. A move above one standard error raises a warning - the reported point
+% is then a maximum of this draw set rather than of the likelihood
+% (Tools/simDiagnostics.m, DRAWS.md).
+%
 %
 % For drawing and simulations:
 % •	HaltonSkip = 0; Sobol default (1 for Halton); rows to skip
@@ -739,6 +746,11 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 % matrices computed above and never change the estimate or its standard errors
 [Results.diagnostics,DiagnosticsTail] = dceHessDiagnostics(Results,EstimOpt,INPUT.W,'GMXL', ...
     @(B) LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,B),EstimOpt.RobustStd == 1);
+
+% Simulator diagnostics: whether the reported optimum survives an equally valid
+% assignment of the draw blocks to respondents. One gradient evaluation.
+[Results.diagnostics.Simulator,SimDiagnosticsTail] = dceSimDiagnostics(Results,EstimOpt,INPUT.W,'GMXL', ...
+    err_sliced,@(B,E) LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,E,EstimOpt,B));
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
         [~, Results.jacobian] = LL_gmxl(INPUT.YY,INPUT.XXa,INPUT.XXm,INPUT.Xs,INPUT.XXt,err_sliced,EstimOpt,Results.bhat);
@@ -998,6 +1010,9 @@ Tail(17,2) = {outHessian};
 % the .xlsx output; the same numbers are in Results.diagnostics
 if exist('DiagnosticsTail','var') && ~isempty(DiagnosticsTail)
     Tail = [Tail; DiagnosticsTail];
+end
+if exist('SimDiagnosticsTail','var') && ~isempty(SimDiagnosticsTail)
+    Tail = [Tail; SimDiagnosticsTail];
 end
 
 if EstimOpt.Display ~= 0
