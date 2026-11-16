@@ -216,7 +216,51 @@ fprintf('SIM_DIAG_OUTPUT_PASS effective draws median %.1f of %d, min %.1f, <10 d
     S.RotatedMaxAbsGradient,S.ReferenceMaxAbsGradient);
 
 
-%% 5. every module with draws computes the check
+%% 5. the hybrid models report the effective draws through the same blocks
+
+C = hybrid_fixture('HMXL',0,1,0,0,0,0);
+a = C.Args;
+Th = 9; Nh = 4;
+Ih = struct('Y',a{1}(:),'Xa',reshape(permute(a{2},[1 3 2]),Th*Nh,3), ...
+    'Xstr',repelem(a{5}(:,2),Th,1),'Xmea',repelem(a{6},Th,1));
+baseh = struct('NAlt',3,'NCT',3,'NP',Nh,'NLatent',1,'NRep',32,'Draws',1, ...
+    'Seed1',1234,'FullCov',1,'WTP_space',0,'StrNorm',0,'MeaSpecMatrix',0, ...
+    'MeaMatrix',1,'Display',0,'SaveTxtOutput',0,'Scores',0,'HessEstFix',5, ...
+    'RobustStd',0,'NumGrad',0,'CheckSeparation',0,'GPU','cpu','OutputDir',outDir);
+hybrids = {'HMXL','HMNL','MIMIC'};
+for k = 1:numel(hybrids)
+    nm = hybrids{k};
+    e = baseh; e.Drawskeep = 1; e.ProjectName = ['sim diagnostics ',nm];
+    b0 = a{10}; b0(end-4) = [];                  % the normalized-away intercept
+    if strcmp(nm,'HMNL'), b0(4:9) = []; end
+    if strcmp(nm,'MIMIC'), b0 = b0(end-3:end); end
+    [inp,old,e,oo] = DataCleanDCE(Ih,e);
+    oo.Algorithm = 'quasi-newton'; oo.GradObj = 'on'; oo.Hessian = 'off';
+    oo.MaxIterations = 1; oo.Display = 'off';
+    old.(nm) = struct('b0',b0);
+    r = feval(nm,inp,old,e,oo);
+    S = r.diagnostics.Simulator;
+    assert(isfinite(S.MedianESS) && S.MedianESS > 0 && S.MedianESS <= e.NRep + 1e-9, ...
+        '%s: effective draws out of range (%g of %d)',nm,S.MedianESS,e.NRep)
+    assert(isfinite(S.RotatedStepSE),'%s: draw-set check not computed',nm)
+    xe = [];
+    if isfield(r.INPUT,'Xmea_exp'), xe = r.INPUT.Xmea_exp; end
+    if strcmp(nm,'MIMIC')
+        args = {r.INPUT.Xstr,r.INPUT.Xmea,xe,r.err,r.EstimOpt,r.bhat};
+    else
+        args = {r.INPUT.YY,r.INPUT.XXa,r.INPUT.Xm,r.INPUT.Xs,r.INPUT.Xstr, ...
+            r.INPUT.Xmea,xe,r.err,r.EstimOpt,r.bhat};
+    end
+    [essh,llh] = hybrid_drawESS(nm,args);
+    assert(abs(llh - r.LL) < 1e-6*max(1,abs(r.LL)), ...
+        '%s: hybrid_drawESS log-likelihood %.10f against the module''s %.10f',nm,llh,r.LL)
+    assert(abs(median(essh) - S.MedianESS) < 1e-9,'%s: the module reports other numbers',nm)
+    fprintf('SIM_DIAG_HYBRID_PASS %-6s LL %.6f, effective draws median %.1f of %d, min %.1f\n', ...
+        nm,llh,S.MedianESS,e.NRep,S.MinESS);
+end
+
+
+%% 6. every module with draws computes the check
 
 root = fileparts(fileparts(mfilename('fullpath')));
 mods = {'MXL','GMXL','LCMXL','HMNL','HMXL','HLC','MIMIC'};
@@ -225,6 +269,10 @@ for k = 1:numel(mods)
     assert(contains(f,'dceSimDiagnostics('),'%s does not compute the simulator diagnostics',mods{k})
     assert(contains(f,'Tail = [Tail; SimDiagnosticsTail]'), ...
         '%s does not put them in the output',mods{k})
+end
+for k = {'HMNL','HMXL','HLC','MIMIC'}
+    f = fileread(fullfile(root,k{1},[k{1},'.m']));
+    assert(contains(f,'hybrid_drawESS('),'%s does not compute the effective draws',k{1})
 end
 fprintf('SIM_DIAG_WIRING_PASS %d modules\n',numel(mods));
 

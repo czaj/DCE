@@ -70,6 +70,76 @@ be a property of the data rather than of the draw sequence. The WTP-space model
 with a lognormal cost coefficient is not one at any draw count tried - there it
 is the estimates, not only their standard errors, that belong to the draw set.
 
+**Hybrid models.** Here the draws are weighted by the choices and by what the
+respondent answered to the attitudinal items, so the posterior that carries them
+is tighter than in a plain mixed logit - the structure in which importance
+sampling transformed the Natural England multivariate Poisson-lognormal, where
+the effective draws went from 7 of 1000 with prior draws to 937 of 2048 with a
+Laplace proposal. Measured on the toolbox demo survey (789 respondents, 12 choice
+tasks, 3 alternatives, 6 attributes, 500 scrambled Sobol draws, one latent
+variable, and five 5-point items of one battery as ordered-probit indicators):
+
+| model | draw dimensions | effective draws | below 10 | shift, worst | shift, median | SE(BHHH)/SE(H) |
+|---|---|---|---|---|---|---|
+| MXL_d, no indicators | 6 | 43 of 500 | 3.9% | 1.80 SE | 0.41 SE | 0.94 |
+| HMNL, one indicator | 1 | 125 of 500 | 0% | 0.03 SE | 0.006 SE | 0.93 |
+| HMNL, five indicators | 1 | 125 of 500 | 0% | 0.03 SE | 0.001 SE | 1.12 |
+| HMNL, five indicators, WTP space | 1 | 75 of 500 | 0.4% | 0.12 SE | 0.04 SE | 1.07 |
+| HMXL, five indicators | 7 | 23 of 500 | 16.7% | 1.29 SE | 0.20 SE | 0.99 |
+| HMXL, five indicators, WTP space | 7 | 23 of 500 | 18.5% | 3.02 SE | 0.38 SE | 0.98 |
+| HMXL, WTP space, lognormal cost | 7 | 23 of 500 | 19.1% | 3.87 SE | 0.33 SE | 0.96 |
+
+The dimension of the integral decides this, not the hybrid structure as such. The
+latent variable is one dimension, and 500 quasi-random draws integrate one
+dimension so well that rotating the draw blocks moves the worst parameter by 0.03
+standard errors; adding four indicators to one changes nothing. There is nothing
+in HMNL for importance sampling to repair, whatever its effective draw count
+says - which is also the clearest case of that count being conservative for a
+balanced net. The random taste parameters are the opposite: the same data as a
+plain MXL_d uses 43 of its 500 draws and moves by 1.8 standard errors, and HMXL,
+which integrates six tastes and the latent variable together, is down to 23 draws
+with a sixth of its respondents below ten, and to a shift of 3 to 4 standard
+errors in WTP space. That is where a proposal has something to win, and in
+preference space it is also where one is well founded: with the scale not driven
+by the latent variable, the integrand is log-concave in the draws (a logit
+likelihood, ordered-probit indicators and a normal prior), so the mode and
+curvature a Laplace proposal needs exist and mean what they should. In WTP space
+that is lost again, for the same reason as above - the taste coefficients are
+multiplied by the cost coefficient.
+
+The last row also narrows down what breaks the standard errors. A lognormal cost
+coefficient in WTP space is not enough by itself: here its log standard deviation
+is 0.70 and `SE(BHHH)/SE(H)` stays at 0.96, while the estimates still move by
+almost four standard errors between draw sets. It took a log standard deviation
+of 2.84 - a mean 56 times the median - for the covariance matrix itself to fail
+in the DEFRA model. The two diagnostics therefore catch different things, and the
+draw-set check is the one that fires first.
+
+With one latent variable the integral is one-dimensional, so the question can be
+settled exactly rather than simulated: the integrand was evaluated on a 321-node
+grid at the estimate, which gives the likelihood by quadrature, each respondent's
+exact posterior, and the asymptotic efficiency of any proposal (`hyb_is.m` in the
+work folder). Three things came out of it. First, the indicators pin the latent
+variable down to a posterior standard deviation of 0.29 against the prior's 1
+(0.34 in WTP space), and 500 draws already give each respondent's log-likelihood
+to 0.005; the asymptotic effective-draw fraction of the prior draws, 0.250,
+agrees to three digits with the count the module reports (125 of 500), which
+checks the two computations against each other. Second, a plain Laplace proposal
+makes the effective-draw count look splendid and the answer worse - 446 of 500
+draws, and a root mean squared error in log L_i of 0.023 against 0.005 with the
+draws as they come. Its weights have infinite variance, which is arithmetic
+rather than a feature of this data set: a Gaussian proposal narrower than the
+prior by more than the square root of two makes the integral of phi^2/q diverge,
+and 0.29 is a factor of 3.4. The grid puts its asymptotic effective-draw fraction
+at 0. Third, the defensive mixture is the only variant with a finite variance
+(asymptotic fraction 0.61 with half the draws kept from the prior, 0.77 with a
+quarter) and the only one that beats doing nothing: 0.0027 against 0.0048 in
+preference space, and 0.0085 against 0.0498 in WTP space, where it is worth some
+thirty times the draws. None of that changes a conclusion here, because the error
+it improves on is already negligible - but it is the rule to carry to the cases
+where it is not: never a plain Laplace proposal, always a mixture with the
+distribution the draws came from.
+
 **Importance sampling.** Re-centring each respondent's draws on the mode of that
 respondent's posterior and re-weighting them (a Laplace proposal, as in the
 multivariate Poisson-lognormal of the Natural England work, where it took the
@@ -97,12 +167,13 @@ better than doing nothing, by a factor of 1.7 to 2.2 in root mean squared error,
 which is worth 3 to 5 times the draws. That is an efficiency gain, not a repair:
 the error of the simulated likelihood scales with the inverse square root of the
 effective draws, so moving a 24-standard-error draw-set shift below one standard
-error needs about 600 times the effective draws, not 5. Where the individual
-posterior is far tighter than the prior - counts over many sites, or latent
-variables measured by many indicators - the gain is orders of magnitude instead,
-and importance sampling is worth the per-respondent optimisation it costs. The
-measurements and the prototype are in
-`MATLAB/.ai/_work/2026-11-16_importance-sampling`.
+error needs about 600 times the effective draws, not 5. What makes importance
+sampling worth its per-respondent optimisation is a many-dimensional integral
+whose posterior is far tighter than the distribution the draws come from - one
+error per site in the multivariate Poisson-lognormal, or the seven dimensions of
+the HMXL above, where 23 of 500 draws are doing the work. The number of
+indicators is not what decides it: see the hybrid section. The measurements and
+the prototype are in `MATLAB/.ai/_work/2026-11-16_importance-sampling`.
 
 ## Layout and reproducibility
 

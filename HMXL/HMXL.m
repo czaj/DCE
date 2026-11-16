@@ -1227,7 +1227,8 @@ Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 % Simulator diagnostics: whether the reported optimum survives an equally valid
 % assignment of the draw blocks to respondents. One gradient evaluation.
 [Results.diagnostics.Simulator,SimDiagnosticsTail] = dceSimDiagnostics(Results,EstimOpt,INPUT.W,'HMXL', ...
-    err_sliced,@(B,E) LL_hmxl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,E,EstimOpt,B));
+    err_sliced,@(B,E) LL_hmxl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,E,EstimOpt,B), ...
+    @() hybrid_drawESS('HMXL',{INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,Results.bhat}));
 if EstimOpt.RobustStd == 1
     if EstimOpt.NumGrad == 0
         [~,Results.jacobian] = LL_hmxl(INPUT.YY,INPUT.XXa,INPUT.Xm,INPUT.Xs,INPUT.Xstr,INPUT.Xmea,INPUT.Xmea_exp,err_sliced,EstimOpt,Results.bhat);

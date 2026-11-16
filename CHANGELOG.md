@@ -12,8 +12,12 @@
   likelihood rests on a handful of draws contributes curvature that is
   simulation noise rather than information. In MXL it is computed by
   `mxl_drawESS` (normal and lognormal parameters, diagonal or full covariance,
-  preference or WTP space); elsewhere, and for the specifications it does not
-  cover, the output says it is unavailable instead of showing a number. Second,
+  preference or WTP space) and in HMNL, HMXL, HLC and MIMIC by
+  `hybrid_drawESS`, which reads the posterior weights the hybrid likelihood
+  already forms - `Hybrid/hybrid_block` gained a third output that costs nothing
+  when it is not asked for. In GMXL and LCMXL, and for the specifications those
+  two functions do not cover, the output says the count is unavailable instead
+  of showing a number. Second,
   a draw-set check: the respondents' draw blocks are rotated by half the sample
   and the gradient is re-evaluated at the reported estimate, which gives
   `max |gradient|` and how far the estimate would move, in standard errors, for
@@ -31,9 +35,15 @@
   understates the movement by an order of magnitude: it is a lower bound on the
   problem, not an upper one. `Tools/simDiagnostics.m`,
   `Tools/dceSimDiagnostics.m`; one gradient and one likelihood evaluation,
-  estimates and standard errors unchanged. `DRAWS.md` has the measurements,
-  including why a Laplace importance sampler does not replace the draws here.
-  Test: `DCE/tests/test_sim_diagnostics.m`.
+  estimates and standard errors unchanged. On the demo survey with one latent
+  variable and five ordered-probit indicators the same two numbers separate the
+  hybrid models sharply: HMNL integrates its one latent dimension so well that
+  the shift is 0.03 standard errors, with five indicators or with one, while
+  HMXL, which integrates six random tastes and the latent variable together, is
+  at 23 of 500 effective draws and shifts by 1.3 standard errors, and by 3 to 4
+  in WTP space. `DRAWS.md` has the measurements, including why a Laplace
+  importance sampler does not replace the draws in either place. Test:
+  `DCE/tests/test_sim_diagnostics.m`.
 
 - Report the quality of the covariance matrix automatically. MNL, MXL, LC,
   LCMXL, HMNL, HMXL, GMXL, HLC, MIMIC, LML, MDCEV and MMDCEV now print, next to

@@ -1,4 +1,8 @@
-function [f,g] = hybrid_block(d,p,ids,need)
+function [f,g,ess] = hybrid_block(d,p,ids,need)
+% The third output is the effective number of draws per respondent, Kish's
+% 1/sum(w^2) over the posterior weights the draws enter the likelihood with. It
+% is computed only when asked for, so the two-output calls of hybrid_evaluate
+% are unchanged.
 o = d.opt; R = o.NRep; N = numel(ids); L = o.NLatent; D = o.NVarStr;
 e = d.E(:,:,ids);
 x = reshape(d.Xstr(ids,:)',D,1,N);
@@ -42,10 +46,12 @@ if o.RealMin == 1, prob = max(prob,realmin); end
 if o.RealMin >= 2
     prob(~isfinite(prob)) = 0; prob = max(prob,o.ProbMin);
 end
-f = reshape(-log(prob),N,1); g = zeros(N,0,'like',LV);
-if ~need, return; end
+f = reshape(-log(prob),N,1); g = zeros(N,0,'like',LV); ess = zeros(N,0,'like',LV);
+if ~need && nargout < 3, return; end
 w = joint./(R*prob);
 if o.RealMin >= 2, w(repmat(prob <= o.ProbMin,1,R,1)) = 0; end
+if nargout > 2, ess = reshape(1./sum(w.^2,2),N,1); end
+if ~need, return; end
 dw = dl.*w;
 z = sum(dw.*LV,2);
 xc = x-reshape(d.moments.mean(1:D),D,1,1);
