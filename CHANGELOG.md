@@ -57,7 +57,7 @@
   that number is past what machine time buys, that the specification rather
   than the simulator is the thing to change; or, only when `ISCeiling` reaches
   the order of a hundred, that a better simulator is worth considering. The
-  same sentence goes into the warning. This continues Czajkowski and Budzinski
+  same sentence goes into the warning. This continues Czajkowski and Budziński
   (2019), "Simulation error in maximum likelihood estimation of discrete choice
   models", Journal of Choice Modelling 31, which answered the same question by
   re-estimating each model up to 1000 times over artificial data and

@@ -11,7 +11,7 @@ integration accuracy: check parameters, gradients, uncertainty and scrambles.
 
 ## How many draws are enough
 
-This continues Czajkowski and Budzinski (2019), "Simulation error in maximum
+This continues Czajkowski and Budziński (2019), "Simulation error in maximum
 likelihood estimation of discrete choice models", Journal of Choice Modelling 31
 (https://doi.org/10.1016/j.jocm.2019.04.003), which measured the same error from
 the outside: an MXL data generating process over 27 experimental conditions, 100
@@ -94,7 +94,7 @@ model with four draw sequences:
 
 One more check, against the other method entirely: on the toolbox demo MXL_d
 with six attributes at 500 draws, the row described below asks for at least 2048
-draws, while Czajkowski and Budzinski (2019) ask for more than 2000 scrambled
+draws, while Czajkowski and Budziński (2019) ask for more than 2000 scrambled
 Sobol draws at five attributes. A per-model gradient and a thousand
 re-estimations over artificial data land in the same place.
 
