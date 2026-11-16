@@ -99,13 +99,16 @@ balanced net. The random taste parameters are the opposite: the same data as a
 plain MXL_d uses 43 of its 500 draws and moves by 1.8 standard errors, and HMXL,
 which integrates six tastes and the latent variable together, is down to 23 draws
 with a sixth of its respondents below ten, and to a shift of 3 to 4 standard
-errors in WTP space. That is where a proposal has something to win, and in
-preference space it is also where one is well founded: with the scale not driven
-by the latent variable, the integrand is log-concave in the draws (a logit
+errors in WTP space. That is the largest ceiling for a better proposal
+anywhere in this toolbox - 500 over 23, about 22 times - and in preference space
+it is also where a Laplace proposal is well founded: with the scale not driven by
+the latent variable, the integrand is log-concave in the draws (a logit
 likelihood, ordered-probit indicators and a normal prior), so the mode and
-curvature a Laplace proposal needs exist and mean what they should. In WTP space
-that is lost again, for the same reason as above - the taste coefficients are
-multiplied by the cost coefficient.
+curvature it needs exist and mean what they should. In WTP space that is lost
+again, for the same reason as above - the taste coefficients are multiplied by
+the cost coefficient. What a proposal actually collects from that ceiling is
+measured below, and it is little: 2.4 times the draws in preference space and
+nothing at all in WTP space.
 
 The last row also narrows down what breaks the standard errors. A lognormal cost
 coefficient in WTP space is not enough by itself: here its log standard deviation
@@ -160,20 +163,66 @@ A plain Laplace proposal is six times worse than doing nothing in WTP space: the
 posterior of z is not approximately normal there, because the index is bilinear
 in the willingness-to-pay parameters and the scale, and the scale is lognormal
 with a log standard deviation near 3, so the proposal misses mass and the
-weights concentrate on the few draws that do not. A defensive mixture - part of
-the draws kept from the prior, the proposal density evaluated as the mixture, so
-the weights are bounded by the inverse of the prior's share - is uniformly
-better than doing nothing, by a factor of 1.7 to 2.2 in root mean squared error,
-which is worth 3 to 5 times the draws. That is an efficiency gain, not a repair:
-the error of the simulated likelihood scales with the inverse square root of the
-effective draws, so moving a 24-standard-error draw-set shift below one standard
-error needs about 600 times the effective draws, not 5. What makes importance
-sampling worth its per-respondent optimisation is a many-dimensional integral
-whose posterior is far tighter than the distribution the draws come from - one
-error per site in the multivariate Poisson-lognormal, or the seven dimensions of
-the HMXL above, where 23 of 500 draws are doing the work. The number of
-indicators is not what decides it: see the hybrid section. The measurements and
-the prototype are in `MATLAB/.ai/_work/2026-11-16_importance-sampling`.
+weights concentrate on the few draws that do not. A defensive mixture - part of the draws kept from the prior, the proposal
+density evaluated as the mixture, so the weights are bounded by the inverse of
+the prior's share - is uniformly better than doing nothing, by a factor of 1.7
+to 2.2 in root mean squared error, which is worth 3 to 5 times the draws. That
+is an efficiency gain, not a repair: the error of the simulated likelihood
+scales with the inverse square root of the effective draws, so moving a
+24-standard-error draw-set shift below one standard error needs about 600 times
+the effective draws, not 5.
+
+**The ceiling, and what a proposal collects from it.** The effective-draw count
+fixes how much any importance sampler could possibly gain. If the draws as they
+come are worth ESS of R, a proposal proportional to the integrand would be worth
+R, so nothing can gain more than R/ESS: 4 times in the one-dimensional HMNL, 5.5
+to 6.6 in the 13-dimensional DEFRA MXL_d, 11.6 in the demo MXL_d, 21.6 in the
+demo HMXL, and 143 in the multivariate Poisson-lognormal of the Natural England
+work at 7 of 1000. Measured against that ceiling, with the posterior mean and
+the diagonal posterior standard deviations of the draw vector read off the
+weights of a first pass and a share of the draws kept from the prior - two
+likelihood passes in all - as the root mean squared error of log L_i against a
+large-draw benchmark, averaged over three independent scrambles:
+
+| model | as they come | best proposal | draw-equivalent | passes | net |
+|---|---|---|---|---|---|
+| DEFRA MXL_d, preference space | 152 of 1000 | 433 of 1000 | 4.4x | 2 | 2.2x |
+| DEFRA MXL_d, WTP space | 182 of 1000 | 379 of 1000 | 1.8x | 2 | 0.9x |
+| demo HMXL, preference space | 23 of 500 | 132 of 500 | 2.4x | 2 | 1.2x |
+| demo HMXL, WTP space | 23 of 500 | 147 of 500 | 0.9x | 2 | 0.5x |
+| demo HMXL, WTP space, lognormal cost | 23 of 500 | 170 of 500 | 1.0x | 2 | 0.5x |
+
+Two things follow, and the second is a warning about the count itself. Raising
+the number of draws is the better bargain: four times the draws buys 5.2 to 5.4
+times the accuracy here - slightly better than the inverse square root, because
+a scrambled Sobol net converges faster than pseudo-random draws - while two
+passes of importance sampling buy 4.4 times at best and usually less. And the
+effective-draw count overstates what a proposal achieves, by a wide margin: in
+HMXL in WTP space the mixture raises it from 23 to 147, six times over, and
+improves the root mean squared error of log L_i not at all (0.326 against
+0.308). For draws from the prior the two move together - four times the draws
+raises the effective draws 3.7 times and the accuracy 4.3 times - for draws from
+a proposal they do not. The weights become more even at the points that were
+drawn, which is not the same as the proposal covering where the integrand has
+its mass. The count is therefore a measure of how hard the simulator is working,
+not a target to optimise, and "the model effectively uses only a few draws" is
+not by itself a case for importance sampling.
+
+What would make it a case is a ceiling of two orders of magnitude. That is where
+one error per site in the multivariate Poisson-lognormal sits, and where a model
+with many random parameters and several latent variables would sit, because the
+effective-draw fraction falls geometrically in the dimension of the integral:
+0.250 at one dimension, 0.086 at six and 0.046 at seven on the demo data, about
+0.65 per dimension added. Writing one would also need exact derivatives. The
+Fisher-identity score treats the proposal as fixed although it moves with the
+parameters, so it is not the derivative of the criterion being maximised, and
+`fminunc` stops after three iterations with it; freezing the proposal between
+stages - estimate, refit the proposal at the new point, freeze it, estimate
+again - restores ordinary derivatives and is the construction to start from. The
+measurements and the prototype are in
+`MATLAB/.ai/_work/2026-11-16_importance-sampling`, and the whole argument,
+including the decision rule, in
+`MATLAB/outputs/DCE_losowania-i-importance-sampling_v1_2026-11-16.pdf`.
 
 ## Layout and reproducibility
 

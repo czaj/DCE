@@ -41,8 +41,16 @@
   the shift is 0.03 standard errors, with five indicators or with one, while
   HMXL, which integrates six random tastes and the latent variable together, is
   at 23 of 500 effective draws and shifts by 1.3 standard errors, and by 3 to 4
-  in WTP space. `DRAWS.md` has the measurements, including why a Laplace
-  importance sampler does not replace the draws in either place. Test:
+  in WTP space. `DRAWS.md` has the measurements, including what the effective
+  draws imply for importance sampling. They bound what any proposal could gain,
+  at `R/ESS`: 4 times in a one-dimensional HMNL, 5 to 12 in the mixed logits
+  measured, 22 in HMXL. A measured mixture proposal collects 0.9 to 4.4 times
+  the draws for two likelihood passes, while four times the draws buys 5.2 to
+  5.4 times the accuracy, so raising the number of draws is the better bargain
+  in every case here and no importance sampler is offered. The count also
+  overstates what a proposal achieves: in HMXL in WTP space a mixture raises it
+  from 23 to 147 and improves the accuracy of `log L_i` not at all. It measures
+  how hard the simulator is working, not something to optimise. Test:
   `DCE/tests/test_sim_diagnostics.m`.
 
 - Report the quality of the covariance matrix automatically. MNL, MXL, LC,
