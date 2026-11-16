@@ -11,9 +11,43 @@ integration accuracy: check parameters, gradients, uncertainty and scrambles.
 
 ## How many draws are enough
 
+This continues Czajkowski and Budzinski (2019), "Simulation error in maximum
+likelihood estimation of discrete choice models", Journal of Choice Modelling 31
+(https://doi.org/10.1016/j.jocm.2019.04.003), which measured the same error from
+the outside: an MXL data generating process over 27 experimental conditions, 100
+to 1,000,000 draws of four kinds, each model re-estimated up to 1000 times. It
+called a number of draws sufficient when a different draw set of the same kind
+would not move the log-likelihood by half the critical value of a
+one-degree-of-freedom likelihood ratio test (1.9207) and would keep the
+estimates within 5% of their true values, and its answer was more than 2000
+scrambled Sobol draws with five attributes and more than 20,000 with ten - far
+above what applications were using, and above this toolbox's own default of
+1024 for anything with many attributes. Sobol won against Halton, MLHS and
+pseudo-random draws throughout, which is why it is the default here.
+
+The two diagnostics below do not improve on that experiment; they ask a cheaper
+question. The paper needs a known data generating process and a thousand
+re-estimations to say how many draws a *kind* of model needs. These say whether
+*this* model, on this data, at this number of draws, is reporting a maximum of
+the likelihood or a maximum of its draw set - for the price of one gradient, with
+no true parameters to compare against. That also lets them cover the
+specifications the paper closed by listing as untested: correlated parameters,
+WTP space, non-normal distributions, latent class and hybrid choice models, and
+distributions wide relative to their means. All of those are measured below, and
+all of them need more draws than the paper's settings did. The thresholds used
+here were calibrated against the paper's own method, re-estimation with several
+draw sequences.
+
 Two things are reported after every simulated estimation, in
 `Results.diagnostics.Simulator`, under the Hessian rows of the printed output and
-in the output file. They answer different questions and both are cheap.
+in the output file. They answer different questions and both are cheap. A third
+row, `What to do`, says which remedy they point to: the number of draws the
+square-root law implies for a shift below the threshold (`DrawsSuggested`,
+rounded up to a power of two, and a lower bound, since the shift it comes from
+is one too); or, when that number is past what machine time buys, that the
+specification rather than the simulator is the thing to change; or, only when
+`ISCeiling` = draws over effective draws reaches the order of a hundred, that a
+better simulator is worth considering.
 
 **Effective draws per respondent.** Respondent i's simulated likelihood is the
 average of P_i over draws, so the draws enter it with weights proportional to
@@ -57,6 +91,12 @@ model with four draw sequences:
 | demo MXL_d, preference space | 2000 | 0.2 - 0.6 SE | 0.5 SE | 0.15 SE |
 | DEFRA, WTP space, lognormal cost | 1000 | 1.3 - 7.9 SE | 24.0 SE | 1.8 SE |
 | DEFRA, WTP space, lognormal cost | 5000 | 0.8 - 1.6 SE | 14.7 SE | 1.1 SE |
+
+One more check, against the other method entirely: on the toolbox demo MXL_d
+with six attributes at 500 draws, the row described below asks for at least 2048
+draws, while Czajkowski and Budzinski (2019) ask for more than 2000 scrambled
+Sobol draws at five attributes. A per-model gradient and a thousand
+re-estimations over artificial data land in the same place.
 
 The default warning is at 1 standard error for the worst parameter, which
 separates these cases; the median over parameters is reported next to it,

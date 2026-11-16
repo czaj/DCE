@@ -38,8 +38,13 @@ lastwarn('');
 assert(D.MedianESS == 100 && abs(D.MedianESSShare - 0.1) < 1e-12,'median effective draws')
 assert(D.MinESS == 100 && D.NBelowMinDraws == 0 && D.ShareBelowMinDraws == 0,'nothing starved')
 assert(~D.StarvedDraws && ~D.DrawSetSpecific && isempty(id),'no warning on a healthy simulator')
-assert(isequal(size(TailRows),[4 2]) && ischar(TailRows{1,2}),'tail rows')
+assert(isequal(size(TailRows),[5 2]) && ischar(TailRows{1,2}),'tail rows')
 assert(D.RotationOffset == 50 && D.RotatedStepSE == 0.01,'rotation statistics stored')
+
+% the remedy the numbers point to
+assert(strcmp(TailRows{end,1},'What to do') && contains(D.Advice,'nothing'), ...
+    'a healthy simulator needs no remedy')
+assert(isnan(D.DrawsSuggested) && abs(D.ISCeiling - 10) < 1e-12,'ceiling without a remedy')
 
 % exactly 5% of respondents below 10 draws is not yet a warning, 10% is
 ess = 100*ones(40,1);
@@ -70,6 +75,22 @@ rotEdge = rotOK; rotEdge.MaxNewtonStepSE = 1;
 D = simDiagnostics(100*ones(40,1),1000,rotEdge,'unit');
 [~,id] = lastwarn;
 assert(~D.DrawSetSpecific && isempty(id),'no warning at the shift threshold')
+
+% the remedy follows the numbers: more draws, the specification, or a simulator
+rot18 = rotOK; rot18.MaxNewtonStepSE = 1.8;
+D = simDiagnostics(100*ones(40,1),500,rot18,'unit');     % 500*1.8^2 = 1620 -> 2048
+assert(D.DrawsSuggested == 2048 && contains(D.Advice,'raise the draws to at least 2048'), ...
+    'more draws, with the number the square-root law implies')
+assert(~contains(D.Advice,'importance sampling'),'no simulator advice at a ceiling of 5')
+
+rot24 = rotOK; rot24.MaxNewtonStepSE = 24;
+D = simDiagnostics(100*ones(40,1),1000,rot24,'unit');    % 576,000 draws is not a remedy
+assert(D.DrawsSuggested > 1e5 && contains(D.Advice,'specification problem'), ...
+    'the specification, once the implied number of draws is out of reach')
+
+D = simDiagnostics(10*ones(40,1),1000,rot18,'unit');     % ceiling 100
+assert(abs(D.ISCeiling - 100) < 1e-12 && contains(D.Advice,'importance sampling') && ...
+    contains(D.Advice,'100 times'),'the ceiling is quoted when it is of the order of a hundred')
 
 % thresholds can be changed
 lastwarn('');
@@ -210,6 +231,8 @@ assert(S.RotatedMedianStepSE <= S.RotatedStepSE,'the median shift exceeds the ma
 assert(S.RotationOffset == floor(EstimOpt.NP/2),'rotation offset')
 assert(any(strcmp(R.R_out(:,1),'Effective draws')),'effective draws missing from the output')
 assert(any(strcmp(R.R_out(:,1),'Shift, other draws')),'draw-set check missing from the output')
+assert(any(strcmp(R.R_out(:,1),'What to do')),'the remedy missing from the output')
+assert(~isempty(S.Advice) && isfinite(S.ISCeiling),'the remedy and the ceiling are reported')
 assert(isfield(R.diagnostics,'MedianSERatioBHHH'),'the Hessian diagnostics are still there')
 fprintf('SIM_DIAG_OUTPUT_PASS effective draws median %.1f of %d, min %.1f, <10 draws %.1f%%, shift %.3g SE (max|g| %.3g against %.3g)\n', ...
     S.MedianESS,E.NRep,S.MinESS,100*S.ShareBelowMinDraws,S.RotatedStepSE, ...

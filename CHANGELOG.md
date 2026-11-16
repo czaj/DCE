@@ -50,7 +50,22 @@
   in every case here and no importance sampler is offered. The count also
   overstates what a proposal achieves: in HMXL in WTP space a mixture raises it
   from 23 to 147 and improves the accuracy of `log L_i` not at all. It measures
-  how hard the simulator is working, not something to optimise. Test:
+  how hard the simulator is working, not something to optimise. A third row,
+  `What to do`, turns the two numbers into the remedy they point to:
+  `DrawsSuggested`, the number of draws the square-root law implies for a shift
+  below the threshold, rounded up to a power of two and a lower bound; or, when
+  that number is past what machine time buys, that the specification rather
+  than the simulator is the thing to change; or, only when `ISCeiling` reaches
+  the order of a hundred, that a better simulator is worth considering. The
+  same sentence goes into the warning. This continues Czajkowski and Budzinski
+  (2019), "Simulation error in maximum likelihood estimation of discrete choice
+  models", Journal of Choice Modelling 31, which answered the same question by
+  re-estimating each model up to 1000 times over artificial data and
+  recommended more than 2000 Sobol draws at five attributes and more than
+  20,000 at ten; the thresholds here were calibrated by that paper's method,
+  and the specifications it listed as untested - correlations, WTP space,
+  non-normal distributions, latent class and hybrid models, wide distributions
+  - are what `DRAWS.md` now measures. Test:
   `DCE/tests/test_sim_diagnostics.m`.
 
 - Report the quality of the covariance matrix automatically. MNL, MXL, LC,
