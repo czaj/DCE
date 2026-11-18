@@ -9,56 +9,57 @@ Powers of two preserve Sobol net balance when points are not skipped or thinned.
 They are unrelated to respondent count. Balance does not establish adequate
 integration accuracy: check parameters, gradients, uncertainty and scrambles.
 
-## How many draws are enough
+## Choosing a draw budget
 
-This continues Czajkowski and Budziński (2019), "Simulation error in maximum
-likelihood estimation of discrete choice models", Journal of Choice Modelling 31
-(https://doi.org/10.1016/j.jocm.2019.04.003), which measured the same error from
-the outside: an MXL data generating process over 27 experimental conditions, 100
-to 1,000,000 draws of four kinds, each model re-estimated up to 1000 times. It
-called a number of draws sufficient when a different draw set of the same kind
-would not move the log-likelihood by half the critical value of a
-one-degree-of-freedom likelihood ratio test (1.9207) and would keep the
-estimates within 5% of their true values, and its answer was more than 2000
-scrambled Sobol draws with five attributes and more than 20,000 with ten - far
-above what applications were using, and above this toolbox's own default of
-1024 for anything with many attributes. Sobol won against Halton, MLHS and
-pseudo-random draws throughout, which is why it is the default here.
+Czajkowski and Budziński compared repeated fits across simulators, dimensions and draw budgets. Their thresholds concerned LL and coefficient accuracy under the designs studied. Estimating model-based standard errors also requires accurate curvature. Choose the budget by comparing the quantities you plan to report across independently randomized full fits. Record the simulator, seed, start, draw count and elapsed time. [Czajkowski and Budziński (2019)](https://doi.org/10.1016/j.jocm.2019.04.003)
 
-The two diagnostics below do not improve on that experiment; they ask a cheaper
-question. The paper needs a known data generating process and a thousand
-re-estimations to say how many draws a *kind* of model needs. These say whether
-*this* model, on this data, at this number of draws, is reporting a maximum of
-the likelihood or a maximum of its draw set - for the price of one gradient, with
-no true parameters to compare against. That also lets them cover the
-specifications the paper closed by listing as untested: correlated parameters,
-WTP space, non-normal distributions, latent class and hybrid choice models, and
-distributions wide relative to their means. All of those are measured below, and
-all of them need more draws than the paper's settings did. The thresholds used
-here were calibrated against the paper's own method, re-estimation with several
-draw sequences.
+## Reading the diagnostics
 
-Two things are reported after every simulated estimation, in
-`Results.diagnostics.Simulator`, under the Hessian rows of the printed output and
-in the output file. They answer different questions and both are cheap. A third
-row, `What to do`, says which remedy they point to: the number of draws the
-square-root law implies for a shift below the threshold (`DrawsSuggested`,
-rounded up to a power of two, and a lower bound, since the shift it comes from
-is one too); or, when that number is past what machine time buys, that the
-specification rather than the simulator is the thing to change; or, only when
-`ISCeiling` = draws over effective draws reaches the order of a hundred, that a
-better simulator is worth considering.
+1. Check the original score, the Newton step in units of SE and the free-parameter Hessian of the negative LL. A positive-definite observed Hessian and a small step support local convergence on the current objective. Try multiple starts on the same draws and compare their LLs to find better local solutions.
+2. Kish ESS, `1/sum(w.^2)` for normalized respondent weights, measures concentration. The default warning flags more than 5% of respondents with ESS below 10. The legacy field `ISCeiling = NRep/MedianESS` bounds the possible increase in this particular weight statistic. Integration error, gradients, SEs and runtime depend on the integrand and the algorithm. [Elvira, Martino and Robert](https://arxiv.org/abs/1809.04129)
+3. Rotating respondent draw blocks changes which draws integrate each panel. `RotatedStepSE` uses the rotated score and original curvature. `PairedStepSE` uses the difference between rotated and original scores when both are available. The flag uses the paired change when available and the historical step otherwise. Both are local approximations. An unchanged block assignment supplies no comparison. A large change calls for independent refits. A small change in one rotation can coexist with severely understated SEs. `DrawsSuggested` retains a square-root extrapolation for compatibility. The convergence rate, the draw budget and any claim of model misspecification require separate evidence.
+4. The median SE(BHHH)/SE(H) compares the outer product of scores with curvature. The interval [0.8, 1.25] is descriptive. Disagreement can reflect sampling variation, misspecification, lack of convergence or integration error. Agreement in one fit can coexist with unstable parameters across seeds. For reporting model-based SEs in ordinary MXL, request `RobustStd=0` and `HessEstFix=5` (fresh central differences of the analytical gradient).
+5. Compare full fits on independent draw sequences, including coefficients, economically relevant contrasts and SEs. For different simulators, score candidate solutions on a common, sufficiently accurate integration rule before comparing LL. Independent seeds complement multiple starts on the same objective.
 
-**Effective draws per respondent.** Respondent i's simulated likelihood is the
-average of P_i over draws, so the draws enter it with weights proportional to
-P_i(beta_ir). Kish's effective sample size `1/sum(w^2)` says how many of them
-that average rests on. In MXL it comes from `mxl_drawESS` (normal and lognormal
-parameters, diagonal or full covariance, preference or WTP space; it says so
-instead of guessing elsewhere). For quasi-random draws it is conservative: it is
-the independent-draw formula and ignores the balance of the net. Measured on the
-DEFRA farmers data (263 respondents, 12 choice tasks, 13 attributes, MXL_d, 1000
-scrambled Sobol draws, at the estimates of the 14.11.2026 standard-error
-factorial):
+## Optional importance sampling after ordinary MXL
+
+```matlab
+E.ImportanceSampling = 1;
+E.ISNRep = 1000;           % draws per respondent per IS round, defaults to E.NRep
+E.ISSeed = 1234;           % independent of the ordinary SML seed E.Seed1
+E.RobustStd = 0;
+E.HessEstFix = 5;
+R = MXL(INPUT,Results_old,E,OptimOpt);
+if R.IS.success
+    disp([R.bhat, R.std, R.IS.bhat, R.IS.std])
+end
+```
+
+By default MXL fits ordinary SML only. Enabling this option retains the ordinary fit in the usual fields and adds a separate fit in `R.IS`. With display/export enabled it writes a second native workbook. An explicit `OutputFilePrefix` gets an `IS_` prefix for this file. `Drawskeep=1` is unnecessary. The IS table gives underlying normal means and positive SDs, including the log-scale parameters of lognormal tastes. Any pilot effective moments or robust SE settings apply to the pilot. The IS SEs use the inverse of its own final observed Hessian.
+
+This implementation supports complete panels with independent normal/lognormal coefficients and free means and SDs in preference space or single-cost WTP space. Respondent weights enter both the objective and its derivatives. Fixed coefficients, covariates of means or scale, nonlinear transformations, missing choices and full covariance require separate implementations. An unsupported specification raises `MXL:ISSpecification`. A failed IS fit returns the ordinary SML result and `R.IS.success=false` with a message.
+
+The procedure follows Wiktor Budziński's five-round adaptive proposal. Within each round it fixes coefficient draws and conditional panel log probabilities and differentiates the population density in the importance weights. Each respondent's proposal mixes a population normal component (about 20%) and a Student t component with five degrees of freedom centered on the weighted draws. The actual mixture proportions account for rounding. The four adaptations after the first optimization update the proposals using the previous round's weights. `R.IS.Rounds` records each LL, optimizer exit flag, iterations and median ESS. Round LLs use different integration points. `R.IS.ESS` gives final respondent ESS. `RefreshStepSE` gives the SE-scaled change in score on new draws from the last proposal, using the final curvature. Repeat the full run with a different `ISSeed` to check both adaptation and fit stability. Changing `Seed1` additionally varies the SML pilot.
+
+### Wide-scale WTP example
+
+The example has 300 respondents, 12 tasks, four independent normal WTP parameters and a lognormal scale with log-SD 2.5. The historical global Sobol pilot uses 1000 draws. The following same-machine timings include the common pilot, its verification and export. Both second stages start at the same pilot solution.
+
+| Fit | SE of mean opt-out constant | Range of WTP SEs relative to reference | Elapsed |
+|---|---:|---:|---:|
+| Ordinary SML, 1000 | 0.0404 | 20–38% | 20.1 s |
+| Ordinary SML, 32768 | 0.1020 | 25–57% | 219.5 s |
+| Adaptive IS, 5 × 1000 | 0.2016 | 98–105% | 29.3 s |
+
+The independent reference uses 32768 fixed coefficient draws from one population proposal and gives 0.2064. Freezing just the original 1000 coefficient draws and reweighting their density already gives 0.2018. Current respondent-specific Sobol draws give ordinary-SML SEs of 0.0454 at 1024 and 0.0689 at 32768 for this constant. The small rotated step (0.23 SE) in the historical 32768-draw fit missed the curvature error.
+
+Across 50 independent datasets from this wide-scale design, nominal 95% model-based intervals covered the eight WTP parameters in 146/400 cases with ordinary SML 1000 and 376/400 with adaptive IS. Intervals within each dataset share data. At log-SD 0.5, changing to IS in the control dataset changed the ten SEs by −7% to +3%. In a 13-dimensional empirical DEFRA fit, two 4000-draw adaptive runs gave median BHHH/H ratios of 0.90 and 1.01, yet coefficients differed by a median 2.52 and a maximum 37.38 times the larger SE. Check independent refits before reporting inference. Run `tests/test_mxl_importance_sampling` to reproduce the wide-scale example via the public MXL interface.
+
+## Earlier simulator comparisons
+
+The tables below report separate empirical checks. Their comparison metrics differ from coverage of model-based SEs.
+
+Respondent weight concentration in DEFRA (263 respondents, 13 attributes, 1000 scrambled Sobol draws):
 
 | model | median | 5th pct. | min | below 10 draws | median SE(BHHH)/SE(H) |
 |---|---|---|---|---|---|
@@ -67,23 +68,7 @@ factorial):
 | WTP space, normal cost | 129 | 12 | 1.6 | 3.8% | 1.23 |
 | WTP space, lognormal cost | 182 | 5.0 | 1.3 | 10.3% | 4.22 |
 
-A panel mixed logit uses 13-18% of its draws whatever the specification: twelve
-choices per respondent make the individual posterior much tighter than the
-mixing distribution the draws come from. What separates the specification whose
-standard errors failed from the ones that passed is therefore not the median but
-the tail - a tenth of the respondents have fewer than ten effective draws there,
-and the worst has 1.3, one draw carrying 87% of that respondent's likelihood.
-The default warning is at more than 5% of respondents below 10 effective draws.
-
-**The draw-set check.** The respondents' draw blocks are rotated by half the
-sample and the gradient is re-evaluated at the reported estimate; the implied
-Newton step says how far the estimate would move, in its own standard errors.
-The rotation is a permutation of blocks between respondents, so the pooled set
-of draws, their number and anything normalised on draw moments are untouched:
-only which part of the net integrates which respondent changes, and that should
-not move the estimate. It costs one gradient evaluation. The linearised
-prediction was checked against the thing it predicts - re-estimating the same
-model with four draw sequences:
+Local rotated-block steps and actual differences between full fits on different sequences, expressed in SEs:
 
 | model | draws | predicted shift | largest actual | median actual |
 |---|---|---|---|---|
@@ -92,32 +77,7 @@ model with four draw sequences:
 | DEFRA, WTP space, lognormal cost | 1000 | 1.3 - 7.9 SE | 24.0 SE | 1.8 SE |
 | DEFRA, WTP space, lognormal cost | 5000 | 0.8 - 1.6 SE | 14.7 SE | 1.1 SE |
 
-One more check, against the other method entirely: on the toolbox demo MXL_d
-with six attributes at 500 draws, the row described below asks for at least 2048
-draws, while Czajkowski and Budziński (2019) ask for more than 2000 scrambled
-Sobol draws at five attributes. A per-model gradient and a thousand
-re-estimations over artificial data land in the same place.
-
-The default warning is at 1 standard error for the worst parameter, which
-separates these cases; the median over parameters is reported next to it,
-because a single badly identified standard deviation can carry the maximum. A
-shift below the threshold still matters for an individual parameter. The
-prediction tracks the actual movement where the model is sound and understates
-it by an order of magnitude where the Hessian it linearises around is itself
-corrupted, as in the last row: read it as a lower bound on the problem, never
-as a reassuring upper one. The demo model needs 2000 draws for its estimates to
-be a property of the data rather than of the draw sequence. The WTP-space model
-with a lognormal cost coefficient is not one at any draw count tried - there it
-is the estimates, not only their standard errors, that belong to the draw set.
-
-**Hybrid models.** Here the draws are weighted by the choices and by what the
-respondent answered to the attitudinal items, so the posterior that carries them
-is tighter than in a plain mixed logit - the structure in which importance
-sampling transformed the Natural England multivariate Poisson-lognormal, where
-the effective draws went from 7 of 1000 with prior draws to 937 of 2048 with a
-Laplace proposal. Measured on the toolbox demo survey (789 respondents, 12 choice
-tasks, 3 alternatives, 6 attributes, 500 scrambled Sobol draws, one latent
-variable, and five 5-point items of one battery as ordered-probit indicators):
+Hybrid-model checks on the toolbox demo data (500 draws):
 
 | model | draw dimensions | effective draws | below 10 | shift, worst | shift, median | SE(BHHH)/SE(H) |
 |---|---|---|---|---|---|---|
@@ -129,67 +89,7 @@ variable, and five 5-point items of one battery as ordered-probit indicators):
 | HMXL, five indicators, WTP space | 7 | 23 of 500 | 18.5% | 3.02 SE | 0.38 SE | 0.98 |
 | HMXL, WTP space, lognormal cost | 7 | 23 of 500 | 19.1% | 3.87 SE | 0.33 SE | 0.96 |
 
-The dimension of the integral decides this, not the hybrid structure as such. The
-latent variable is one dimension, and 500 quasi-random draws integrate one
-dimension so well that rotating the draw blocks moves the worst parameter by 0.03
-standard errors; adding four indicators to one changes nothing. There is nothing
-in HMNL for importance sampling to repair, whatever its effective draw count
-says - which is also the clearest case of that count being conservative for a
-balanced net. The random taste parameters are the opposite: the same data as a
-plain MXL_d uses 43 of its 500 draws and moves by 1.8 standard errors, and HMXL,
-which integrates six tastes and the latent variable together, is down to 23 draws
-with a sixth of its respondents below ten, and to a shift of 3 to 4 standard
-errors in WTP space. That is the largest ceiling for a better proposal
-anywhere in this toolbox - 500 over 23, about 22 times - and in preference space
-it is also where a Laplace proposal is well founded: with the scale not driven by
-the latent variable, the integrand is log-concave in the draws (a logit
-likelihood, ordered-probit indicators and a normal prior), so the mode and
-curvature it needs exist and mean what they should. In WTP space that is lost
-again, for the same reason as above - the taste coefficients are multiplied by
-the cost coefficient. What a proposal actually collects from that ceiling is
-measured below, and it is little: 2.4 times the draws in preference space and
-nothing at all in WTP space.
-
-The last row also narrows down what breaks the standard errors. A lognormal cost
-coefficient in WTP space is not enough by itself: here its log standard deviation
-is 0.70 and `SE(BHHH)/SE(H)` stays at 0.96, while the estimates still move by
-almost four standard errors between draw sets. It took a log standard deviation
-of 2.84 - a mean 56 times the median - for the covariance matrix itself to fail
-in the DEFRA model. The two diagnostics therefore catch different things, and the
-draw-set check is the one that fires first.
-
-With one latent variable the integral is one-dimensional, so the question can be
-settled exactly rather than simulated: the integrand was evaluated on a 321-node
-grid at the estimate, which gives the likelihood by quadrature, each respondent's
-exact posterior, and the asymptotic efficiency of any proposal (`hyb_is.m` in the
-work folder). Three things came out of it. First, the indicators pin the latent
-variable down to a posterior standard deviation of 0.29 against the prior's 1
-(0.34 in WTP space), and 500 draws already give each respondent's log-likelihood
-to 0.005; the asymptotic effective-draw fraction of the prior draws, 0.250,
-agrees to three digits with the count the module reports (125 of 500), which
-checks the two computations against each other. Second, a plain Laplace proposal
-makes the effective-draw count look splendid and the answer worse - 446 of 500
-draws, and a root mean squared error in log L_i of 0.023 against 0.005 with the
-draws as they come. Its weights have infinite variance, which is arithmetic
-rather than a feature of this data set: a Gaussian proposal narrower than the
-prior by more than the square root of two makes the integral of phi^2/q diverge,
-and 0.29 is a factor of 3.4. The grid puts its asymptotic effective-draw fraction
-at 0. Third, the defensive mixture is the only variant with a finite variance
-(asymptotic fraction 0.61 with half the draws kept from the prior, 0.77 with a
-quarter) and the only one that beats doing nothing: 0.0027 against 0.0048 in
-preference space, and 0.0085 against 0.0498 in WTP space, where it is worth some
-thirty times the draws. None of that changes a conclusion here, because the error
-it improves on is already negligible - but it is the rule to carry to the cases
-where it is not: never a plain Laplace proposal, always a mixture with the
-distribution the draws came from.
-
-**Importance sampling.** Re-centring each respondent's draws on the mode of that
-respondent's posterior and re-weighting them (a Laplace proposal, as in the
-multivariate Poisson-lognormal of the Natural England work, where it took the
-effective draws from 7 of 1000 to 937 of 2048) does not transfer to mixed logit
-as it stands, and is not offered here. Measured at the DEFRA estimates with the
-same 1000 draws, against a 200,000-draw benchmark, as the root mean squared
-error of log L_i over respondents:
+Earlier fixed-parameter DEFRA comparisons used 1000 points. Entries give the RMSE of individual log likelihoods against a 200,000-draw benchmark.
 
 | simulator | WTP space, lognormal | preference space, lognormal |
 |---|---|---|
@@ -199,30 +99,7 @@ error of log L_i over respondents:
 | half prior, half Laplace, inflation 1.5 | 0.151 | 0.052 |
 | three quarters Laplace, inflation 1.15 | 0.158 | 0.027 |
 
-A plain Laplace proposal is six times worse than doing nothing in WTP space: the
-posterior of z is not approximately normal there, because the index is bilinear
-in the willingness-to-pay parameters and the scale, and the scale is lognormal
-with a log standard deviation near 3, so the proposal misses mass and the
-weights concentrate on the few draws that do not. A defensive mixture - part of the draws kept from the prior, the proposal
-density evaluated as the mixture, so the weights are bounded by the inverse of
-the prior's share - is uniformly better than doing nothing, by a factor of 1.7
-to 2.2 in root mean squared error, which is worth 3 to 5 times the draws. That
-is an efficiency gain, not a repair: the error of the simulated likelihood
-scales with the inverse square root of the effective draws, so moving a
-24-standard-error draw-set shift below one standard error needs about 600 times
-the effective draws, not 5.
-
-**The ceiling, and what a proposal collects from it.** The effective-draw count
-fixes how much any importance sampler could possibly gain. If the draws as they
-come are worth ESS of R, a proposal proportional to the integrand would be worth
-R, so nothing can gain more than R/ESS: 4 times in the one-dimensional HMNL, 5.5
-to 6.6 in the 13-dimensional DEFRA MXL_d, 11.6 in the demo MXL_d, 21.6 in the
-demo HMXL, and 143 in the multivariate Poisson-lognormal of the Natural England
-work at 7 of 1000. Measured against that ceiling, with the posterior mean and
-the diagonal posterior standard deviations of the draw vector read off the
-weights of a first pass and a share of the draws kept from the prior - two
-likelihood passes in all - as the root mean squared error of log L_i against a
-large-draw benchmark, averaged over three independent scrambles:
+A separate moment-proposal comparison averaged individual log-likelihood RMSE across three scrambles. The final column divides the draw-equivalent gain by the number of likelihood passes. Elapsed refit times and SE coverage are separate measurements.
 
 | model | as they come | best proposal | draw-equivalent | passes | net |
 |---|---|---|---|---|---|
@@ -231,38 +108,6 @@ large-draw benchmark, averaged over three independent scrambles:
 | demo HMXL, preference space | 23 of 500 | 132 of 500 | 2.4x | 2 | 1.2x |
 | demo HMXL, WTP space | 23 of 500 | 147 of 500 | 0.9x | 2 | 0.5x |
 | demo HMXL, WTP space, lognormal cost | 23 of 500 | 170 of 500 | 1.0x | 2 | 0.5x |
-
-Two things follow, and the second is a warning about the count itself. Raising
-the number of draws is the better bargain: four times the draws buys 5.2 to 5.4
-times the accuracy here - slightly better than the inverse square root, because
-a scrambled Sobol net converges faster than pseudo-random draws - while two
-passes of importance sampling buy 4.4 times at best and usually less. And the
-effective-draw count overstates what a proposal achieves, by a wide margin: in
-HMXL in WTP space the mixture raises it from 23 to 147, six times over, and
-improves the root mean squared error of log L_i not at all (0.326 against
-0.308). For draws from the prior the two move together - four times the draws
-raises the effective draws 3.7 times and the accuracy 4.3 times - for draws from
-a proposal they do not. The weights become more even at the points that were
-drawn, which is not the same as the proposal covering where the integrand has
-its mass. The count is therefore a measure of how hard the simulator is working,
-not a target to optimise, and "the model effectively uses only a few draws" is
-not by itself a case for importance sampling.
-
-What would make it a case is a ceiling of two orders of magnitude. That is where
-one error per site in the multivariate Poisson-lognormal sits, and where a model
-with many random parameters and several latent variables would sit, because the
-effective-draw fraction falls geometrically in the dimension of the integral:
-0.250 at one dimension, 0.086 at six and 0.046 at seven on the demo data, about
-0.65 per dimension added. Writing one would also need exact derivatives. The
-Fisher-identity score treats the proposal as fixed although it moves with the
-parameters, so it is not the derivative of the criterion being maximised, and
-`fminunc` stops after three iterations with it; freezing the proposal between
-stages - estimate, refit the proposal at the new point, freeze it, estimate
-again - restores ordinary derivatives and is the construction to start from. The
-measurements and the prototype are in
-`MATLAB/.ai/_work/2026-11-16_importance-sampling`, and the whole argument,
-including the decision rule, in
-`MATLAB/outputs/DCE_losowania-i-importance-sampling_v1_2026-11-16.pdf`.
 
 ## Layout and reproducibility
 

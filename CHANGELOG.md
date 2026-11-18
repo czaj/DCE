@@ -2,71 +2,21 @@
 
 ## Unreleased
 
-- Report how much of what is estimated is simulation noise. MXL, GMXL, LCMXL,
-  HMNL, HMXL, HLC and MIMIC now add two things to the printed output, the
-  `.xlsx` output and `Results.diagnostics.Simulator`. First, the effective
-  number of draws per respondent - Kish's `1/sum(w^2)` over the weights the
-  draws enter each respondent's simulated likelihood with, reported as the
-  median, the 5th percentile, the minimum and the number of respondents below
-  10, with a warning when more than 5% of them are: a respondent whose
-  likelihood rests on a handful of draws contributes curvature that is
-  simulation noise rather than information. In MXL it is computed by
-  `mxl_drawESS` (normal and lognormal parameters, diagonal or full covariance,
-  preference or WTP space) and in HMNL, HMXL, HLC and MIMIC by
-  `hybrid_drawESS`, which reads the posterior weights the hybrid likelihood
-  already forms - `Hybrid/hybrid_block` gained a third output that costs nothing
-  when it is not asked for. In GMXL and LCMXL, and for the specifications those
-  two functions do not cover, the output says the count is unavailable instead
-  of showing a number. Second,
-  a draw-set check: the respondents' draw blocks are rotated by half the sample
-  and the gradient is re-evaluated at the reported estimate, which gives
-  `max |gradient|` and how far the estimate would move, in standard errors, for
-  the worst parameter and the median one. The rotation is a permutation, so the
-  pooled draws, their number and anything normalised on draw moments are
-  unchanged - only which part of the net integrates which respondent. A move
-  above one standard error raises a warning: the reported point is a maximum of
-  that draw set rather than of the likelihood. The 1 SE and 5% thresholds are
-  rules of thumb, settable, and measured: re-estimating with four draw
-  sequences moves the toolbox demo MXL_d by 2.9 standard errors at 500 draws
-  and 0.5 at 2000, and the DEFRA farmers model in WTP space with a lognormal
-  cost coefficient by 24 standard errors at 1000 draws and 14.7 at 5000,
-  against predictions of 0.8-1.8, 0.2-0.6, 1.3-7.9 and 0.8-1.6. The check
-  linearises around the Hessian, so where that is itself corrupted it
-  understates the movement by an order of magnitude: it is a lower bound on the
-  problem, not an upper one. `Tools/simDiagnostics.m`,
-  `Tools/dceSimDiagnostics.m`; one gradient and one likelihood evaluation,
-  estimates and standard errors unchanged. On the demo survey with one latent
-  variable and five ordered-probit indicators the same two numbers separate the
-  hybrid models sharply: HMNL integrates its one latent dimension so well that
-  the shift is 0.03 standard errors, with five indicators or with one, while
-  HMXL, which integrates six random tastes and the latent variable together, is
-  at 23 of 500 effective draws and shifts by 1.3 standard errors, and by 3 to 4
-  in WTP space. `DRAWS.md` has the measurements, including what the effective
-  draws imply for importance sampling. They bound what any proposal could gain,
-  at `R/ESS`: 4 times in a one-dimensional HMNL, 5 to 12 in the mixed logits
-  measured, 22 in HMXL. A measured mixture proposal collects 0.9 to 4.4 times
-  the draws for two likelihood passes, while four times the draws buys 5.2 to
-  5.4 times the accuracy, so raising the number of draws is the better bargain
-  in every case here and no importance sampler is offered. The count also
-  overstates what a proposal achieves: in HMXL in WTP space a mixture raises it
-  from 23 to 147 and improves the accuracy of `log L_i` not at all. It measures
-  how hard the simulator is working, not something to optimise. A third row,
-  `What to do`, turns the two numbers into the remedy they point to:
-  `DrawsSuggested`, the number of draws the square-root law implies for a shift
-  below the threshold, rounded up to a power of two and a lower bound; or, when
-  that number is past what machine time buys, that the specification rather
-  than the simulator is the thing to change; or, only when `ISCeiling` reaches
-  the order of a hundred, that a better simulator is worth considering. The
-  same sentence goes into the warning. This continues Czajkowski and Budziński
-  (2019), "Simulation error in maximum likelihood estimation of discrete choice
-  models", Journal of Choice Modelling 31, which answered the same question by
-  re-estimating each model up to 1000 times over artificial data and
-  recommended more than 2000 Sobol draws at five attributes and more than
-  20,000 at ten; the thresholds here were calibrated by that paper's method,
-  and the specifications it listed as untested - correlations, WTP space,
-  non-normal distributions, latent class and hybrid models, wide distributions
-  - are what `DRAWS.md` now measures. Test:
-  `DCE/tests/test_sim_diagnostics.m`.
+- Added optional adaptive importance sampling after ordinary diagonal MXL.
+  `EstimOpt.ImportanceSampling = 1` adds `Results.IS` with its own coefficients,
+  observed-Hessian SEs, respondent ESS, fresh-draw check and workbook. See
+  [the option, scope and worked example](DRAWS.md#optional-importance-sampling-after-ordinary-mxl).
+  Regression test: `tests/test_mxl_importance_sampling.m`.
+
+- MXL, GMXL, LCMXL, HMNL, HMXL, HLC and MIMIC report draw diagnostics in their
+  output and in `Results.diagnostics.Simulator`. Where supported, ESS measures
+  respondent weight concentration. The rotated score gives a local Newton step.
+  The paired score change subtracts the original score to isolate the effect of
+  changing draws. Identical draw blocks and unusable curvature are reported
+  explicitly. Warnings prompt full independent refits and comparisons of SEs.
+  `ISCeiling` and `DrawsSuggested` remain available as legacy descriptive fields.
+  See [the draw comparisons](DRAWS.md#earlier-simulator-comparisons) and
+  `tests/test_sim_diagnostics.m`.
 
 - Report the quality of the covariance matrix automatically. MNL, MXL, LC,
   LCMXL, HMNL, HMXL, GMXL, HLC, MIMIC, LML, MDCEV and MMDCEV now print, next to
@@ -74,10 +24,9 @@
   `SE(BHHH)/SE(H)`, the smallest eigenvalue of the observed Hessian,
   `max |gradient|`, the largest Newton step in standard errors and the number
   of free parameters without a finite standard error; the same numbers are in
-  `Results.diagnostics`. A median ratio outside `[0.8, 1.25]` raises a warning:
-  the information matrix equality fails, so the point is most likely a maximum
-  of one particular set of draws rather than of the likelihood, and the
-  standard errors are not fit for a table. Where the comparison cannot be made
+  `Results.diagnostics`. A median ratio outside `[0.8, 1.25]` prompts a check of convergence,
+  curvature and, for simulated models, sensitivity to independent draws.
+  Where the comparison cannot be made
   - the reported standard errors are the BHHH ones, the gradient is numerical,
   or the outer product is singular - the output says so instead of showing a
   healthy ratio. The implementation is `Tools/hessianDiagnostics.m`, with the

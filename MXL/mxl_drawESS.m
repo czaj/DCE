@@ -17,9 +17,8 @@ function [ess,ll] = mxl_drawESS(INPUT,EstimOpt,err,b0)
 %                  L_i = (1/R) sum_r P_i(beta_ir),  w_ir = P_i(beta_ir)/sum_r,
 %                  ess_i = 1/sum_r w_ir^2 = (sum_r P_ir)^2/sum_r P_ir^2.
 %              ess_i = R means every draw contributes equally, ess_i = 1 means
-%              the respondent's likelihood is one draw. For quasi-random draws
-%              it is a conservative measure: it ignores the variance reduction
-%              a balanced net gives over independent draws.
+%              a single draw carries all the weight. This statistic measures
+%              weight concentration for both random and quasi-random draws.
 %    ll      - the simulated log-likelihood recomputed here. Used by the tests
 %              to prove that this function integrates the same thing LL_mxl
 %              does; it is not meant to replace the module's own value.
@@ -96,19 +95,14 @@ for n = 1:NP
         B(1:NVarA-1,:) = B(1:NVarA-1,:).*B(NVarA,:);
     end
 
-    V = reshape(Xn(rows,:)*B,[NAlt,nt,NRep]);
-    V = V - max(V,[],1);
-    V = exp(V);
-    Vsum = reshape(sum(V,1),[nt,NRep]);
-    sel = yn(rows) == 1;
-    Vsel = reshape(V(sel(:,ones(NRep,1))),[nt,NRep]);
-    pr = prod(Vsel./Vsum,1);                     % 1 x NRep
-    s1 = sum(pr);
-    s2 = sum(pr.^2);
-    if s2 > 0
-        ess(n) = s1^2/s2;
+    logP = mxl_log_panel(Xn(rows,:),yn(rows)==1,B,NAlt);
+    m = max(logP);
+    if ~isfinite(m)
+        error('mxl_drawESS:Nonfinite','No finite log-panel integral for respondent %d.',n);
     end
-    lli(n) = log(s1/NRep);
+    w = exp(logP-m);
+    ess(n) = sum(w)^2/sum(w.^2);
+    lli(n) = m + log(sum(w)/NRep);
 end
 
 ll = sum(lli(isfinite(lli)));

@@ -42,8 +42,8 @@ assert(isequal(size(TailRows),[5 2]) && ischar(TailRows{1,2}),'tail rows')
 assert(D.RotationOffset == 50 && D.RotatedStepSE == 0.01,'rotation statistics stored')
 
 % the remedy the numbers point to
-assert(strcmp(TailRows{end,1},'What to do') && contains(D.Advice,'nothing'), ...
-    'a healthy simulator needs no remedy')
+assert(strcmp(TailRows{end,1},'What to do') && contains(D.Advice,'one rotation'), ...
+    'one rotation cannot certify stability')
 assert(isnan(D.DrawsSuggested) && abs(D.ISCeiling - 10) < 1e-12,'ceiling without a remedy')
 
 % exactly 5% of respondents below 10 draws is not yet a warning, 10% is
@@ -76,21 +76,29 @@ D = simDiagnostics(100*ones(40,1),1000,rotEdge,'unit');
 [~,id] = lastwarn;
 assert(~D.DrawSetSpecific && isempty(id),'no warning at the shift threshold')
 
-% the remedy follows the numbers: more draws, the specification, or a simulator
+% Legacy numeric fields remain readable; their values do not prescribe a remedy.
 rot18 = rotOK; rot18.MaxNewtonStepSE = 1.8;
-D = simDiagnostics(100*ones(40,1),500,rot18,'unit');     % 500*1.8^2 = 1620 -> 2048
-assert(D.DrawsSuggested == 2048 && contains(D.Advice,'raise the draws to at least 2048'), ...
-    'more draws, with the number the square-root law implies')
-assert(~contains(D.Advice,'importance sampling'),'no simulator advice at a ceiling of 5')
-
+D = simDiagnostics(100*ones(40,1),500,rot18,'unit');
+assert(D.DrawsSuggested == 2048 && contains(D.Advice,'independent draws'))
 rot24 = rotOK; rot24.MaxNewtonStepSE = 24;
-D = simDiagnostics(100*ones(40,1),1000,rot24,'unit');    % 576,000 draws is not a remedy
-assert(D.DrawsSuggested > 1e5 && contains(D.Advice,'specification problem'), ...
-    'the specification, once the implied number of draws is out of reach')
+D = simDiagnostics(10*ones(40,1),1000,rot24,'unit');
+assert(D.DrawsSuggested > 1e5 && D.ISCeiling == 100)
+assert(~contains(D.Advice,'specification problem') && ~contains(D.Advice,'at least'))
+rot24.PairedStepSE = 0;
+D = simDiagnostics(100*ones(40,1),1000,rot24,'unit');
+assert(~D.DrawSetSpecific && D.PairedStepSE == 0 && D.RotatedStepSE == 24)
 
-D = simDiagnostics(10*ones(40,1),1000,rot18,'unit');     % ceiling 100
-assert(abs(D.ISCeiling - 100) < 1e-12 && contains(D.Advice,'importance sampling') && ...
-    contains(D.Advice,'100 times'),'the ceiling is quoted when it is of the order of a hundred')
+% Paired scores isolate a draw change from an unfinished optimization.
+toy = struct('hess',1,'ihess',1,'g',12,'bhat',0);
+cfg = struct('NP',4,'NRep',2);
+llToy = @(b,draws) deal(zeros(4,1),3*ones(4,1));
+D = dceSimDiagnostics(toy,cfg,1,'unit',1:8,llToy,[]);
+assert(D.RotatedStepSE==12 && D.PairedStepSE==0 && ~D.DrawSetSpecific)
+D = dceSimDiagnostics(toy,cfg,1,'unit',repmat([1 2],1,4),llToy,[]);
+assert(isnan(D.RotatedStepSE) && contains(D.RotationNote,'identical'))
+toy.hess = -1;
+D = dceSimDiagnostics(toy,cfg,1,'unit',1:8,llToy,[]);
+assert(isnan(D.RotatedStepSE) && isfinite(D.RotatedMaxAbsGradient) && contains(D.RotationNote,'curvature'))
 
 % thresholds can be changed
 lastwarn('');
@@ -211,7 +219,7 @@ Im.Xm = DATA.AGE(:)/100;
 R = MXL(Im,Results,E,OptimOpt);
 S = R.diagnostics.Simulator;
 assert(isnan(S.MedianESS) && ~isempty(S.ESSNote),'unsupported specification not reported')
-assert(isfinite(S.RotatedStepSE),'the draw-set check did not run with covariates')
+assert(isfinite(S.RotatedMaxAbsGradient),'the rotated gradient was not evaluated')
 assert(isfinite(R.LL) && all(isfinite(R.std(R.std > 0))),'the model did not estimate')
 fprintf('SIM_DIAG_FALLBACK_PASS "%s", draw-set shift %.3g SE\n',S.ESSNote,S.RotatedStepSE);
 
@@ -265,7 +273,8 @@ for k = 1:numel(hybrids)
     S = r.diagnostics.Simulator;
     assert(isfinite(S.MedianESS) && S.MedianESS > 0 && S.MedianESS <= e.NRep + 1e-9, ...
         '%s: effective draws out of range (%g of %d)',nm,S.MedianESS,e.NRep)
-    assert(isfinite(S.RotatedStepSE),'%s: draw-set check not computed',nm)
+    assert(isfinite(S.RotatedMaxAbsGradient),'%s: rotated gradient not computed',nm)
+    assert(isfinite(S.RotatedStepSE) || contains(S.RotationNote,'curvature'))
     xe = [];
     if isfield(r.INPUT,'Xmea_exp'), xe = r.INPUT.Xmea_exp; end
     if strcmp(nm,'MIMIC')

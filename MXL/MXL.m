@@ -4,6 +4,10 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 % Syntax:   MXL(INPUT,EstimOpt,OptimOpt)
 %           MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
+% Optional post-estimation: EstimOpt.ImportanceSampling = 1 fits a second,
+% adaptive model in Results.IS and exports it separately. See DRAWS.md.
+% ISNRep defaults to NRep per round; ISSeed defaults to 1234.
+%
 % Inputs:
 %    INPUT - clean, updated INPUT data from DataCleanDCE
 %    EstimOpt - Estimation Options (check below)
@@ -654,6 +658,27 @@ end
 %% Generate pseudo-random draws
 
 EstimOpt = dceSimulationDefaults(EstimOpt);
+useIS = isfield(EstimOpt,'ImportanceSampling') && ~isempty(EstimOpt.ImportanceSampling);
+if useIS
+    validateattributes(EstimOpt.ImportanceSampling,{'numeric','logical'},{'scalar','binary'},'MXL','ImportanceSampling');
+    useIS = logical(EstimOpt.ImportanceSampling);
+end
+if useIS
+    if EstimOpt.FullCov || any(~ismember(EstimOpt.Dist,[0 1])) || EstimOpt.WTP_space > 1 || ...
+            EstimOpt.NVarM || EstimOpt.NVarS || EstimOpt.NVarNLT || ~isempty(EstimOpt.ExpB) || ...
+            any(~EstimOpt.BActive) || any(INPUT.MissingInd(:)) || any(~isfinite(INPUT.Xa(:))) || ...
+            any(~ismember(INPUT.Y(:),[0 1])) || any(sum(reshape(INPUT.Y,EstimOpt.NAlt,[]),1)~=1)
+        error('MXL:ISSpecification',['IS requires a complete diagonal normal/lognormal MXL, ', ...
+            'with free means and SDs, no covariates of means or scale, no utility transformations, ', ...
+            'and at most one WTP cost coefficient.']);
+    end
+    if ~isfield(EstimOpt,'ISNRep') || isempty(EstimOpt.ISNRep), EstimOpt.ISNRep = EstimOpt.NRep; end
+    if ~isfield(EstimOpt,'ISSeed') || isempty(EstimOpt.ISSeed), EstimOpt.ISSeed = 1234; end
+    validateattributes(EstimOpt.ISNRep,{'numeric'},{'real','scalar','finite','integer','>=',3},'MXL','ISNRep');
+    validateattributes(EstimOpt.ISSeed,{'numeric'},{'real','scalar','integer','>=',0,'<=',2^32-1},'MXL','ISSeed');
+    EstimOpt.ISNRep = double(EstimOpt.ISNRep);
+    EstimOpt.ISSeed = double(EstimOpt.ISSeed);
+end
 
 if isfield(EstimOpt,'Seed1') == 1
     rng(EstimOpt.Seed1);
@@ -1781,6 +1806,30 @@ end
 
 if EstimOpt.Display~=0
     Results.R_out = genOutput(EstimOpt,Results,Head,Tail,Names,Template1,Template2,Heads,ST);
+end
+if useIS
+    try
+        [fit,isDiagnostics] = mxl_is_refit(Results,EstimOpt,err_mtx);
+    catch ME
+        if ~strcmp(ME.identifier,'MXL:ISFit'), rethrow(ME); end
+        Results.IS = struct('success',false,'message',ME.message);
+        warning('MXL:ISFit','IS refit failed: %s The ordinary SML result is available.',ME.message);
+        return
+    end
+    if EstimOpt.Display ~= 0
+        isTail = Tail(1:17,:);
+        isTail(3:11,2) = num2cell(fit.stats);
+        isTail(13:17,2) = {'adaptive importance-sampled MXL'; ...
+            sprintf('5 rounds of %d draws per respondent, seed %u',fit.NRep,fit.Seed); ...
+            'quasi-newton, fixed proposal within each round';'analytical mixing-density score'; ...
+            'observed final Hessian, model-based SE'};
+        Head{1} = 'MXL IS (underlying means and SDs)';
+        if isfield(EstimOpt,'OutputFilePrefix') && ~isempty(EstimOpt.OutputFilePrefix)
+            EstimOpt.OutputFilePrefix = ['IS_' char(EstimOpt.OutputFilePrefix)];
+        end
+        [fit.R_out,fit.OutputFile] = genOutput(EstimOpt,fit,Head,[isTail;isDiagnostics],Names,Template1,Template2,Heads,ST);
+    end
+    Results.IS = fit;
 end
 
 
