@@ -79,7 +79,7 @@ assert(~info.ValidInference && all(isnan(invalid),'all'))
 sd = sdtri([0;0;0],eye(3),struct('Dist',[0 0]));
 assert(all(sd(:,1)==0) && all(isnan(sd(:,2:3)),'all'))
 sd = sdtri([2;3;4],diag([1 4 9]),struct('Dist',[0 0]));
-assert(isequal(sd(:,1),[2;5]) && abs(sd(2,2)-sqrt(180)/5)<1e-12 && all(isnan(sd(:,3))))
+assert(isequal(sd(:,1),[2;5]) && abs(sd(2,2)-sqrt(180)/5)<1e-12 && norm(sd(:,3)-pv(sd(:,1),sd(:,2)))<1e-12)
 % All three correlations use the cross-row covariance, including the last pair.
 factor = [1 0 0;-.4 .8 0;.2 .5 1.1]; lower = tril(true(3)); t = factor(lower);
 A = reshape(sin(1:36),6,6); V = A*A'+eye(6);

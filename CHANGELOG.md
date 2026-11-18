@@ -9,9 +9,11 @@
   `test_mxl_frozen_draws` compares weighted scores and observed-Hessian SEs
   against an independent integration and differentiation implementation.
 - DCE and Tools now withhold inference for indefinite or singular free
-  curvature, including flat free parameters. Marginal SDs from a Cholesky
-  factor use its fitted row norms and delta-method SEs. The zero-variance
-  boundary receives no regular Wald p-value. ESS reports the missing count;
+  curvature. A free parameter with an all-zero Hessian column is still
+  skipped: it is reported without an SE and the remaining block is inverted.
+  Marginal SDs from a Cholesky factor use its fitted row norms and
+  delta-method SEs; they and the SDs of diagonal models keep their Wald
+  p-values and significance stars. ESS reports the missing count;
   only a paired score change can trigger the rotation warning.
 
 - Added optional adaptive importance sampling after ordinary diagonal MXL.

@@ -1056,6 +1056,7 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
 EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
+EstimOpt.BActive(EstimOpt.BLimit == 1) = 0; % zero curvature: report without SE, invert the rest
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MXL',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
@@ -1315,7 +1316,6 @@ if EstimOpt.FullCov == 0
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
     
-    Results.DetailsV(ismember(EstimOpt.Dist,[0 1]),4) = NaN; % zero mixing variance is a boundary null
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.R = [Results.R,Results.DetailsM];
@@ -1576,7 +1576,6 @@ elseif EstimOpt.FullCov == 1
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
 
-    Results.DetailsV(ismember(EstimOpt.Dist,[0 1]),4) = NaN; % zero mixing variance is a boundary null
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
 %         Results.DetailsM = [];
@@ -1619,7 +1618,6 @@ elseif EstimOpt.FullCov == 1
         end
     end
     Results.chol = [Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)),pv(Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)))];
-    Results.chol(EstimOpt.DiagIndex(ismember(EstimOpt.Dist,[0 1])),3) = NaN;
     Results.DetailsVcov = tril(ones(NVarA));
     choltmp = Results.chol(:,1);
 
@@ -1636,7 +1634,7 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsVcor = corrcov(Results.DetailsVcov);
 end
 
-EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0);
+EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
 
 %File Output

@@ -140,10 +140,8 @@ if E.FullCov
     pairs = fit.LatentCorrelations;
     fit.DetailsCor = [pairs(:,3),zeros(size(pairs,1),1),pairs(:,4:5)];
     fit.chol = details(d+1:end,[1 3 4]);
-    fit.chol(scaleIndex-d,3) = NaN;
 else
     fit.DetailsV = details(d+1:end,:);
-    fit.DetailsV(:,4) = NaN; % zero mixing variance requires a boundary test
 end
 fit.R = [fit.DetailsA,fit.DetailsV];
 fit.stats = pilot.stats;

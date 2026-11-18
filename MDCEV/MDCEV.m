@@ -413,6 +413,7 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
 end
 % Results.ihess = inv(Results.hess);
 EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
+EstimOpt.BActive(EstimOpt.BLimit == 1) = 0; % zero curvature: report without SE, invert the rest
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MDCEV',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
@@ -433,7 +434,7 @@ end
 Results.std(imag(Results.std) ~= 0) = NaN;
 Results.R = [Results.bhat,Results.std,pv(Results.bhat,Results.std)];
 
-EstimOpt.Params = length(b0)-sum(EstimOpt.BActive == 0);
+EstimOpt.Params = length(b0)-sum(EstimOpt.BActive == 0)+sum(EstimOpt.BLimit == 1);
 Results.CrossEntropy = mean(Results.LLdetailed,'all');
 R2 = mean(exp(-Results.LLdetailed),'all');
 

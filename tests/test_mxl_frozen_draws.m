@@ -84,7 +84,7 @@ for wtp = 0:1
             for j = 1:k, delta(j) = (rho(fit.bhat+A(:,j))-rho(fit.bhat-A(:,j)))/(2*step(j)); end
             assert(abs(fit.LatentCorrelations(1,4)/sqrt(delta'*(H\delta))-1)<1e-3);
             assert(abs(fit.LatentCorrelations(1,3)-rho(fit.bhat))<1e-12 && fit.LatentCorrelations(1,5)<=1);
-            assert(norm(fit.DetailsV(:,1)-sqrt(diag(L*L')))<1e-10 && all(isnan(fit.DetailsV(:,4))));
+            assert(norm(fit.DetailsV(:,1)-sqrt(diag(L*L')))<1e-10 && norm(fit.DetailsV(:,4)-pv(fit.DetailsV(:,1),fit.DetailsV(:,3)))<1e-12);
         end
         if E.Display
             sheet = readcell(fit.OutputFile,'Sheet','Results');
@@ -104,12 +104,13 @@ E.Display = 0; E.ISNRep = 1024; E.ISSeed = 8765;
 b = MXL(I,old,E,O);
 assert(b.IS.success && b.IS.NRep==1024 && b.IS.Seed==8765 && abs(b.IS.StartLL-b.LL)>1e-7);
 assert(abs(b.LL-result.LL)<1e-8 && max(abs(b.IS.std-fit.std))>1e-6);
-% A coefficient with no information remains free; it cannot yield valid inference on a reduced model.
+% A coefficient with no information (all-zero Hessian column) is skipped: no SE for it, the rest inverted.
 E.Display=0; E.WTP_space=0; E.FullCov=0; E.ImportanceSampling=0;
 I.Xa(:,1)=0; old.MXL_d.b0=[.4;0;.9;.8];
 flat = MXL(I,old,E,O);
-assert(~flat.HessDiagnostics.ValidInference && all(isfinite(flat.bhat)) && all(isnan(flat.std)));
-assert(all(flat.EstimOpt.BActive) && flat.diagnostics.NNonFiniteSE==4 && ~isfield(flat,'IS'));
+assert(flat.HessDiagnostics.ValidInference && all(isfinite(flat.bhat)) && all(isnan(flat.std([1 3]))) && all(isfinite(flat.std([2 4]))));
+assert(isequal(flat.EstimOpt.BActive(:)',[0 1 0 1]) && flat.stats(end)==4 && ~isfield(flat,'IS'));
+assert(all(isnan(flat.R(1,[3 4 7 8]))) && all(isfinite(flat.R(2,[3 4 7 8]))));
 fprintf('ALL_MXL_FROZEN_TESTS_PASS\n');
 end
 

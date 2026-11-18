@@ -746,6 +746,7 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
 EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
+EstimOpt.BActive(EstimOpt.BLimit == 1) = 0; % zero curvature: report without SE, invert the rest
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HLC',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
