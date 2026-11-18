@@ -597,14 +597,14 @@ if sum(EstimOpt.BActive == 0) > 0
     else
         Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
     end
-    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL',true);
     Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
     Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 else
     if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
         Results.hess = Results.jacobian'*Results.jacobian;
     end
-    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL');
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MNL',true);
 end
 
 % Hessian quality diagnostics - the checklist of the standard error report of

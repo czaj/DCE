@@ -5,8 +5,9 @@ function Results = MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %           MXL(INPUT,Results_old,EstimOpt,OptimOpt)
 %
 % Optional post-estimation: EstimOpt.ImportanceSampling = 1 fits a second,
-% adaptive model in Results.IS and exports it separately. See DRAWS.md.
-% ISNRep defaults to NRep per round; ISSeed defaults to 1234.
+% adaptive model. Use 'fixed' for a single frozen population proposal, including
+% full covariance. Both return Results.IS and export separately. See DRAWS.md.
+% ISNRep defaults to NRep; ISSeed defaults to Seed1 (fixed) or 1234 (adaptive).
 %
 % Inputs:
 %    INPUT - clean, updated INPUT data from DataCleanDCE
@@ -660,20 +661,30 @@ end
 EstimOpt = dceSimulationDefaults(EstimOpt);
 useIS = isfield(EstimOpt,'ImportanceSampling') && ~isempty(EstimOpt.ImportanceSampling);
 if useIS
-    validateattributes(EstimOpt.ImportanceSampling,{'numeric','logical'},{'scalar','binary'},'MXL','ImportanceSampling');
-    useIS = logical(EstimOpt.ImportanceSampling);
+    mode = EstimOpt.ImportanceSampling;
+    if ischar(mode) || isstring(mode)
+        EstimOpt.ISMethod = validatestring(mode,{'fixed','adaptive'},'MXL','ImportanceSampling');
+    else
+        validateattributes(mode,{'numeric','logical'},{'scalar','binary'},'MXL','ImportanceSampling');
+        useIS = logical(mode);
+        EstimOpt.ISMethod = 'adaptive';  % published numeric option
+    end
 end
 if useIS
-    if EstimOpt.FullCov || any(~ismember(EstimOpt.Dist,[0 1])) || EstimOpt.WTP_space > 1 || ...
+    kept = repelem(~EstimOpt.MissingCT(:),EstimOpt.NAlt);
+    if (EstimOpt.FullCov && strcmp(EstimOpt.ISMethod,'adaptive')) || any(~ismember(EstimOpt.Dist,[0 1])) || EstimOpt.WTP_space > 1 || ...
             EstimOpt.NVarM || EstimOpt.NVarS || EstimOpt.NVarNLT || ~isempty(EstimOpt.ExpB) || ...
-            any(~EstimOpt.BActive) || any(INPUT.MissingInd(:)) || any(~isfinite(INPUT.Xa(:))) || ...
-            any(~ismember(INPUT.Y(:),[0 1])) || any(sum(reshape(INPUT.Y,EstimOpt.NAlt,[]),1)~=1)
-        error('MXL:ISSpecification',['IS requires a complete diagonal normal/lognormal MXL, ', ...
+            any(~EstimOpt.BActive) || any(EstimOpt.NCTMiss==0) || any(INPUT.MissingInd(kept)) || ...
+            any(~isfinite(INPUT.Xa(kept,:)),'all') || any(~ismember(INPUT.Y(kept),[0 1])) || ...
+            any(sum(reshape(INPUT.Y(kept),EstimOpt.NAlt,[]),1)~=1)
+        error('MXL:ISSpecification',['IS requires complete observed choice sets and normal/lognormal mixing (adaptive mode requires diagonal covariance), ', ...
             'with free means and SDs, no covariates of means or scale, no utility transformations, ', ...
             'and at most one WTP cost coefficient.']);
     end
     if ~isfield(EstimOpt,'ISNRep') || isempty(EstimOpt.ISNRep), EstimOpt.ISNRep = EstimOpt.NRep; end
-    if ~isfield(EstimOpt,'ISSeed') || isempty(EstimOpt.ISSeed), EstimOpt.ISSeed = 1234; end
+    if ~isfield(EstimOpt,'ISSeed') || isempty(EstimOpt.ISSeed)
+        if strcmp(EstimOpt.ISMethod,'fixed'), EstimOpt.ISSeed = EstimOpt.Seed1; else, EstimOpt.ISSeed = 1234; end
+    end
     validateattributes(EstimOpt.ISNRep,{'numeric'},{'real','scalar','finite','integer','>=',3},'MXL','ISNRep');
     validateattributes(EstimOpt.ISSeed,{'numeric'},{'real','scalar','integer','>=',0,'<=',2^32-1},'MXL','ISSeed');
     EstimOpt.ISNRep = double(EstimOpt.ISNRep);
@@ -1044,10 +1055,9 @@ Results.LLdetailed = Results.LLdetailed.*INPUT.W;
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MXL');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MXL',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -1084,7 +1094,7 @@ end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
-Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(EstimOpt.BLimit == 1) = NaN;
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 if any(INPUT.MissingInd == 1) % In case of some missing data
@@ -1305,6 +1315,7 @@ if EstimOpt.FullCov == 0
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
     
+    Results.DetailsV(ismember(EstimOpt.Dist,[0 1]),4) = NaN; % zero mixing variance is a boundary null
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
         Results.R = [Results.R,Results.DetailsM];
@@ -1350,7 +1361,7 @@ if EstimOpt.FullCov == 0
 elseif EstimOpt.FullCov == 1
     Results.DetailsA(1:NVarA,1) = Results.bhat(1:NVarA);
     Results.DetailsA(1:NVarA,3:4) = [Results.std(1:NVarA),pv(Results.bhat(1:NVarA),Results.std(1:NVarA))];
-    Results.DetailsV = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
+    [Results.DetailsV,Results.LatentCorrelations] = sdtri(Results.bhat(NVarA+1:NVarA*(NVarA+3)/2),Results.ihess(NVarA+1:NVarA*(NVarA+3)/2,NVarA+1:NVarA*(NVarA+3)/2),EstimOpt);
     Results.DetailsV = [Results.DetailsV(:,1),zeros(NVarA,1),Results.DetailsV(:,2:3)];
     
     if EstimOpt.NVarM > 0
@@ -1565,6 +1576,7 @@ elseif EstimOpt.FullCov == 1
             %[stdx(EstimOpt.Dist == 17),pv(exp(btmp(EstimOpt.Dist == 17)),stdx(EstimOpt.Dist == 17))];
     end
 
+    Results.DetailsV(ismember(EstimOpt.Dist,[0 1]),4) = NaN; % zero mixing variance is a boundary null
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0
 %         Results.DetailsM = [];
@@ -1607,6 +1619,7 @@ elseif EstimOpt.FullCov == 1
         end
     end
     Results.chol = [Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)),pv(Results.bhat(NVarA+1:NVarA*(NVarA/2+1.5)),Results.std(NVarA+1:NVarA*(NVarA/2+1.5)))];
+    Results.chol(EstimOpt.DiagIndex(ismember(EstimOpt.Dist,[0 1])),3) = NaN;
     Results.DetailsVcov = tril(ones(NVarA));
     choltmp = Results.chol(:,1);
 
@@ -1623,7 +1636,7 @@ elseif EstimOpt.FullCov == 1
     Results.DetailsVcor = corrcov(Results.DetailsVcov);
 end
 
-EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
+EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0);
 Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
 
 %File Output
@@ -1684,6 +1697,21 @@ if EstimOpt.NVarS > 0
     ST = {'DetailsS'};
 end
 
+
+if EstimOpt.FullCov
+    pairs = Results.LatentCorrelations;
+    normal = ismember(EstimOpt.Dist(:),[0 1]);
+    show = normal(pairs(:,1)) & normal(pairs(:,2));
+    if any(show)
+        Results.DetailsCor = [pairs(show,3),zeros(nnz(show),1),pairs(show,4:5)];
+        names = string(EstimOpt.NamesA(:));
+        Names.DetailsCor = cellstr(names(pairs(show,1))+" / "+names(pairs(show,2)));
+        Heads.DetailsCor = {'Latent correlations';'tb'};
+        Template1{end+1,1} = 'DetailsCor';
+        Template2{end+1,1} = 'DetailsCor';
+        ST{end+1} = 'DetailsCor';
+    end
+end
 
 %% Tworzenie naglowka
 
@@ -1819,8 +1847,8 @@ if useIS
     if EstimOpt.Display ~= 0
         isTail = Tail(1:17,:);
         isTail(3:11,2) = num2cell(fit.stats);
-        isTail(13:17,2) = {'adaptive importance-sampled MXL'; ...
-            sprintf('5 rounds of %d draws per respondent, seed %u',fit.NRep,fit.Seed); ...
+        isTail(13:17,2) = {[fit.Method ' importance-sampled MXL']; ...
+            sprintf('%d round(s) of %d draws per respondent, seed %u',numel(fit.Rounds),fit.NRep,fit.Seed); ...
             'quasi-newton, fixed proposal within each round';'analytical mixing-density score'; ...
             'observed final Hessian, model-based SE'};
         Head{1} = 'MXL IS (underlying means and SDs)';

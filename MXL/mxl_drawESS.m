@@ -71,13 +71,16 @@ XXa = INPUT.XXa;
 YY = INPUT.YY;
 idx = reshape(1:NAlt*NCT,[NAlt,NCT]);
 ess = NaN(NP,1);
-lli = NaN(NP,1);
+lli = zeros(NP,1); % a panel without observed choices contributes log(1)
 
 for n = 1:NP
     Xn = XXa(:,:,n);
     yn = YY(:,n);
     ok = ~isnan(yn) & all(~isnan(Xn),2);
     okm = reshape(ok,[NAlt,NCT]);
+    if isfield(EstimOpt,'MissingCT') && ~isempty(EstimOpt.MissingCT)
+        okm(:,logical(EstimOpt.MissingCT(:,n))) = false;
+    end
     keep = all(okm,1);
     if any(any(okm(:,~keep)))
         error('mxl_drawESS:MissingData', ...
@@ -92,12 +95,13 @@ for n = 1:NP
     B = b0a + VC*err(:,(n-1)*NRep+1:n*NRep);     % NVarA x NRep
     B(Dist == 1,:) = exp(B(Dist == 1,:));
     if WTP_space == 1
-        B(1:NVarA-1,:) = B(1:NVarA-1,:).*B(NVarA,:);
+        costs = optField(EstimOpt,'WTP_matrix',NVarA);
+        B(1:NVarA-1,:) = B(1:NVarA-1,:).*B(costs,:);
     end
 
     logP = mxl_log_panel(Xn(rows,:),yn(rows)==1,B,NAlt);
     m = max(logP);
-    if ~isfinite(m)
+    if any(isnan(logP)) || ~isfinite(m)
         error('mxl_drawESS:Nonfinite','No finite log-panel integral for respondent %d.',n);
     end
     w = exp(logP-m);
@@ -105,7 +109,7 @@ for n = 1:NP
     lli(n) = m + log(sum(w)/NRep);
 end
 
-ll = sum(lli(isfinite(lli)));
+ll = sum(lli);
 end
 
 

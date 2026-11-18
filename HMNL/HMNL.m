@@ -1212,14 +1212,13 @@ elseif EstimOpt.HessEstFix == 5
 end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian(:,EstimOpt.BActive == 1)'*Results.jacobian(:,EstimOpt.BActive == 1);
-    EstimOpt.BLimit = (sum(Results.hess) == 0);
+    EstimOpt.BLimit = (all(Results.hess == 0,1));
     EstimOpt.BLimit = direcXpnd(EstimOpt.BLimit,EstimOpt.BActive);
 else
-    EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-    EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+    EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
     Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
 end
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HMNL');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'HMNL',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -1247,7 +1246,7 @@ end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
-Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(EstimOpt.BLimit == 1) = NaN;
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 %%1

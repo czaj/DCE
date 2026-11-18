@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+- Added `EstimOpt.ImportanceSampling='fixed'` for a frozen population-proposal
+  refit of normal/lognormal MXL in preference and single-cost WTP space, with
+  diagonal or full covariance. Numeric 1 retains the adaptive diagonal option.
+  The default remains ordinary scrambled Sobol. The public regression test
+  `test_mxl_frozen_draws` compares weighted scores and observed-Hessian SEs
+  against an independent integration and differentiation implementation.
+- DCE and Tools now withhold inference for indefinite or singular free
+  curvature, including flat free parameters. Marginal SDs from a Cholesky
+  factor use its fitted row norms and delta-method SEs. The zero-variance
+  boundary receives no regular Wald p-value. ESS reports the missing count;
+  only a paired score change can trigger the rotation warning.
+
 - Added optional adaptive importance sampling after ordinary diagonal MXL.
   `EstimOpt.ImportanceSampling = 1` adds `Results.IS` with its own coefficients,
   observed-Hessian SEs, respondent ESS, fresh-draw check and workbook. See

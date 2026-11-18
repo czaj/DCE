@@ -735,10 +735,9 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
 
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'GMXL');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'GMXL',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -764,7 +763,7 @@ end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
-Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(EstimOpt.BLimit == 1) = NaN;
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 
@@ -810,7 +809,7 @@ if EstimOpt.FullCov == 0
 else % => EstimOpt.FullCov == 1
     Results.DetailsA(:,1) = Results.bhat(1:EstimOpt.NVarA);
     Results.DetailsA(:,3:4) = [Results.std(1:EstimOpt.NVarA),pv(Results.bhat(1:EstimOpt.NVarA),Results.std(1:EstimOpt.NVarA))];
-    Results.DetailsV = sdtri(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2,EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),EstimOpt);
+    Results.DetailsV = sdtri(Results.bhat(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),Results.ihess(EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2,EstimOpt.NVarA+1:EstimOpt.NVarA*(EstimOpt.NVarA+3)/2),EstimOpt,false(size(EstimOpt.Dist)));
     Results.DetailsV = [Results.DetailsV(:,1),zeros(EstimOpt.NVarA,1),Results.DetailsV(:,2:3)];
     Results.R = [Results.DetailsA,Results.DetailsV];
     if EstimOpt.NVarM > 0

@@ -30,7 +30,7 @@ shiftId = 'simDiagnostics:DrawSetSpecific';
 %% 1. the helper on inputs with known answers
 
 rotOK = struct('MaxAbsGradient',1e-4,'MaxNewtonStepSE',0.01, ...
-    'MedianNewtonStepSE',0.002,'Offset',50,'ReferenceMaxAbsGradient',1e-6);
+    'PairedStepSE',0.01,'MedianNewtonStepSE',0.002,'Offset',50,'ReferenceMaxAbsGradient',1e-6);
 
 lastwarn('');
 [D,TailRows] = simDiagnostics(100*ones(40,1),1000,rotOK,'unit');
@@ -38,7 +38,7 @@ lastwarn('');
 assert(D.MedianESS == 100 && abs(D.MedianESSShare - 0.1) < 1e-12,'median effective draws')
 assert(D.MinESS == 100 && D.NBelowMinDraws == 0 && D.ShareBelowMinDraws == 0,'nothing starved')
 assert(~D.StarvedDraws && ~D.DrawSetSpecific && isempty(id),'no warning on a healthy simulator')
-assert(isequal(size(TailRows),[5 2]) && ischar(TailRows{1,2}),'tail rows')
+assert(isequal(size(TailRows),[6 2]) && ischar(TailRows{1,2}),'tail rows')
 assert(D.RotationOffset == 50 && D.RotatedStepSE == 0.01,'rotation statistics stored')
 
 % the remedy the numbers point to
@@ -63,7 +63,7 @@ assert(D.NBelowMinDraws == 4 && D.MinESS == 3,'starved respondents counted')
 
 % the draw-set check warns when rotating the blocks would move the estimate
 rotBad = rotOK;
-rotBad.MaxNewtonStepSE = 1.01;
+rotBad.MaxNewtonStepSE = 1.01; rotBad.PairedStepSE = 1.01;
 rotBad.MedianNewtonStepSE = 0.3;
 rotBad.MaxAbsGradient = 53;
 lastwarn('');
@@ -71,23 +71,25 @@ D = simDiagnostics(100*ones(40,1),1000,rotBad,'unit');
 [~,id] = lastwarn;
 assert(D.DrawSetSpecific && strcmp(id,shiftId),'warning above the shift threshold')
 lastwarn('');
-rotEdge = rotOK; rotEdge.MaxNewtonStepSE = 1;
+rotEdge = rotOK; rotEdge.MaxNewtonStepSE = 1; rotEdge.PairedStepSE = 1;
 D = simDiagnostics(100*ones(40,1),1000,rotEdge,'unit');
 [~,id] = lastwarn;
 assert(~D.DrawSetSpecific && isempty(id),'no warning at the shift threshold')
 
 % Legacy numeric fields remain readable; their values do not prescribe a remedy.
-rot18 = rotOK; rot18.MaxNewtonStepSE = 1.8;
+rot18 = rotOK; rot18.MaxNewtonStepSE = 1.8; rot18.PairedStepSE = 1.8;
 D = simDiagnostics(100*ones(40,1),500,rot18,'unit');
-assert(D.DrawsSuggested == 2048 && contains(D.Advice,'independent draws'))
-rot24 = rotOK; rot24.MaxNewtonStepSE = 24;
+assert(isnan(D.DrawsSuggested) && contains(D.Advice,'independent draws'))
+rot24 = rotOK; rot24.MaxNewtonStepSE = 24; rot24.PairedStepSE = 24;
 D = simDiagnostics(10*ones(40,1),1000,rot24,'unit');
-assert(D.DrawsSuggested > 1e5 && D.ISCeiling == 100)
+assert(isnan(D.DrawsSuggested) && D.ISCeiling == 100)
 assert(~contains(D.Advice,'specification problem') && ~contains(D.Advice,'at least'))
 rot24.PairedStepSE = 0;
 D = simDiagnostics(100*ones(40,1),1000,rot24,'unit');
 assert(~D.DrawSetSpecific && D.PairedStepSE == 0 && D.RotatedStepSE == 24)
 
+D = simDiagnostics([3;12;NaN;NaN],16,rmfield(rotBad,'PairedStepSE'),'unit');
+assert(D.NP==4 && D.NUnassessed==2 && D.ShareBelowMinDraws==0.25 && ~D.DrawSetSpecific)
 % Paired scores isolate a draw change from an unfinished optimization.
 toy = struct('hess',1,'ihess',1,'g',12,'bhat',0);
 cfg = struct('NP',4,'NRep',2);
@@ -113,6 +115,11 @@ assert(strcmp(D.ESSNote,'no analytical jacobian') && ...
     strcmp(D.RotationNote,'numerical gradient'),'reasons kept')
 assert(isequal(size(TailRows),[2 2]) && contains(TailRows{1,2},'not available'), ...
     'reasons reach the output')
+% Identical panel probabilities still have ESS=R after their product underflows.
+long = struct('NAlt',2,'NCT',1200,'NP',4,'NRep',16,'NVarA',1,'Dist',0,'FullCov',0,'WTP_space',0);
+panels = struct('YY',repmat([1;0],1200,4),'XXa',zeros(2400,1,4));
+[count,ll] = mxl_drawESS(panels,long,zeros(1,64),[0;1]);
+assert(all(count==16) && abs(ll+4800*log(2))<1e-8)
 fprintf('SIM_DIAG_UNIT_PASS\n');
 
 

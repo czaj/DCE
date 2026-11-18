@@ -880,10 +880,9 @@ end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MIMIC');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MIMIC',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -911,7 +910,7 @@ end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
-Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(EstimOpt.BLimit == 1) = NaN;
 
 for i = 1:EstimOpt.NLatent
     Results.DetailsS(:,4*i-3) = Results.bhat((EstimOpt.NVarStr)*(i-1)+1:(EstimOpt.NVarStr)*i);

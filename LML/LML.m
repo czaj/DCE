@@ -700,10 +700,9 @@ if EstimOpt.NoOutput == 0
     if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
         Results.hess = Results.jacobian'*Results.jacobian;
     end
-    EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-    EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+    EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
     Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LML');
+    [Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LML',true);
     Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
     Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -731,7 +730,7 @@ if EstimOpt.NoOutput == 0
 
     [Results.P,Results.DistStats,Results.GridPlot] = P_lml(b_tmp,Results.bhat,err_tmp,Results.ihess,EstimOpt);
 
-    EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0) + sum(EstimOpt.BLimit == 1);
+    EstimOpt.params = length(b0) - sum(EstimOpt.BActive == 0);
     Results.stats = [Results.LL;Results_old.MNL0.LL;1-Results.LL/Results_old.MNL0.LL;R2;((2*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;((log(EstimOpt.NObs)*EstimOpt.params-2*Results.LL))/EstimOpt.NObs;EstimOpt.NObs;EstimOpt.NP;EstimOpt.params];
 
     %File Output

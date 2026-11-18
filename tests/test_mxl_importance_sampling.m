@@ -45,6 +45,11 @@ sheet = readcell(is.OutputFile,'Sheet','Results');
 assert(abs(sheet{4,5}-is.std(1))<1e-9 && any(strcmp(sheet(:,1),'Fresh IS draws')))
 fprintf('WIKTOR_IS_PASS pilot SE %.8f, IS SE %.8f, IS LL %.8f, refresh %.4f SE\n',base.std(1),is.std(1),is.LL,max(is.RefreshStepSE));
 
+E.Display = 0; E.ImportanceSampling = 'fixed';
+frozen = MXL(I,old,E,O);
+assert(frozen.IS.success && abs(frozen.IS.StartLL-base.LL)<1e-7 && abs(frozen.IS.std(1)-.2018)<2e-4)
+fprintf('WIKTOR_FROZEN_PASS pilot %.7f, frozen SE %.7f, LL %.7f\n',base.std(1),frozen.IS.std(1),frozen.IS.LL);
+E.ImportanceSampling = 1;
 E.ISSeed = uint32(4321); E.ISNRep = uint32(1001); E.Display = 0;
 other = MXL(I,old,E,O);
 assert(other.IS.success && other.IS.NRep==1001 && other.IS.Seed==4321)

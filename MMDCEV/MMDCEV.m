@@ -527,10 +527,9 @@ if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
 end
 % Results.ihess = inv(Results.hess);
 
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MMDCEV');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'MMDCEV',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -549,7 +548,7 @@ end
 Results.std(imag(Results.std) ~= 0) = NaN;
 Results.R = [Results.bhat,Results.std,pv(Results.bhat,Results.std)];
 
-EstimOpt.Params = length(b0)-sum(EstimOpt.BActive == 0)+sum(EstimOpt.BLimit == 1);
+EstimOpt.Params = length(b0)-sum(EstimOpt.BActive == 0);
 Results.CrossEntropy = mean(Results.LLdetailed/EstimOpt.NCT,'all');
 R2 = mean(exp(-Results.LLdetailed/EstimOpt.NCT),'all');
 

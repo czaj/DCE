@@ -70,6 +70,30 @@ assert(isnan(D.MedianSERatioBHHH) && strcmp(D.Note,'reason text'),'skip reason')
 % a singular Hessian is reported instead of throwing
 D = hessianDiagnostics(zeros(n),zeros(n),g,J,BActive,'unit');
 assert(D.MinEigHessian == 0 && D.NNonFiniteSE == n,'singular Hessian')
+[invalid,info] = hessianInverse([1 2;2 1],'unit',true);
+assert(~info.ValidInference && all(isnan(invalid),'all'))
+D = hessianDiagnostics([-1 2;2 -1],inv([-1 2;2 -1]),zeros(2,1),[],[],'unit');
+assert(D.NNonFiniteSE==2 && isnan(D.MaxNewtonStepSE))
+[invalid,info] = hessianInverse(ones(2),'unit',true);
+assert(~info.ValidInference && all(isnan(invalid),'all'))
+sd = sdtri([0;0;0],eye(3),struct('Dist',[0 0]));
+assert(all(sd(:,1)==0) && all(isnan(sd(:,2:3)),'all'))
+sd = sdtri([2;3;4],diag([1 4 9]),struct('Dist',[0 0]));
+assert(isequal(sd(:,1),[2;5]) && abs(sd(2,2)-sqrt(180)/5)<1e-12 && all(isnan(sd(:,3))))
+% All three correlations use the cross-row covariance, including the last pair.
+factor = [1 0 0;-.4 .8 0;.2 .5 1.1]; lower = tril(true(3)); t = factor(lower);
+A = reshape(sin(1:36),6,6); V = A*A'+eye(6);
+[~,pairs] = sdtri(t,V,struct('Dist',[0 1 0]));
+for pair = 1:3
+    ij = sub2ind([3 3],pairs(pair,1),pairs(pair,2));
+    df = zeros(6,1);
+    for j = 1:6
+        delta = zeros(6,1); delta(j) = 1e-5;
+        plus=factor; minus=factor; plus(lower)=t+delta; minus(lower)=t-delta;
+        rp=corrcov(plus*plus'); rm=corrcov(minus*minus'); df(j)=(rp(ij)-rm(ij))/2e-5;
+    end
+    assert(abs(pairs(pair,4)-sqrt(df'*V*df))<1e-7)
+end
 fprintf('HESS_DIAG_UNIT_PASS\n');
 
 

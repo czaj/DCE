@@ -689,10 +689,9 @@ end
 if EstimOpt.HessEstFix == 1 || EstimOpt.HessEstFix == 2
     Results.hess = Results.jacobian'*Results.jacobian;
 end
-EstimOpt.BLimit = (sum(Results.hess) == 0 & EstimOpt.BActive == 1);
-EstimOpt.BActive(EstimOpt.BLimit == 1) = 0;
+EstimOpt.BLimit = (all(Results.hess == 0,1) & EstimOpt.BActive == 1);
 Results.hess = Results.hess(EstimOpt.BActive == 1,EstimOpt.BActive == 1);
-[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LCMXL');
+[Results.ihess, Results.HessDiagnostics] = hessianInverse(Results.hess,'LCMXL',true);
 Results.ihess = direcXpnd(Results.ihess,EstimOpt.BActive);
 Results.ihess = direcXpnd(Results.ihess',EstimOpt.BActive);
 
@@ -718,7 +717,7 @@ end
 
 Results.std = sqrt(diag(Results.ihess));
 Results.std(EstimOpt.BActive == 0) = NaN;
-Results.std(EstimOpt.BLimit == 1) = 0;
+Results.std(EstimOpt.BLimit == 1) = NaN;
 Results.std(imag(Results.std) ~= 0) = NaN;
 
 if EstimOpt.FullCov == 0
@@ -749,10 +748,12 @@ else
     for i = 1:EstimOpt.NClass
         Results.DetailsA(1:EstimOpt.NVarA,4*i-3) = Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA);
         Results.DetailsA(1:EstimOpt.NVarA,4*i-1:4*i) = [Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),pv(Results.bhat((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA),Results.std((i-1)*EstimOpt.NVarA + 1:i*EstimOpt.NVarA))];
-        l = EstimOpt.NClass*EstimOpt.NVarA;
-        Results.DetailsV(1:EstimOpt.NVarA,4*i-3:4*i-1) = sdtri(Results.bhat(l+1:l+sum(1:EstimOpt.NVarA)), Results.ihess(l+1:l+sum(1:EstimOpt.NVarA),l+1:l+sum(1:EstimOpt.NVarA)),EstimOpt);
-        Results.DetailsV = [Results.DetailsV(:,1:4*i-3),zeros(EstimOpt.NVarA,1),Results.DetailsV(:,4*i-2:4*i-1)];
-        l = l + sum(1:EstimOpt.NVarA);
+        perClass = sum(1:EstimOpt.NVarA);
+        idx = EstimOpt.NClass*EstimOpt.NVarA+(i-1)*perClass+(1:perClass);
+        classOpt = struct('Dist',EstimOpt.Dist(:,i));
+        block = sdtri(Results.bhat(idx),Results.ihess(idx,idx),classOpt);
+        Results.DetailsV(:,4*i-3:4*i) = [block(:,1),zeros(EstimOpt.NVarA,1),block(:,2:3)];
+        l = EstimOpt.NClass*(EstimOpt.NVarA+perClass);
         if EstimOpt.NVarS > 0
             Results.(['DetailsS',num2str(i)])(:,1) = Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS);
             Results.(['DetailsS',num2str(i)])(:,3:4) = [Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), pv(Results.bhat(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS), Results.std(l+(i-1)*EstimOpt.NVarS+1:l+i*EstimOpt.NVarS))];
@@ -772,7 +773,11 @@ Results.INPUT = INPUT;
 
 NSdSim = 10000;
 bclass = reshape([Results.bhat(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end);zeros(EstimOpt.NVarC,1)],[EstimOpt.NVarC,EstimOpt.NClass]);
-bclass_sim = reshape([mvnrnd(Results.bhat(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),Results.ihess(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end,end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
+if Results.HessDiagnostics.ValidInference
+    bclass_sim = reshape([mvnrnd(Results.bhat(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),Results.ihess(end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end,end-EstimOpt.NVarC*(EstimOpt.NClass-1)+1:end),NSdSim)';zeros(EstimOpt.NVarC,NSdSim)],[EstimOpt.NVarC,EstimOpt.NClass,NSdSim]);
+else
+    bclass_sim = NaN(size(bclass,1),EstimOpt.NClass,NSdSim);
+end
 
 V = INPUT.XXc*bclass;
 V = exp(V - max(V,[],2));
