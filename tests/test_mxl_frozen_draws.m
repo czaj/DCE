@@ -1,5 +1,6 @@
-function test_mxl_frozen_draws(outDir)
+function comparison = test_mxl_frozen_draws(outDir)
 % Public MXL -> frozen refit, compared with a separately coded binary panel integral.
+% Request an output to also time the correlated WTP example at two draw budgets.
 if nargin<1, outDir = tempname; end
 if ~isfolder(outDir), mkdir(outDir); end
 for wtp = 0:1
@@ -95,6 +96,9 @@ for wtp = 0:1
         fprintf('FROZEN_PASS WTP=%d full=%d LL=%.8f SE discrepancy=%.4g fresh=%.3f SE\n',wtp,fullCov,fit.LL,max(abs(se./fit.std-1)),max(fit.RefreshStepSE));
     end
 end
+if nargout
+    comparison = compareCorrelated(I,old,E,O);
+end
 % New budget and fresh scramble are reproducible independently of the pilot grid.
 E.Display = 0; E.ISNRep = 1024; E.ISSeed = 8765;
 b = MXL(I,old,E,O);
@@ -107,6 +111,50 @@ flat = MXL(I,old,E,O);
 assert(~flat.HessDiagnostics.ValidInference && all(isfinite(flat.bhat)) && all(isnan(flat.std)));
 assert(all(flat.EstimOpt.BActive) && flat.diagnostics.NNonFiniteSE==4 && ~isfield(flat,'IS'));
 fprintf('ALL_MXL_FROZEN_TESTS_PASS\n');
+end
+
+function comparison = compareCorrelated(I,old,E,O)
+% Time complete public calls after warm-up; the fixed strategies include the 512-draw pilot.
+E.Display = 0; E.Drawskeep = 0;
+strategy = ["SML512","fixed512","SML4096","fixed4096"];
+records = cell(24,1);
+row = 0;
+for seed = [17431 71629]
+    E.Seed1 = seed;
+    for rep = 1:3
+        for index = circshift(1:4,rep-1)
+            fixed = startsWith(strategy(index),"fixed");
+            budget = 512; if index>2, budget=4096; end
+            E.NRep = budget; E.ImportanceSampling = 0;
+            if fixed
+                E.NRep = 512; E.ISNRep = budget; E.ImportanceSampling = 'fixed';
+            end
+            clock = tic;
+            pilot = MXL(I,old,E,O);
+            elapsed = toc(clock);
+            fit = pilot; extra = 0;
+            if fixed
+                assert(pilot.IS.success && strcmp(pilot.IS.Method,'fixed'));
+                fit = pilot.IS; extra = fit.EstimationSeconds;
+            end
+            assert(fit.exitf>0 && fit.diagnostics.MaxNewtonStepSE<.01 && all(isfinite(fit.std)));
+            pair = fit.LatentCorrelations(1,:);
+            row = row+1;
+            records{row} = struct('Seed',seed,'Repeat',rep,'Method',strategy(index), ...
+                'Seconds',elapsed,'RefitSeconds',extra,'LL',fit.LL, ...
+                'MeanWTP',fit.bhat(1),'SEMeanWTP',fit.std(1),'SDWTP',fit.DetailsV(1,1), ...
+                'SESDWTP',fit.DetailsV(1,3),'Rho',pair(3),'SERho',pair(4), ...
+                'MeanLogScale',fit.bhat(2),'SEMeanLogScale',fit.std(2), ...
+                'SDLogScale',fit.DetailsV(2,1),'SESDLogScale',fit.DetailsV(2,3));
+        end
+    end
+end
+comparison = struct2table(vertcat(records{:}));
+% Independent 224-by-224 Gauss-Hermite refit on this dataset (see DRAWS.md).
+reference = [0.17269118,0.14053584,0.15751111,0.24329305,0.35183601];
+fixed = comparison.Method == "fixed4096";
+se = comparison{fixed,{'SEMeanWTP','SESDWTP','SERho','SEMeanLogScale','SESDLogScale'}};
+assert(max(abs(se./reference-1),[],'all')<0.10,'High-budget fixed refit departed from quadrature.');
 end
 
 function v = logNormal(points,mu,L)

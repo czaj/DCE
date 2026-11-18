@@ -24,14 +24,18 @@ Czajkowski and Budziński compared repeated fits across simulators, dimensions a
 ## Optional importance sampling after ordinary MXL
 
 ```matlab
+E.FullCov = 1;                 % correlated normal/lognormal coefficients
 E.ImportanceSampling = 'fixed'; % one refit; reuse the pilot points by default
 % E.ISNRep = 4096;             % optional separate refit budget
 % E.ISSeed = 71629;            % optional independent refit scramble
 E.RobustStd = 0;
 E.HessEstFix = 5;
+E.EffectiveMoments = 0;        % compare both fits on the underlying normal scale
 R = MXL(INPUT,Results_old,E,OptimOpt);
 if R.IS.success
-    disp([R.bhat, R.std, R.IS.bhat, R.IS.std])
+    disp([R.DetailsA(:,3), R.IS.DetailsA(:,3)])       % SEs of means
+    disp([R.DetailsV(:,3), R.IS.DetailsV(:,3)])       % SEs of marginal SDs
+    disp([R.LatentCorrelations(:,3:4), R.IS.LatentCorrelations(:,3:4)]) % rho and SE
 end
 ```
 
@@ -43,7 +47,25 @@ Both modes support normal/lognormal random coefficients, respondent weights, who
 
 `ImportanceSampling=1` and `ImportanceSampling='adaptive'` select the published diagonal option. Its default IS seed is 1234. It follows Wiktor Budziński's five-round adaptive proposal. Within each round it fixes coefficient draws and conditional panel log probabilities and differentiates the population density in the importance weights. Each respondent's proposal mixes a population normal component (about 20%) and a Student t component with five degrees of freedom centered on the weighted draws. The actual mixture proportions account for rounding. The four adaptations after the first optimization update the proposals using the previous round's weights. `R.IS.Rounds` records each LL, optimizer exit flag, iterations and median ESS. Round LLs use different integration points. `R.IS.ESS` gives final respondent ESS. `RefreshStepSE` gives the SE-scaled change in score on new draws from the last proposal, using the final curvature. Repeat the full run with a different `ISSeed` to check both adaptation and fit stability. Changing `Seed1` additionally varies the SML pilot.
 
-### Wide-scale WTP example
+### Correlated WTP example with a fixed population proposal
+
+The example has 180 respondents, 12 binary choices per respondent, a normal WTP coefficient and a lognormal cost scale. The true correlation between WTP and **log** scale is 0.65, and the log-scale SD is 2.4. Each method uses the same simulated choices (data seed 918367) and starting coefficients. Each table cell containing two SEs gives results for independent respondent-specific Sobol scrambles, seeds 17431 and 71629, in that order.
+
+| Estimation strategy | SE of mean WTP | SE of WTP SD | SE of latent correlation | Total seconds |
+|---|---:|---:|---:|---:|
+| Ordinary MXL, 512 draws | 0.0653 / 0.0722 | 0.0469 / 0.0408 | 0.1093 / 0.1124 | 1.81 |
+| Pilot 512 + fixed IS 512 | 0.1581 / 0.1514 | 0.1518 / 0.1309 | 0.1454 / 0.1406 | 2.10 |
+| Ordinary MXL, 4096 draws | 0.1828 / 0.1737 | 0.1289 / 0.1489 | 0.1723 / 0.1459 | 5.84 |
+| Pilot 512 + fixed IS 4096 | 0.1690 / 0.1721 | 0.1414 / 0.1388 | 0.1507 / 0.1575 | 3.08 |
+| Independent quadrature refit | 0.1727 | 0.1405 | 0.1575 | — |
+
+All SEs use the inverse of the final observed Hessian. The marginal SD and correlation use the delta method with the full covariance of their Cholesky entries. The refit uses positive Cholesky diagonals. A pilot can have negative diagonals and represent the same covariance, so compare marginal SDs and correlations directly. The reference maximizes the panel likelihood by tensor Gauss–Hermite quadrature. Raising its order from 160 to 224 per axis and rotating the axes changed each of the three reference SEs by less than 0.12%.
+
+Times are medians of six complete, warmed public `MXL` calls per strategy (three runs per seed), measured on one Intel i9-7900X with a two-worker thread pool, MATLAB R2026b, CPU, workbook export off. Both IS times include their 512-draw pilot, final Hessian and fresh-draw check. The IS stage alone took 0.32 s at 512 draws and 1.28 s at 4096. On this sample the 4096-draw fixed refit gave all three SEs within 5% of the reference on both seeds, at 53% of the total time of ordinary MXL 4096. Repeating the benchmark on a second computer reproduced the SEs and gave 3.11 s versus 6.19 s for these two strategies. Two scrambles on one dataset measure numerical sensitivity. Coverage requires repeated datasets.
+
+With DCE, its tests and Tools on the path, run `comparison = test_mxl_frozen_draws(tempname)` to reproduce the timing and the SEs of all five distribution summaries. Calling the test without requesting an output runs only the regression checks.
+
+### Wide-scale WTP example with adaptive IS
 
 The example has 300 respondents, 12 tasks, four independent normal WTP parameters and a lognormal scale with log-SD 2.5. The historical global Sobol pilot uses 1000 draws. The following same-machine timings include the common pilot, its verification and export. Both second stages start at the same pilot solution.
 
